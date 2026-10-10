@@ -1,4 +1,4 @@
-# Bill Splitter
+# Splitter.ino
 
 A single-page web app for splitting a restaurant bill by item, with a service charge and payments or deposits that people have already made. It's an installable PWA that works offline, and bills can optionally be shared so friends can add their own items live.
 

@@ -1,6 +1,6 @@
 // Offline support: network first (so updates show up straight away), cache as fallback.
-// Only the app's own files and the Firebase SDK are cached; live database traffic is left alone.
-const CACHE = "bill-splitter-v2";
+// Only the app's own files, the Firebase SDK and the fonts are cached; live database traffic is left alone.
+const CACHE = "splitter-v3";
 const ASSETS = ["./", "./index.html", "./firebase-config.js", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -18,7 +18,8 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET") return;
-  if (url.origin !== location.origin && url.hostname !== "www.gstatic.com") return;
+  const cacheable = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com"];
+  if (url.origin !== location.origin && !cacheable.includes(url.hostname)) return;
 
   e.respondWith(
     caches.open(CACHE).then((cache) => {

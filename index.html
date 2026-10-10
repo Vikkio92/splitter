@@ -3,210 +3,353 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bill Splitter</title>
-<meta name="description" content="Split a restaurant bill by item, with service charge and deposits.">
-<meta name="theme-color" content="#0f766e">
+<title>Splitter.ino</title>
+<meta name="description" content="Split a restaurant bill by item, with service charge, deposits and live sharing.">
+<meta name="theme-color" content="#f2f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Split">
+<meta name="apple-mobile-web-app-title" content="Splitter">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f5f7;
-    --card: #ffffff;
-    --text: #15181d;
-    --muted: #6b7280;
-    --line: #e3e5e9;
-    --accent: #0f766e;
-    --accent-soft: #d5f0ec;
-    --accent-text: #ffffff;
-    --chip: #eef0f3;
-    --owe: #b42318;
-    --owed: #067647;
-    --warn-bg: #fff4e0;
-    --warn-text: #8a4b00;
-    --input: #ffffff;
-    --owe-bg: #fdecea;
-    --owed-bg: #e3f5ea;
+    --bg: #f2f1ec;
+    --surface: #ffffff;
+    --surface-2: #f5f4ef;
+    --text: #111113;
+    --muted: #6f6f76;
+    --line: rgba(17, 17, 19, 0.08);
+    --accent: #c9f53b;
+    --on-accent: #111113;
+    --key: #111113;
+    --on-key: #ffffff;
+    --display: #111113;
+    --on-display: #ffffff;
+    --display-muted: rgba(255, 255, 255, 0.6);
+    --display-track: rgba(255, 255, 255, 0.14);
+    --owe: #d93036;
+    --owe-bg: #fde9e8;
+    --owed: #138a4a;
+    --owed-bg: #e2f5e9;
+    --warn: #8a5300;
+    --warn-bg: #fff2d4;
+    --focus: #111113;
+    --shadow: 0 1px 2px rgba(17, 17, 19, 0.04), 0 8px 24px rgba(17, 17, 19, 0.06);
+    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --display-font: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0e1013;
-      --card: #181b20;
-      --text: #eceef1;
-      --muted: #9aa1ab;
-      --line: #2a2f37;
-      --accent: #2dd4bf;
-      --accent-soft: #123b37;
-      --accent-text: #04201d;
-      --chip: #242931;
-      --owe: #ff8a7a;
-      --owed: #5fe0a0;
-      --warn-bg: #3a2a10;
-      --warn-text: #ffd08a;
-      --input: #111418;
-      --owe-bg: #3a1916;
-      --owed-bg: #10301f;
+      --bg: #0b0b0c;
+      --surface: #161618;
+      --surface-2: #1f1f22;
+      --text: #f4f4f5;
+      --muted: #9b9ba3;
+      --line: rgba(255, 255, 255, 0.08);
+      --accent: #d4ff3a;
+      --on-accent: #0b0b0c;
+      --key: #f4f4f5;
+      --on-key: #0b0b0c;
+      --display: #d4ff3a;
+      --on-display: #0b0b0c;
+      --display-muted: rgba(11, 11, 12, 0.6);
+      --display-track: rgba(11, 11, 12, 0.15);
+      --owe: #ff7b72;
+      --owe-bg: #331816;
+      --owed: #4fd68a;
+      --owed-bg: #11291b;
+      --warn: #ffcc66;
+      --warn-bg: #2e2410;
+      --focus: #d4ff3a;
+      --shadow: none;
     }
   }
+
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 24px);
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 var(--font); -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 32px);
   }
-  main { max-width: 640px; margin: 0 auto; padding: 0 16px; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 8px; }
-  h1 { font-size: 22px; margin: 0; }
-  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
-  section.card { background: var(--card); border-radius: 14px; padding: 14px; margin: 12px 0; border: 1px solid var(--line); }
+  main { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+  [hidden] { display: none !important; }
+  svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .num { font-family: var(--display-font); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+  /* ---------- header ---------- */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; font: 700 21px/1 var(--display-font); letter-spacing: -0.02em; }
+  .brand .mark { width: 34px; height: 34px; border-radius: 11px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 22px; font-weight: 700; }
+  .brand .dot-ino { color: var(--muted); font-weight: 500; }
+  .head-actions { display: flex; gap: 8px; }
+
+  /* ---------- buttons ---------- */
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 10px 16px; border-radius: 14px;
+    background: var(--surface-2); color: var(--text); font-weight: 600; font-size: 15px;
+    transition: transform .08s ease, opacity .15s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); }
+  .btn.dark { background: var(--key); color: var(--on-key); }
+  .btn.danger { background: var(--owe); color: #fff; }
+  .btn.small { min-height: 34px; padding: 6px 12px; border-radius: 11px; font-size: 13px; }
+  .btn.pill { border-radius: 999px; }
+  .btn.block { width: 100%; }
+  .btn.add { width: 100%; margin-top: 12px; min-height: 52px; border-radius: 16px; font-size: 16px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 11px; display: inline-grid; place-items: center; color: var(--muted); flex: none; }
+  .icon-btn:active { background: var(--surface-2); }
+
+  /* ---------- inputs ---------- */
   input, select {
-    font: inherit; color: var(--text); background: var(--input);
-    border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; min-width: 0; width: 100%;
+    font: inherit; font-size: 16px; color: var(--text); background: var(--surface-2);
+    border: 1.5px solid transparent; border-radius: 12px; padding: 10px 12px; min-width: 0; width: 100%;
+    -webkit-appearance: none; appearance: none;
   }
-  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-  button {
-    font: inherit; border: 0; border-radius: 9px; padding: 9px 12px; cursor: pointer;
-    background: var(--chip); color: var(--text);
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239b9ba3' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; padding-right: 32px;
   }
-  button.primary { background: var(--accent); color: var(--accent-text); font-weight: 600; }
-  button.ghost { background: transparent; color: var(--muted); }
-  button.x { background: transparent; color: var(--muted); padding: 6px 8px; font-size: 20px; line-height: 1; }
-  .row { display: flex; gap: 8px; align-items: center; }
-  .row + .row { margin-top: 8px; }
-  .grow { flex: 1; }
-  .w-price { width: 92px; flex: none; }
-  .w-qty { width: 56px; flex: none; text-align: center; }
-  .w-small { width: 76px; flex: none; }
-  .add { margin-top: 10px; width: 100%; }
-  .item { padding: 10px 0; border-top: 1px solid var(--line); }
-  .item:first-child { border-top: 0; padding-top: 0; }
+  input:focus, select:focus { outline: none; border-color: var(--focus); }
+  input::placeholder { color: var(--muted); opacity: .7; }
+  input:disabled, select:disabled { background: transparent; color: var(--text); -webkit-text-fill-color: var(--text); opacity: 1; padding-left: 0; padding-right: 0; background-image: none; }
+
+  /* ---------- status bar ---------- */
+  .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; background: var(--surface); border-radius: 18px; padding: 10px 12px 10px 14px; margin-bottom: 12px; box-shadow: var(--shadow); font-size: 14px; }
+  .bar.needme { outline: 2px solid var(--accent); }
+  .live { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .live.on { background: var(--owed); box-shadow: 0 0 0 4px color-mix(in srgb, var(--owed) 20%, transparent); }
+  .role { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+  .role.admin { background: var(--accent); color: var(--on-accent); }
+  .bar .me { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  .bar .me select { width: auto; padding-top: 7px; padding-bottom: 7px; font-weight: 600; }
+  #guestHint { flex-basis: 100%; margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+
+  /* ---------- display panel ---------- */
+  .display { background: var(--display); color: var(--on-display); border-radius: 28px; padding: 20px 22px 22px; margin-bottom: 12px; }
+  .d-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 26px; }
+  .d-label { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--display-muted); }
+  .d-tag { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--display-track); }
+  .d-total { font: 700 56px/1.05 var(--display-font); letter-spacing: -0.04em; margin: 10px 0 6px; font-variant-numeric: tabular-nums; word-break: break-all; }
+  .d-total .cur { font-size: 0.55em; vertical-align: 0.55em; margin-right: 2px; letter-spacing: 0; }
+  .d-total .dec { color: var(--display-muted); }
+  .d-sub { font-size: 14px; color: var(--display-muted); font-variant-numeric: tabular-nums; }
+  .d-bar { height: 8px; border-radius: 999px; background: var(--display-track); margin: 16px 0 8px; overflow: hidden; }
+  .d-bar i { display: block; height: 100%; border-radius: inherit; background: var(--on-display); transition: width .3s ease; }
+  .d-paid { display: flex; justify-content: space-between; font-size: 13px; color: var(--display-muted); font-variant-numeric: tabular-nums; }
+
+  /* ---------- cards ---------- */
+  .card { background: var(--surface); border-radius: 24px; padding: 18px; margin: 12px 0; box-shadow: var(--shadow); }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  h2 { font: 600 18px/1.2 var(--display-font); letter-spacing: -0.01em; margin: 0; }
+  .count { color: var(--muted); font-size: 14px; }
+  .hint { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
+  .empty { color: var(--muted); font-size: 14px; margin: 0; padding: 18px; text-align: center; border: 1.5px dashed var(--line); border-radius: 16px; }
+
+  .tiles { display: grid; grid-template-columns: 1fr 1fr 0.7fr; gap: 8px; }
+  .tile { background: var(--surface-2); border-radius: 16px; padding: 10px 12px 8px; display: block; }
+  .tile span { display: block; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+  .tile input { background: transparent; border: 0; padding: 2px 0 0; font: 600 20px/1.3 var(--display-font); border-radius: 0; }
+  .tile input:focus { border: 0; box-shadow: inset 0 -2px 0 var(--focus); }
+
+  /* avatars */
+  .av { --c: #999; width: 30px; height: 30px; border-radius: 50%; background: var(--c); color: #111; display: inline-grid; place-items: center; font: 700 13px/1 var(--display-font); flex: none; }
+  .av.sm { width: 20px; height: 20px; font-size: 10px; }
+
+  /* people */
+  .prow { display: flex; align-items: center; gap: 10px; }
+  .prow + .prow { margin-top: 8px; }
+  .prow input { flex: 1; font-weight: 600; }
+
+  /* items */
+  .item { background: var(--surface-2); border-radius: 18px; padding: 10px; }
+  .item + .item { margin-top: 8px; }
+  .item-row { display: grid; grid-template-columns: 1fr 108px 32px; gap: 6px; align-items: center; }
+  .item-foot { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
+  .item-foot .chips { flex: 1; margin-top: 0; }
+  .item-foot .qty { width: 56px; flex: none; }
+  .item input { background: var(--surface); }
+  .item input:disabled { background: transparent; }
+  .item .name { font-weight: 600; }
+  .item .qty { text-align: center; padding-left: 4px; padding-right: 4px; }
+  .money { position: relative; display: block; }
+  .money .cur { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font: 600 15px var(--display-font); pointer-events: none; }
+  .money input { padding-left: 24px; text-align: right; font: 600 17px var(--display-font); font-variant-numeric: tabular-nums; }
+  .money input:disabled { padding-left: 24px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .chip { padding: 5px 11px; border-radius: 999px; font-size: 14px; background: var(--chip); color: var(--text); border: 1px solid transparent; }
-  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); font-weight: 600; }
-  .chip.all { color: var(--muted); }
-  .item.unassigned .chips::after { content: "Tap who had this"; font-size: 13px; color: var(--warn-text); align-self: center; margin-left: 4px; }
-  .settings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-  label.f { display: block; font-size: 13px; color: var(--muted); }
-  label.f input { margin-top: 4px; }
-  .hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
-  .warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 8px 0; }
-  .warn .row { margin-top: 8px; }
-  .warn select { width: auto; flex: 1; }
-  .totals { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-variant-numeric: tabular-nums; }
-  .totals .big { font-size: 20px; font-weight: 700; }
-  .person { border-top: 1px solid var(--line); padding: 10px 0; }
-  .person summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 4px; border-radius: 999px; font-size: 14px; font-weight: 500; background: var(--surface); border: 1.5px solid transparent; color: var(--muted); }
+  .chip .av { opacity: .45; }
+  .chip.on { color: var(--text); border-color: var(--text); font-weight: 600; }
+  .chip.on .av { opacity: 1; }
+  .chip.all { padding: 4px 11px; color: var(--muted); font-weight: 600; }
+  .chip:disabled { cursor: default; }
+  .item.unassigned { box-shadow: inset 0 0 0 1.5px var(--warn); }
+  .item.unassigned .chips::after { content: "Tap who had this"; font-size: 13px; color: var(--warn); align-self: center; margin-left: 2px; }
+  .item.locked .chip:not(.on) { display: none; }
+  .item.locked .chip.on { border-color: transparent; }
+  .item.locked .chips::after { content: none !important; }
+  .item.locked .qty:placeholder-shown { visibility: hidden; }
+
+  /* payments */
+  .payrow { display: grid; grid-template-columns: 1fr 1fr 104px 32px; gap: 6px; align-items: center; }
+  .payrow + .payrow { margin-top: 8px; }
+
+  /* warnings */
+  .warn { display: flex; gap: 10px; align-items: flex-start; background: var(--warn-bg); color: var(--warn); border-radius: 16px; padding: 12px 14px; font-size: 14px; margin: 0 0 8px; }
+  .warn > svg { margin-top: 1px; }
+  .warn .row { display: flex; gap: 8px; margin-top: 10px; }
+  .warn select { width: auto; flex: 1; background-color: var(--surface); }
+
+  /* split */
+  .person { border-top: 1px solid var(--line); }
+  .person:first-of-type { border-top: 0; }
+  .person summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 12px 0; }
   .person summary::-webkit-details-marker { display: none; }
-  .pname { font-weight: 600; }
-  .pshare { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; }
-  .pnet { font-size: 14px; margin-top: 2px; }
+  .pinfo { flex: 1; min-width: 0; }
+  .pname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pnet { font-size: 13px; font-weight: 500; }
+  .pshare { font: 700 19px var(--display-font); font-variant-numeric: tabular-nums; }
+  .chev { color: var(--muted); transition: transform .2s ease; }
+  .person[open] .chev { transform: rotate(180deg); }
   .owe { color: var(--owe); }
   .owed { color: var(--owed); }
   .settled { color: var(--muted); }
-  .breakdown { font-size: 14px; color: var(--muted); margin-top: 8px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-variant-numeric: tabular-nums; }
-  .breakdown .sep { grid-column: 1 / -1; border-top: 1px dashed var(--line); margin: 4px 0; }
-  .transfer { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-  .transfer:first-child { border-top: 0; }
-  .transfer b { font-weight: 700; }
-  .actions { display: flex; gap: 8px; margin-top: 12px; }
-  .actions button { flex: 1; }
-  .empty { color: var(--muted); font-size: 14px; margin: 0; }
-  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
-  .toast.show { opacity: 1; }
-  .head-actions { display: flex; gap: 4px; }
-  .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; font-size: 14px; }
-  .bar[hidden] { display: none; }
-  .bar.needme { border-color: var(--accent); }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-  .dot.on { background: var(--owed); }
-  .bar .me { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); }
-  .bar .me select { width: auto; padding: 6px 8px; }
-  .empty[hidden], [hidden] { display: none !important; }
-  .role { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
-  button.small { padding: 4px 8px; font-size: 13px; }
-  #guestHint { flex-basis: 100%; margin: 0; }
-  input:disabled, select:disabled { background: transparent; border-color: transparent; color: var(--text); opacity: 1; -webkit-text-fill-color: var(--text); }
-  .chip:disabled { cursor: default; }
-  .item.locked .chip:not(.on) { display: none; }
+  .lines { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .person .lines { padding: 0 0 14px 42px; color: var(--muted); }
+  .lines .sep { grid-column: 1 / -1; border-top: 1.5px dashed var(--line); margin: 4px 0; }
+  .lines .muted { color: var(--muted); }
+  .lines .strong { font-weight: 700; color: var(--text); }
+  .lines .big { font: 700 19px var(--display-font); color: var(--text); }
+  .subhead { font: 600 13px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+  .transfer { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--surface-2); border-radius: 14px; font-weight: 500; }
+  .transfer + .transfer { margin-top: 6px; }
+  .transfer .arrow { color: var(--muted); }
+  .transfer b { margin-left: auto; font: 700 17px var(--display-font); font-variant-numeric: tabular-nums; }
+  .actions { display: flex; gap: 8px; margin-top: 16px; }
+  .actions .btn { flex: 1; }
+
+  /* receipt */
+  .receipt-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .receipt-head select { width: auto; max-width: 60%; font-weight: 600; }
+  .banner { border-radius: 20px; padding: 16px 18px; margin-bottom: 16px; }
+  .banner .lead { font-size: 14px; font-weight: 600; }
+  .banner .amt { font: 700 40px/1.1 var(--display-font); letter-spacing: -0.03em; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .banner .to { display: flex; align-items: center; gap: 8px; font-size: 15px; padding: 6px 0; border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  .banner .to b { margin-left: auto; font-family: var(--display-font); font-variant-numeric: tabular-nums; }
+  .banner.owe { background: var(--owe-bg); color: var(--owe); }
+  .banner.owed { background: var(--owed-bg); color: var(--owed); }
+  .banner.settled { background: var(--surface-2); color: var(--text); }
   body.is-locked .edit, body.is-locked #guestHint { display: none !important; }
-  .receipt-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .receipt-head h2 { margin: 0; }
-  .receipt-head select { width: auto; max-width: 60%; }
-  .banner { border-radius: 12px; padding: 14px; margin: 10px 0 14px; font-variant-numeric: tabular-nums; }
-  .banner .lead { font-size: 21px; font-weight: 700; margin-bottom: 4px; }
-  .banner.owe { background: var(--owe-bg); }
-  .banner.owe .lead { color: var(--owe); }
-  .banner.owed { background: var(--owed-bg); }
-  .banner.owed .lead { color: var(--owed); }
-  .banner.settled { background: var(--chip); }
-  .receipt-lines { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-variant-numeric: tabular-nums; }
-  .receipt-lines .sep { grid-column: 1 / -1; border-top: 1px dashed var(--line); margin: 4px 0; }
-  .receipt-lines .muted { color: var(--muted); }
-  .receipt-lines .total { font-weight: 700; font-size: 18px; }
-  .item.locked.unassigned .chips::after { content: none; }
+
+  /* ---------- sheet (in-app dialogs) ---------- */
+  .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+  .scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); animation: fade .18s ease; }
+  .sheet {
+    position: relative; width: 100%; max-width: 560px; background: var(--surface); color: var(--text);
+    border-radius: 28px 28px 0 0; padding: 10px 20px calc(env(safe-area-inset-bottom) + 20px);
+    animation: up .22s cubic-bezier(.2, .8, .2, 1); max-height: 90vh; overflow: auto;
+  }
+  .sheet::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 99px; background: var(--line); margin: 0 auto 16px; }
+  .sheet h3 { font: 700 22px/1.2 var(--display-font); letter-spacing: -0.02em; margin: 0 0 8px; }
+  .sheet p { margin: 0 0 16px; color: var(--muted); white-space: pre-line; }
+  .sheet input { margin-bottom: 16px; font-size: 17px; padding: 14px; }
+  .linkbox { background: var(--surface-2); border-radius: 14px; padding: 12px 14px; font: 500 14px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; margin-bottom: 16px; user-select: all; -webkit-user-select: all; }
+  .sheet-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sheet-actions .btn { flex: 1 1 0; min-height: 50px; }
+  @media (min-width: 640px) {
+    .modal { align-items: center; }
+    .sheet { border-radius: 28px; padding-bottom: 20px; }
+    .sheet::before { display: none; }
+  }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  @keyframes fade { from { opacity: 0; } }
+
+  .toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px); transform: translate(-50%, -8px); background: var(--key); color: var(--on-key); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 60; max-width: calc(100% - 32px); text-align: center; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 380px) {
+    .item-row { grid-template-columns: 1fr 96px 28px; }
+    .payrow { grid-template-columns: 1fr 1fr 92px 28px; }
+    .d-total { font-size: 48px; }
+  }
 </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>Bill Splitter</h1>
+    <div class="brand"><span class="mark">÷</span><span>Splitter<span class="dot-ino">.ino</span></span></div>
     <div class="head-actions">
-      <button class="ghost" id="shareLink">Share link</button>
-      <button class="ghost" id="newBill">New bill</button>
+      <button class="btn small pill" id="shareLink"><svg class="i" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>Share</button>
+      <button class="btn small pill" id="newBill"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New</button>
     </div>
   </header>
 
   <div class="bar" id="sharedBar" hidden>
-    <span class="dot" id="dot"></span><span id="statusText">Connecting…</span>
+    <span class="live" id="dot"></span><span id="statusText">Connecting…</span>
     <span class="role" id="role"></span>
-    <button class="ghost small" id="adminLink" hidden>Admin link</button>
+    <button class="icon-btn" id="adminLink" title="Admin link" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
-    <p class="hint" id="guestHint" hidden>You can add food &amp; drinks and change the ones you added. The rest is managed by the bill's admin.</p>
+    <p id="guestHint" hidden></p>
   </div>
+
+  <section class="display" id="display"></section>
 
   <section class="card" id="receipt" hidden></section>
 
   <section class="card edit" data-sec="meta">
-    <h2>Bill</h2>
-    <div class="settings">
-      <label class="f">Service %<input data-f="service" inputmode="decimal" placeholder="0"></label>
-      <label class="f">Bill total<input data-f="billTotal" inputmode="decimal" placeholder="optional"></label>
-      <label class="f">Currency<input data-f="currency" maxlength="4"></label>
+    <div class="card-head"><h2>Bill</h2></div>
+    <div class="tiles">
+      <label class="tile"><span>Service %</span><input data-f="service" inputmode="decimal" placeholder="0"></label>
+      <label class="tile"><span>Bill total</span><input data-f="billTotal" inputmode="decimal" placeholder="0.00"></label>
+      <label class="tile"><span>Currency</span><input data-f="currency" maxlength="4"></label>
     </div>
-    <p class="hint">Enter the total printed on the bill to check nothing is missing.</p>
+    <p class="hint">Type the total printed on the receipt so the app can check nothing's missing.</p>
   </section>
 
   <section class="card edit">
-    <h2>People</h2>
+    <div class="card-head"><h2>People</h2><span class="count" id="peopleCount"></span></div>
     <div id="people" data-sec="people"></div>
-    <button class="add" id="addPerson" data-admin>+ Add person</button>
+    <button class="btn add" id="addPerson" data-admin><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add person</button>
   </section>
 
   <section class="card edit">
-    <h2>Food &amp; drinks</h2>
-    <p class="empty" id="itemsEmpty">No items yet.</p>
+    <div class="card-head"><h2>Food &amp; drinks</h2><span class="count" id="itemsCount"></span></div>
+    <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
     <div id="items" data-sec="items"></div>
-    <button class="add primary" id="addItem">+ Add item</button>
-    <p class="hint">Tick more than one person to split an item equally between them.</p>
+    <button class="btn add primary" id="addItem"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add item</button>
+    <p class="hint">Tick more than one person to split an item equally.</p>
   </section>
 
   <section class="card edit">
-    <h2>Payments already made</h2>
-    <p class="empty" id="paymentsEmpty">None yet. Add deposits and what was paid at the table.</p>
+    <div class="card-head"><h2>Payments</h2><span class="count">deposits &amp; at the table</span></div>
+    <p class="empty" id="paymentsEmpty">No payments yet.</p>
     <div id="payments" data-sec="payments"></div>
-    <button class="add" id="addPayment" data-admin>+ Add payment / deposit</button>
+    <button class="btn add" id="addPayment" data-admin><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add payment</button>
   </section>
 
   <section class="card" id="results"></section>
 </main>
-<div class="toast" id="toast"></div>
+
+<div class="modal" id="modal" hidden>
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h3 id="mTitle"></h3>
+    <p id="mText"></p>
+    <input id="mInput" autocomplete="off" hidden>
+    <div class="linkbox" id="mLink" hidden></div>
+    <div class="sheet-actions" id="mActions"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
 
 <script src="firebase-config.js"></script>
 <script>
@@ -217,10 +360,22 @@
   const KEYS = "bill-splitter-key:";       // + bill id -> admin key, if this device is an admin
   const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/10.12.2/";
   const DEFAULT_META = { currency: "£", service: "12.5", billTotal: "" };
+  const COLORS = ["#ff9f6b", "#8fa8ff", "#5fdcb3", "#ffd25e", "#e693ff", "#6fd3ff", "#ff8fab", "#b4e86a"];
+
+  const ICON = {
+    x: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    arrow: '<svg class="i arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    chev: '<svg class="i chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+    lock: '<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    unlock: '<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>',
+    share: '<svg class="i" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
+    alert: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>',
+    check: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10"/></svg>',
+  };
 
   // ---------- state ----------
   // Bill shape (same locally and in Firebase):
-  // { meta: {currency, service, billTotal},
+  // { meta: {currency, service, billTotal, locked},
   //   people:   { id: {name, order} },
   //   items:    { id: {name, price, qty, order, people: {personId: true}} },
   //   payments: { id: {personId, amount, note, order} } }
@@ -285,6 +440,49 @@
     else paths["devices/" + authUid] = null;
     write(paths, "Someone else has already picked that name");
   }
+
+  // ---------- in-app dialogs (native alert/confirm/prompt are blocked in some browsers and installed apps) ----------
+  let closeSheet = null;
+  function sheet({ title, text = "", input = null, link = null, buttons }) {
+    if (closeSheet) closeSheet(null);
+    return new Promise((resolve) => {
+      const modal = $("#modal"), inp = $("#mInput"), acts = $("#mActions");
+      $("#mTitle").textContent = title;
+      $("#mText").textContent = text; $("#mText").hidden = !text;
+      inp.hidden = !input;
+      if (input) { inp.value = input.value || ""; inp.placeholder = input.placeholder || ""; }
+      $("#mLink").hidden = !link; $("#mLink").textContent = link || "";
+      acts.innerHTML = "";
+      const cancelValue = input ? null : false;
+      const done = (v) => {
+        modal.hidden = true; closeSheet = null;
+        document.removeEventListener("keydown", onKey);
+        resolve(v);
+      };
+      const onKey = (e) => {
+        if (e.key === "Escape") done(cancelValue);
+        if (e.key === "Enter" && input && document.activeElement === inp) done(inp.value);
+      };
+      buttons.forEach((b) => {
+        const btn = document.createElement("button");
+        btn.className = "btn " + (b.kind || "");
+        btn.innerHTML = (b.icon || "") + esc(b.label);
+        btn.addEventListener("click", () => {
+          if (b.run) b.run();
+          if (!b.stay) done(b.value === true && input ? inp.value : b.value);
+        });
+        acts.appendChild(btn);
+      });
+      $("#scrim").onclick = () => done(cancelValue);
+      document.addEventListener("keydown", onKey);
+      closeSheet = done;
+      modal.hidden = false;
+      if (input) inp.focus();
+    });
+  }
+  const info = (title, text) => sheet({ title, text, buttons: [{ label: "Got it", value: true, kind: "primary" }] });
+  const ask = (title, text, ok, kind = "primary") =>
+    sheet({ title, text, buttons: [{ label: "Cancel", value: false }, { label: ok, value: true, kind }] });
 
   // ---------- Firebase ----------
   // Each device signs in anonymously so the database rules can tell people apart:
@@ -365,33 +563,49 @@
   function shareUrl(withKey) { return location.origin + location.pathname + "#b=" + billId + (withKey ? "&k=" + adminKey : ""); }
 
   async function shareLink() {
-    if (!window.FIREBASE_CONFIG) { alert("Sharing isn't set up yet: add your Firebase settings to firebase-config.js (see README)."); return; }
+    if (!window.FIREBASE_CONFIG) return info("Sharing isn't set up", "Add your Firebase settings to firebase-config.js (see README).");
     if (!billId) {
       const meRow = sorted(state.people).find((p) => /^\s*me\s*$/i.test(p.name || ""));
       if (meRow) {
-        const name = prompt("What's your name? Your friends will see it on the bill.", "");
-        if (name && name.trim()) write({ ["people/" + meRow.id + "/name"]: name.trim() });
+        const name = await sheet({
+          title: "What's your name?", text: "Your friends will see it on the bill.",
+          input: { placeholder: "Your name" },
+          buttons: [{ label: "Cancel", value: null }, { label: "Continue", value: true, kind: "primary" }],
+        });
+        if (name === null) return;
+        if (name.trim()) write({ ["people/" + meRow.id + "/name"]: name.trim() });
       }
       const people = sorted(state.people), names = people.map((p) => String(p.name || "").trim());
-      if (people.length < 2) return alert("Add everyone at the table under People before sharing. Only you can add people.");
-      if (names.some((n) => !n)) return alert("Give every person a name before sharing, so everyone can find themselves.");
+      if (people.length < 2) return info("Add everyone first", "Add everyone at the table under People before sharing. Only you can add people.");
+      if (names.some((n) => !n)) return info("Some people have no name", "Give every person a name before sharing, so everyone can find themselves.");
       const dupe = names.find((n, i) => names.findIndex((m) => m.toLowerCase() === n.toLowerCase()) !== i);
-      if (dupe) return alert("Two people are called " + dupe + ". Use different names so everyone can find themselves.");
-      if (!confirm("Share this bill with " + names.join(", ") + "?\n\nOnly you can add people, so check everyone is listed (you can still add people later).")) return;
+      if (dupe) return info("Two people are called " + dupe, "Use different names so everyone can find themselves.");
+      let me = meRow && meRow.id;
+      if (!me) {
+        me = await sheet({
+          title: "Which one is you?", text: "Your phone is linked to this name, so your items are ticked to you.",
+          buttons: people.map((p) => ({ label: String(p.name).trim(), value: p.id })).concat([{ label: "Cancel", value: null }]),
+        });
+        if (!me) return;
+      }
+      if (!(await ask("Share with " + names.join(", ") + "?", "Only you can add people, so check everyone is listed. You can still add people later.", "Share bill"))) return;
       const id = uid(20);
-      try { await openShared(id, { create: JSON.parse(JSON.stringify(state)), me: meRow && meRow.id }); }
-      catch (e) { alert("Couldn't connect to the sharing service. Are you online?"); return; }
+      try { await openShared(id, { create: JSON.parse(JSON.stringify(state)), me }); }
+      catch (e) { return info("Couldn't connect", "The sharing service isn't reachable. Are you online?"); }
     }
-    const url = shareUrl(false);
-    if (navigator.share) {
-      navigator.share({ title: "Bill", text: "Add what you had to the bill:", url }).catch((e) => {
-        if (e.name !== "AbortError") copy(url);
-      });
-    } else copy(url);
+    linkSheet("Invite friends", "Anyone with this link can add what they had. Only you can change the rest.", shareUrl(false));
+  }
+
+  // Share/copy happen straight from a tap inside the sheet, which phones require.
+  function linkSheet(title, text, url) {
+    const buttons = [{ label: "Copy link", value: true, run: () => copy(url), stay: true }];
+    if (navigator.share) buttons.push({ label: "Share…", value: true, kind: "primary", icon: ICON.share, run: () => navigator.share({ title: "Splitter.ino", text: "Add what you had to the bill:", url }).catch(() => {}) });
+    else buttons.push({ label: "Done", value: true, kind: "primary" });
+    return sheet({ title, text, link: url, buttons });
   }
   function copy(text) {
-    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Link copied"), () => prompt("Copy this link:", text));
-    else prompt("Copy this link:", text);
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Copied"), () => toast("Press and hold the link to copy it"));
+    else toast("Press and hold the link to copy it");
   }
 
   // ---------- maths ----------
@@ -505,7 +719,6 @@
   function personOptions(people, first) {
     return (first || "") + people.map((p) => '<option value="' + p.id + '">' + esc(String(p.name || "").trim() || "Unnamed") + "</option>").join("");
   }
-
   // Names already picked on another phone can't be chosen again.
   function pickerOptions(first) {
     return (first || "") + sorted(state.people).map((p) => {
@@ -513,21 +726,33 @@
       return '<option value="' + p.id + '"' + (taken ? " disabled" : "") + ">" + esc(String(p.name || "").trim() || "Unnamed") + (taken ? " (taken)" : "") + "</option>";
     }).join("");
   }
+  // Each person keeps a colour based on their position in the list.
+  function colorOf(id) {
+    const i = sorted(state.people).findIndex((p) => p.id === id);
+    return COLORS[(i < 0 ? 0 : i) % COLORS.length];
+  }
+  function initial(id) { const n = String((state.people[id] || {}).name || "").trim(); return n ? esc(n[0].toUpperCase()) : "?"; }
+  function avatar(id, sm) { return '<span class="av' + (sm ? " sm" : "") + '" style="--c:' + colorOf(id) + '">' + initial(id) + "</span>"; }
+  function bigMoney(cents) {
+    const s = (Math.abs(cents) / 100).toFixed(2).split(".");
+    return (cents < 0 ? "-" : "") + '<span class="cur">' + esc(state.meta.currency) + "</span>" + s[0] + '<span class="dec">.' + s[1] + "</span>";
+  }
 
   function renderBar() {
     const bar = $("#sharedBar");
     bar.hidden = !billId;
     if (!billId) return;
     $("#dot").classList.toggle("on", online && loaded);
-    $("#statusText").textContent = !loaded ? "Connecting…" : online ? "Live · shared bill" : "Offline · will sync";
+    $("#statusText").textContent = !loaded ? "Connecting…" : online ? "Live" : "Offline · will sync";
     const sel = $("#meSel");
     setHTML(sel, pickerOptions('<option value="">Choose…</option>'));
     if (document.activeElement !== sel) sel.value = meId() || "";
     bar.classList.toggle("needme", loaded && !meId());
     $("#role").textContent = isAdmin ? "Admin" : "Guest";
+    $("#role").classList.toggle("admin", isAdmin);
     $("#adminLink").hidden = !isAdmin || !adminKey;
     const hint = $("#guestHint");
-    hint.hidden = !loaded || (isAdmin && meId());
+    hint.hidden = !loaded || (isAdmin && !!meId());
     hint.textContent = !meId() ? "Pick your name under “You are” to start adding what you had."
       : "You can add food & drinks and change the ones you added. The rest is managed by the bill's admin.";
   }
@@ -541,15 +766,21 @@
     document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !admin; });
     document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !admin; });
     $("#addItem").hidden = !picked();
+    $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") : "";
+    $("#itemsCount").textContent = items.length ? items.length + (items.length === 1 ? " item" : " items") : "";
     renderBar();
 
     syncList($("#people"), people,
-      () => el('<div class="row"><input class="grow" data-f="name" placeholder="Name" autocomplete="off">' +
-        '<button class="ghost small" data-act="unlink" title="Let this person pick their name again">Unlink phone</button>' +
-        '<button class="x" data-act="delPerson" aria-label="Remove">×</button></div>'),
+      () => el('<div class="prow"><span class="av"></span><input data-f="name" placeholder="Name" autocomplete="off">' +
+        '<button class="btn small" data-act="unlink" title="Let this person pick their name again">Unlink</button>' +
+        '<button class="icon-btn" data-act="delPerson" aria-label="Remove">' + ICON.x + "</button></div>"),
       (row, p) => {
-        setVal(row.firstChild, p.name);
-        row.firstChild.disabled = !admin;
+        const av = row.querySelector(".av");
+        av.style.setProperty("--c", colorOf(p.id));
+        setHTML(av, initial(p.id));
+        const input = row.querySelector("input");
+        setVal(input, p.name);
+        input.disabled = !admin;
         const by = claimedBy(p.id);
         row.querySelector('[data-act="unlink"]').hidden = !admin || !by || by === authUid;
         row.lastChild.hidden = !admin || people.length < 2;
@@ -559,18 +790,20 @@
       const on = it.people || {}, dis = canEditItem(it) ? "" : " disabled";
       const all = people.length > 1 && people.every((p) => on[p.id]);
       return people.map((p) => '<button class="chip' + (on[p.id] ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '"' + dis + ">" +
-        esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
+        avatar(p.id, true) + esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
         (people.length > 1 && !dis ? '<button class="chip all" data-act="all">' + (all ? "None" : "Everyone") + "</button>" : "");
     };
     $("#itemsEmpty").hidden = items.length > 0;
     syncList($("#items"), items,
-      () => el('<div class="item"><div class="row">' +
-        '<input class="grow" data-f="name" placeholder="Item (optional)" autocomplete="off">' +
-        '<input class="w-qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity">' +
-        '<input class="w-price" data-f="price" placeholder="Price" inputmode="decimal" aria-label="Price each">' +
-        '<button class="x" data-act="delItem" aria-label="Remove">×</button></div><div class="chips"></div></div>'),
+      () => el('<div class="item"><div class="item-row">' +
+        '<input class="name" data-f="name" placeholder="What was it?" autocomplete="off">' +
+        '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each"></label>' +
+        '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button></div>' +
+        '<div class="item-foot"><div class="chips"></div>' +
+        '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity"></div></div>'),
       (row, it) => {
         const mine = canEditItem(it);
+        row.querySelector(".cur").textContent = state.meta.currency;
         row.querySelectorAll("[data-f]").forEach((i) => { setVal(i, it[i.dataset.f]); i.disabled = !mine; });
         row.querySelector('[data-act="delItem"]').hidden = !mine;
         row.classList.toggle("locked", !mine);
@@ -581,21 +814,41 @@
     const opts = personOptions(people);
     $("#paymentsEmpty").hidden = payments.length > 0;
     syncList($("#payments"), payments,
-      () => el('<div class="row"><select class="grow" data-f="personId"></select>' +
-        '<input class="w-small" data-f="note" placeholder="Note">' +
-        '<input class="w-price" data-f="amount" placeholder="Amount" inputmode="decimal">' +
-        '<button class="x" data-act="delPayment" aria-label="Remove">×</button></div>'),
+      () => el('<div class="payrow"><select data-f="personId"></select>' +
+        '<input data-f="note" placeholder="Note">' +
+        '<label class="money"><span class="cur"></span><input data-f="amount" placeholder="0.00" inputmode="decimal"></label>' +
+        '<button class="icon-btn" data-act="delPayment" aria-label="Remove">' + ICON.x + "</button></div>"),
       (row, pm) => {
         const sel = row.firstChild;
         setHTML(sel, opts);
         if (document.activeElement !== sel) sel.value = pm.personId;
+        row.querySelector(".cur").textContent = state.meta.currency;
         row.querySelectorAll("input[data-f]").forEach((i) => setVal(i, pm[i.dataset.f]));
         row.querySelectorAll("[data-f]").forEach((i) => { i.disabled = !admin; });
         row.lastChild.hidden = !admin;
       });
 
     renderResults();
+    renderDisplay();
     renderReceipt();
+  }
+
+  // The calculator-style screen at the top.
+  function renderDisplay() {
+    const box = $("#display");
+    if (!loaded) { box.innerHTML = '<div class="d-top"><span class="d-label">Total</span></div><div class="d-total">…</div><div class="d-sub">Loading bill</div>'; return; }
+    const r = last;
+    let tag = "";
+    if (r.billC !== null && r.totalC > 0) tag = r.billC === r.totalC ? '<span class="d-tag">✓ Matches bill</span>' : '<span class="d-tag">≠ Bill says ' + money(r.billC) + "</span>";
+    if (state.meta.locked) tag = '<span class="d-tag">Locked</span>';
+    const pct = r.totalC ? Math.min(100, Math.round((r.paidTotal / r.totalC) * 100)) : 0;
+    setHTML(box,
+      '<div class="d-top"><span class="d-label">Total</span>' + tag + "</div>" +
+      '<div class="d-total">' + bigMoney(r.totalC) + "</div>" +
+      '<div class="d-sub">Food ' + money(r.subtotalC) + " · Service " + esc(String(num(state.meta.service))) + "% " + money(r.serviceC) + "</div>" +
+      '<div class="d-bar"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="d-paid"><span>Paid ' + money(r.paidTotal) + "</span><span>" +
+      (r.totalC > r.paidTotal ? money(r.totalC - r.paidTotal) + " to go" : r.totalC ? "Fully paid" : "") + "</span></div>");
   }
 
   // Once the admin locks the bill, everyone sees their own receipt instead of the editor.
@@ -623,32 +876,32 @@
       const you = !!billId && who === meId();
       const name = esc(personName(who)), net = r.net[who];
       if (net > 0) {
-        h += '<div class="banner owe"><div class="lead">' + (you ? "You need" : name + " needs") + " to pay " + money(net) + "</div>" +
-          r.transfers.filter((t) => t.from === who).map((t) => "<div>" + money(t.amt) + " to <b>" + esc(personName(t.to)) + "</b></div>").join("") + "</div>";
+        h += '<div class="banner owe"><div class="lead">' + (you ? "You need" : name + " needs") + ' to pay</div><div class="amt">' + money(net) + "</div>" +
+          r.transfers.filter((t) => t.from === who).map((t) => '<div class="to">' + avatar(t.to, true) + "to " + esc(personName(t.to)) + "<b>" + money(t.amt) + "</b></div>").join("") + "</div>";
       } else if (net < 0) {
-        h += '<div class="banner owed"><div class="lead">' + (you ? "You're" : name + " is") + " owed " + money(-net) + "</div>" +
-          r.transfers.filter((t) => t.to === who).map((t) => "<div>" + money(t.amt) + " from <b>" + esc(personName(t.from)) + "</b></div>").join("") + "</div>";
+        h += '<div class="banner owed"><div class="lead">' + (you ? "You're" : name + " is") + ' owed</div><div class="amt">' + money(-net) + "</div>" +
+          r.transfers.filter((t) => t.to === who).map((t) => '<div class="to">' + avatar(t.from, true) + "from " + esc(personName(t.from)) + "<b>" + money(t.amt) + "</b></div>").join("") + "</div>";
       } else {
-        h += '<div class="banner settled"><div class="lead">' + (you ? "You're" : name + " is") + " all square</div><div>Nothing to pay or collect.</div></div>";
+        h += '<div class="banner settled"><div class="lead">' + (you ? "You're" : name + " is") + ' all square</div><div class="amt">' + money(0) + "</div>Nothing to pay or collect.</div>";
       }
 
       const food = Math.round(r.lines[who].reduce((s, l) => s + l.amt, 0));
-      h += '<div class="receipt-lines">' + r.lines[who].map((l) =>
-        "<span>" + esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? ' <span class="muted">(split ' + l.n + " ways)</span>" : "") +
+      h += '<div class="lines">' + r.lines[who].map((l) =>
+        "<span>" + esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? ' <span class="muted">· split ' + l.n + " ways</span>" : "") +
         "</span><span>" + money(Math.round(l.amt)) + "</span>").join("");
       if (!r.lines[who].length) h += '<span class="muted">No items</span><span></span>';
       h += '<span class="sep"></span>' +
         '<span class="muted">Food &amp; drinks</span><span>' + money(food) + "</span>" +
         '<span class="muted">Service (' + esc(String(num(state.meta.service))) + "%)</span><span>" + money(r.share[who] - food) + "</span>" +
-        '<span class="total">' + (you ? "Your share" : "Share") + '</span><span class="total">' + money(r.share[who]) + "</span>";
+        '<span class="strong">' + (you ? "Your share" : "Share") + '</span><span class="strong">' + money(r.share[who]) + "</span>";
       r.payLines[who].forEach((p) => {
-        h += '<span class="muted">Already paid' + (p.note ? " (" + esc(p.note) + ")" : "") + "</span><span>−" + money(p.c) + "</span>";
+        h += '<span class="muted">Already paid' + (p.note ? " · " + esc(p.note) : "") + "</span><span>−" + money(p.c) + "</span>";
       });
-      h += '<span class="sep"></span><span class="total">' + (net > 0 ? "To pay" : net < 0 ? "To receive" : "Balance") +
-        '</span><span class="total">' + money(Math.abs(net)) + "</span></div>";
-      h += '<div class="actions"><button class="primary" data-act="shareReceipt">Share receipt</button></div>';
+      h += '<span class="sep"></span><span class="big">' + (net > 0 ? "To pay" : net < 0 ? "To receive" : "Balance") +
+        '</span><span class="big">' + money(Math.abs(net)) + "</span></div>";
+      h += '<div class="actions"><button class="btn primary" data-act="shareReceipt">' + ICON.share + "Share receipt</button></div>";
     }
-    if (canAdmin()) h += '<div class="actions"><button data-act="unlock">Unlock to edit</button></div>';
+    if (canAdmin()) h += '<div class="actions"><button class="btn" data-act="unlock">' + ICON.unlock + "Unlock to edit</button></div>";
     box.innerHTML = h;
     $("#receiptWho").value = who || "";
   }
@@ -671,33 +924,27 @@
   let last = null;
   function renderResults() {
     const box = $("#results");
-    if (!loaded) { box.innerHTML = '<h2>Split</h2><p class="empty">Loading bill…</p>'; return; }
+    if (!loaded) { box.innerHTML = '<div class="card-head"><h2>Split</h2></div><p class="empty">Loading bill…</p>'; return; }
     const r = compute(); last = r;
     const open = new Set(Array.from(box.querySelectorAll("details[open]"), (d) => d.dataset.p));
     const restSel = $("#restWho");
     const restWho = (restSel && restSel.value) || meId() || (r.people[0] && r.people[0].id);
 
-    let h = "<h2>" + (state.meta.locked ? "Everyone" : "Split") + "</h2>";
-    h += '<div class="totals">' +
-      "<span>Food &amp; drinks</span><span>" + money(r.subtotalC) + "</span>" +
-      "<span>Service (" + esc(String(num(state.meta.service))) + "%)</span><span>" + money(r.serviceC) + "</span>" +
-      '<span class="big">Total</span><span class="big">' + money(r.totalC) + "</span>" +
-      "<span>Paid so far</span><span>" + money(r.paidTotal) + "</span>" +
-    "</div>";
-
-    if (r.billC !== null && r.billC !== r.totalC) {
+    let h = '<div class="card-head"><h2>' + (state.meta.locked ? "Everyone" : "Split") + "</h2></div>";
+    const warn = (html) => '<div class="warn">' + ICON.alert + "<div>" + html + "</div></div>";
+    if (r.billC !== null && r.billC !== r.totalC && r.totalC > 0) {
       const d = r.billC - r.totalC;
-      h += '<div class="warn">The bill says <b>' + money(r.billC) + "</b> but your items + service come to <b>" + money(r.totalC) + "</b> (" +
-        (d > 0 ? money(d) + " missing, maybe an item?" : money(-d) + " too much") + ").</div>";
+      h += warn("The bill says <b>" + money(r.billC) + "</b> but items + service come to <b>" + money(r.totalC) + "</b> — " +
+        (d > 0 ? money(d) + " missing. Maybe an item?" : money(-d) + " too much."));
     }
-    if (r.unassignedC > 0) h += '<div class="warn">' + money(r.unassignedC) + " of items aren't assigned to anyone yet.</div>";
+    if (r.unassignedC > 0) h += warn(money(r.unassignedC) + " of items aren't assigned to anyone yet.");
     const remaining = r.assignedC - r.paidTotal;
     if (r.unassignedC === 0 && remaining > 0 && r.totalC > 0) {
-      h += '<div class="warn">' + money(remaining) + " of the total hasn't been paid by anyone yet." +
+      h += warn(money(remaining) + " hasn't been paid by anyone yet." +
         (canAdmin() ? '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
-        '<button class="primary" data-act="payRest">paid the rest</button></div>' : "") + "</div>";
+        '<button class="btn small dark" data-act="payRest">paid the rest</button></div>' : ""));
     } else if (remaining < 0) {
-      h += '<div class="warn">Payments are ' + money(-remaining) + " more than the total. Check the amounts.</div>";
+      h += warn("Payments are " + money(-remaining) + " more than the total. Check the amounts.");
     }
 
     r.people.forEach((p) => {
@@ -706,28 +953,28 @@
                    : net < 0 ? '<span class="owed">is owed ' + money(-net) + "</span>"
                    : '<span class="settled">all square</span>';
       let bd = r.lines[id].map((l) => {
-        const label = esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " (1/" + l.n + ")" : "");
+        const label = esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " · 1/" + l.n : "");
         return "<span>" + label + "</span><span>" + money(Math.round(l.amt)) + "</span>";
       }).join("");
       const food = Math.round(r.lines[id].reduce((s, l) => s + l.amt, 0));
       bd += '<span class="sep"></span>' +
         "<span>Food &amp; drinks</span><span>" + money(food) + "</span>" +
         "<span>+ service</span><span>" + money(r.share[id] - food) + "</span>" +
-        "<span>Share</span><span>" + money(r.share[id]) + "</span>" +
         "<span>− already paid</span><span>" + money(r.paid[id]) + "</span>";
-      h += '<details class="person" data-p="' + id + '"' + (open.has(id) ? " open" : "") + '><summary><div><div class="pname">' +
-        esc(personName(id)) + '</div><div class="pnet">' + status + "</div></div>" +
-        '<div class="pshare">' + money(r.share[id]) + "</div></summary>" +
-        '<div class="breakdown">' + bd + "</div></details>";
+      h += '<details class="person" data-p="' + id + '"' + (open.has(id) ? " open" : "") + "><summary>" + avatar(id) +
+        '<div class="pinfo"><div class="pname">' + esc(personName(id)) + '</div><div class="pnet">' + status + "</div></div>" +
+        '<div class="pshare">' + money(r.share[id]) + "</div>" + ICON.chev + "</summary>" +
+        '<div class="lines">' + bd + "</div></details>";
     });
 
     if (r.transfers.length) {
-      h += '<h2 style="margin-top:16px">Who pays whom</h2>' + r.transfers.map((t) =>
-        '<div class="transfer"><span>' + esc(personName(t.from)) + " → " + esc(personName(t.to)) + "</span><b>" + money(t.amt) + "</b></div>").join("");
+      h += '<div class="subhead">Who pays whom</div>' + r.transfers.map((t) =>
+        '<div class="transfer">' + avatar(t.from, true) + esc(personName(t.from)) + ICON.arrow + avatar(t.to, true) + esc(personName(t.to)) +
+        "<b>" + money(t.amt) + "</b></div>").join("");
     }
     const canLock = canAdmin() && !state.meta.locked;
-    h += '<div class="actions"><button' + (canLock ? "" : ' class="primary"') + ' data-act="share">Share summary</button>' +
-      (canLock ? '<button class="primary" data-act="lock">Lock &amp; show receipts</button>' : "") + "</div>";
+    h += '<div class="actions"><button class="btn' + (canLock ? "" : " primary") + '" data-act="share">' + ICON.share + "Summary</button>" +
+      (canLock ? '<button class="btn dark" data-act="lock">' + ICON.lock + "Lock bill</button>" : "") + "</div>";
     box.innerHTML = h;
     const rs = $("#restWho"); if (rs && restWho) rs.value = restWho;
   }
@@ -745,9 +992,13 @@
 
   function toast(msg) {
     const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2200);
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2400);
   }
   function focusLast(box, sel) { const rows = box.children; if (rows.length) { const i = rows[rows.length - 1].querySelector(sel); if (i) i.focus(); } }
+  function shareText(text) {
+    if (navigator.share) navigator.share({ text }).catch(() => {});
+    else copy(text);
+  }
 
   // ---------- events ----------
   document.addEventListener("input", (e) => {
@@ -765,14 +1016,14 @@
     else { receiptWho = e.target.value; render(); }
   });
 
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const row = b.closest("[data-id]"), id = row && row.dataset.id;
     const paths = {};
     switch (b.dataset.act) {
       case "delPerson": {
         const hasPay = Object.values(state.payments).some((pm) => pm.personId === id);
-        if (hasPay && !confirm("Remove " + personName(id) + " and their payments?")) return;
+        if (hasPay && !(await ask("Remove " + personName(id) + "?", "Their payments will be removed too.", "Remove", "danger"))) return;
         paths["people/" + id] = null;
         if (claimedBy(id)) { paths["claims/" + id] = null; paths["devices/" + claimedBy(id)] = null; }
         Object.keys(state.items).forEach((iid) => { if ((state.items[iid].people || {})[id]) paths["items/" + iid + "/people/" + id] = null; });
@@ -780,7 +1031,7 @@
         return write(paths);
       }
       case "unlink":
-        if (!confirm("Unlink " + personName(id) + " from the phone that picked it? They'll be able to pick their name again.")) return;
+        if (!(await ask("Unlink " + personName(id) + "?", "The phone that picked this name is released, so the right person can pick it.", "Unlink"))) return;
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
       case "toggle": {
         const pid = b.dataset.p, on = (state.items[id].people || {})[pid];
@@ -798,34 +1049,30 @@
         const rem = last.assignedC - last.paidTotal;
         return write({ ["payments/" + uid()]: { personId: $("#restWho").value, amount: (rem / 100).toFixed(2), note: "At table", order: Date.now() } });
       }
-      case "share": case "shareReceipt": {
-        const text = b.dataset.act === "share" ? summaryText() : receiptText(receiptPerson());
-        if (navigator.share) navigator.share({ text }).catch(() => {});
-        else copy(text);
-        return;
-      }
+      case "share": return shareText(summaryText());
+      case "shareReceipt": return shareText(receiptText(receiptPerson()));
       case "lock": {
         const r = last, rem = r.assignedC - r.paidTotal;
-        if (!r.totalC) return alert("Add some items first.");
+        if (!r.totalC) return info("Nothing to lock yet", "Add some items first.");
         const noPrice = sorted(state.items).filter((it) => num(it.price) <= 0).map((it) => String(it.name || "").trim() || "an unnamed item");
-        if (noPrice.length) return alert("These items have no price: " + noPrice.join(", ") + ". Add a price or remove them before locking.");
-        if (r.unassignedC) return alert("Some items aren't assigned to anyone yet. Tick who had them before locking.");
-        if (r.billC === null) return alert("Enter the total printed on the bill (under Bill) before locking, so it can be checked against the items.");
+        if (noPrice.length) return info("Missing prices", "These items have no price: " + noPrice.join(", ") + ". Add a price or remove them.");
+        if (r.unassignedC) return info("Unassigned items", "Some items aren't assigned to anyone yet. Tick who had them first.");
+        if (r.billC === null) return info("Enter the bill total", "Type the total printed on the bill (under Bill) so it can be checked against the items.");
         if (r.billC !== r.totalC) {
           const d = r.billC - r.totalC;
-          return alert("The bill says " + money(r.billC) + " but the items + service come to " + money(r.totalC) + " (" +
-            (d > 0 ? money(d) + " missing" : money(-d) + " too much") + "). Fix the items or service % so they match before locking.");
+          return info("Totals don't match", "The bill says " + money(r.billC) + " but items + service come to " + money(r.totalC) + " (" +
+            (d > 0 ? money(d) + " missing" : money(-d) + " too much") + "). Fix the items or service % so they match.");
         }
-        if (rem > 0) return alert(money(rem) + " hasn't been paid by anyone yet. Record who paid the bill (the \"paid the rest\" button) before locking.");
-        if (rem < 0) return alert("Payments come to " + money(-rem) + " more than the total. Fix the payments before locking.");
+        if (rem > 0) return info("Not fully paid", money(rem) + " hasn't been paid by anyone yet. Record who paid the bill with the “paid the rest” button.");
+        if (rem < 0) return info("Overpaid", "Payments come to " + money(-rem) + " more than the total. Fix the payments first.");
         const idle = r.people.filter((p) => !r.share[p.id] && !r.paid[p.id]).map((p) => personName(p.id));
         const msg = (idle.length ? idle.join(", ") + (idle.length > 1 ? " have" : " has") + " nothing on the bill.\n\n" : "") +
-          "Lock the bill? Everyone will see their own receipt, and nobody else can change items until you unlock it.";
-        if (!confirm(msg)) return;
+          "Everyone will see their own receipt, and nobody else can change items until you unlock it.";
+        if (!(await ask("Lock the bill?", msg, "Lock bill", "dark"))) return;
         return write({ "meta/locked": true });
       }
       case "unlock":
-        if (confirm("Unlock the bill so items can be edited again?")) write({ "meta/locked": null });
+        if (await ask("Unlock the bill?", "Items can be edited again until you lock it.", "Unlock")) write({ "meta/locked": null });
         return;
     }
   });
@@ -842,7 +1089,7 @@
     if (me) item.people = { [me]: true };
     else if (prevWho.length === 1) item.people = { [prevWho[0]]: true };
     write({ ["items/" + uid()]: item });
-    focusLast($("#items"), '[data-f="price"]');
+    focusLast($("#items"), ".name");
   });
   $("#addPayment").addEventListener("click", () => {
     const first = sorted(state.people)[0];
@@ -850,21 +1097,20 @@
     focusLast($("#payments"), '[data-f="amount"]');
   });
   $("#shareLink").addEventListener("click", shareLink);
-  $("#adminLink").addEventListener("click", () => {
-    if (!confirm("The admin link lets whoever opens it edit everything on this bill. Use it for your own other devices, or to make someone co-admin. Copy it?")) return;
-    copy(shareUrl(true));
-  });
-  $("#newBill").addEventListener("click", () => {
+  $("#adminLink").addEventListener("click", () => linkSheet("Admin link",
+    "Opening this link makes that device an admin of this bill, able to change everything. Use it for your own other devices, or to make someone co-admin. Don't post it in the group chat.",
+    shareUrl(true)));
+  $("#newBill").addEventListener("click", async () => {
     if (billId) {
-      if (!confirm("Start a new bill? The shared bill stays available to everyone through its link.")) return;
+      if (!(await ask("Start a new bill?", "The shared bill stays available to everyone through its link.", "New bill"))) return;
       const people = {};
       sorted(state.people).forEach((p, i) => { people[uid()] = { name: p.name || "", order: i + 1 }; });
-      const meta = Object.assign({}, state.meta, { billTotal: "" });
+      const meta = Object.assign({}, state.meta, { billTotal: "", locked: null });
       leaveShared();
       state = normalize({ meta, people: Object.keys(people).length ? people : emptyBill().people });
     } else {
-      if (!confirm("Start a new bill? Items and payments are cleared; people and service % are kept.")) return;
-      state.items = {}; state.payments = {}; state.meta.billTotal = "";
+      if (!(await ask("Start a new bill?", "Items and payments are cleared. People and service % are kept.", "New bill"))) return;
+      state.items = {}; state.payments = {}; state.meta.billTotal = ""; delete state.meta.locked;
     }
     lsSet(LOCAL, JSON.stringify(state));
     render();
@@ -885,7 +1131,7 @@
     openShared(sharedId, { key: m && m[2] }).catch(() => { billId = null; loaded = true; isAdmin = true; toast("Couldn't open the shared bill. Are you online?"); startLocal(); });
   } else {
     startLocal();
-    if (window.FIREBASE_CONFIG) backend().catch(() => {});  // preload so "Share link" is instant
+    if (window.FIREBASE_CONFIG) backend().catch(() => {});  // preload so "Share" is instant
   }
 
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
