@@ -321,6 +321,9 @@
   .banner .to b { margin-left: auto; font-family: var(--display-font); font-variant-numeric: tabular-nums; }
   .banner.owe { background: var(--owe-bg); color: var(--owe); }
   .btn.pay { width: 100%; margin: 8px 0 4px; background: var(--owe); color: #fff; text-decoration: none; }
+  .banner.owed .btn.pay { background: var(--owed); }
+  .bar #myMonzo { min-height: 30px; padding: 4px 10px; font-size: 13px; }
+  .bar #myMonzo.on { color: var(--owed); }
   .btn.small.on { color: var(--owed); }
   .banner.owed { background: var(--owed-bg); color: var(--owed); }
   .banner.settled { background: var(--surface-2); color: var(--text); }
@@ -406,6 +409,7 @@
     <button class="role code" id="codePill" title="Copy the join code" hidden></button>
     <button class="icon-btn" id="adminLink" title="Admin link" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
+    <button class="btn small pill" id="myMonzo" hidden></button>
   </div>
 
   <section id="home">
@@ -824,6 +828,23 @@
     if (home) render();
   }
 
+  // Set a person's Monzo.me username: admins for anyone, everyone else for themselves.
+  async function editMonzo(pid) {
+    if (!pid) return;
+    const self = pid === myself(), cur = (state.people[pid] || {}).monzo || "";
+    const raw = await sheet({
+      title: self ? "Your Monzo" : "Monzo for " + personName(pid),
+      text: (self ? "Your" : "Their") + " Monzo.me username. Anyone who owes " + (self ? "you" : "them") + " gets a button to pay with the amount filled in. Leave it empty to remove it.",
+      input: { placeholder: "e.g. vittorio or monzo.me/vittorio", value: cur, max: 80 },
+      buttons: [{ label: "Cancel", value: null }, { label: "Save", value: true, kind: "primary" }],
+    });
+    if (raw === null) return;
+    const user = raw.trim().replace(/^https?:\/\//i, "").replace(/^(www\.)?monzo\.me\//i, "").split(/[/?#]/)[0];
+    if (user && !MONZO.test(user)) return info("That doesn't look like a Monzo username", "Use just the name from the monzo.me link, e.g. monzo.me/vittorio → vittorio.");
+    write({ ["people/" + pid + "/monzo"]: user || null });
+    toast(user ? "Monzo saved" : "Monzo removed");
+  }
+
   function newBill() {
     switchTo(createLocalBill());
     toast("New bill started");
@@ -1188,6 +1209,11 @@
     $("#adminLink").hidden = !isAdmin || !adminKey;
     const code = state.meta.code;
     $("#codePill").hidden = !isAdmin || !code;
+    // Once you've confirmed who you are, you can add your own Monzo username.
+    const mine = meId(), myMonzo = mine && (state.people[mine] || {}).monzo;
+    $("#myMonzo").hidden = !mine;
+    $("#myMonzo").classList.toggle("on", !!myMonzo);
+    $("#myMonzo").textContent = myMonzo ? "✓ @" + myMonzo : "+ Monzo";
     if (code) $("#codePill").textContent = formatCode(code);
   }
 
@@ -1350,8 +1376,10 @@
               (link ? '<a class="btn pay" href="' + esc(link) + '" target="_blank" rel="noopener">Pay ' + money(t.amt) + " to @" + esc((state.people[t.to] || {}).monzo || "") + " on Monzo</a>" : "");
           }).join("") + "</div>";
       } else if (net < 0) {
+        const canAdd = you && !(state.people[who] || {}).monzo && (billId ? !!meId() : true);
         h += '<div class="banner owed"><div class="lead">' + (you ? "You're" : name + " is") + ' owed</div><div class="amt">' + money(-net) + "</div>" +
-          r.transfers.filter((t) => t.to === who).map((t) => '<div class="to">' + avatar(t.from, true) + "from " + esc(personName(t.from)) + "<b>" + money(t.amt) + "</b></div>").join("") + "</div>";
+          r.transfers.filter((t) => t.to === who).map((t) => '<div class="to">' + avatar(t.from, true) + "from " + esc(personName(t.from)) + "<b>" + money(t.amt) + "</b></div>").join("") +
+          (canAdd ? '<button class="btn pay" data-act="addMyMonzo">Add your Monzo so they can pay you in one tap</button>' : "") + "</div>";
       } else {
         h += '<div class="banner settled"><div class="lead">' + (you ? "You're" : name + " is") + ' all square</div><div class="amt">' + money(0) + "</div>Nothing to pay or collect.</div>";
       }
@@ -1519,18 +1547,8 @@
         Object.keys(state.payments).forEach((pid) => { if (state.payments[pid].personId === id) paths["payments/" + pid] = null; });
         return write(paths);
       }
-      case "monzo": {
-        const cur = (state.people[id] || {}).monzo || "";
-        const raw = await sheet({
-          title: "Monzo for " + personName(id), text: "Their Monzo.me username. People who owe them get a button to pay with the amount filled in.",
-          input: { placeholder: "e.g. vittorio or monzo.me/vittorio", value: cur, max: 80 },
-          buttons: [{ label: "Cancel", value: null }, { label: "Save", value: true, kind: "primary" }],
-        });
-        if (raw === null) return;
-        const user = raw.trim().replace(/^https?:\/\//i, "").replace(/^(www\.)?monzo\.me\//i, "").split(/[/?#]/)[0];
-        if (user && !MONZO.test(user)) return info("That doesn't look like a Monzo username", "Use just the name from their monzo.me link, e.g. monzo.me/vittorio → vittorio.");
-        return write({ ["people/" + id + "/monzo"]: user || null });
-      }
+      case "monzo": return editMonzo(id);
+      case "addMyMonzo": return editMonzo(myself());
       case "unlink":
         if (!(await ask("Unlink " + personName(id) + "?", "The phone that picked this name is released, so the right person can pick it.", "Unlink"))) return;
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
@@ -1645,6 +1663,7 @@
     if (await ask("Start a new bill?", "This one stays in your bills, so you can come back to it.", "New bill")) newBill();
   });
   $("#joinBill").addEventListener("click", joinBill);
+  $("#myMonzo").addEventListener("click", () => editMonzo(meId()));
 
   // Light/dark: follows the phone until you pick one here.
   function isDark() {
