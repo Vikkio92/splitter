@@ -838,7 +838,7 @@
           const app = A.initializeApp(window.FIREBASE_CONFIG);
           // App Check: proves requests come from this website, so scripts elsewhere get refused once it's enforced.
           if (window.APP_CHECK_SITE_KEY) {
-            C.initializeAppCheck(app, { provider: new C.ReCaptchaV3Provider(window.APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+            C.initializeAppCheck(app, { provider: new C.ReCaptchaEnterpriseProvider(window.APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
           }
           const db = D.getDatabase(app), auth = U.getAuth(app);
           await auth.authStateReady();

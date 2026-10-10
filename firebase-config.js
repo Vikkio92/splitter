@@ -9,5 +9,6 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "801933457019",
   appId: "1:801933457019:web:43d9e73c74c5b2ef8514de"
 };
-// App Check: an invisible reCAPTCHA v3 check that requests come from this website (public site key).
+// App Check: an invisible reCAPTCHA (Fraud Defense / reCAPTCHA Enterprise) check that requests
+// come from this website. This is the public site key; it must match the one registered in App Check.
 window.APP_CHECK_SITE_KEY = "6LdgI-ktAAAAAIZBdyajzJBCi9hpP3lwvLhnoU50";
