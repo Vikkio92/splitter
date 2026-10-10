@@ -382,7 +382,7 @@
 
   <section id="home">
     <div class="home-hero">
-      <h1>Split the bill.</h1>
+      <h1>Split the bill.<br><span>Accountant style.</span></h1>
       <button class="btn add primary" id="homeNew"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New bill</button>
       <button class="btn add" id="homeJoin"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Join bill</button>
     </div>
@@ -494,11 +494,23 @@
   function lsSet(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
 
   function emptyBill() { return normalize(null); }
+  // Data can come from other people's phones, so anything that ends up in the page's HTML is
+  // checked here: ids must be plain letters/digits and the currency/code can't carry markup.
+  const SAFE_ID = /^[A-Za-z0-9]{1,128}$/;
+  function cleanMap(m, each) {
+    const out = {};
+    if (m && typeof m === "object") Object.keys(m).forEach((k) => { if (SAFE_ID.test(k)) out[k] = each ? each(m[k]) : m[k]; });
+    return out;
+  }
   function normalize(v) {
     v = v || {};
+    const meta = Object.assign({}, DEFAULT_META, v.meta);
+    meta.currency = String(meta.currency || "£").replace(/[<>&"'`]/g, "").slice(0, 4) || "£";
+    if (meta.code) meta.code = String(meta.code).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
     return {
-      meta: Object.assign({}, DEFAULT_META, v.meta), people: v.people || {}, items: v.items || {}, payments: v.payments || {},
-      claims: v.claims || {}, devices: v.devices || {},
+      meta, people: cleanMap(v.people), payments: cleanMap(v.payments),
+      items: cleanMap(v.items, (it) => Object.assign({}, it, { people: cleanMap(it && it.people) })),
+      claims: cleanMap(v.claims), devices: cleanMap(v.devices),
     };
   }
   function sorted(map) {
@@ -921,6 +933,7 @@
     let id;
     try { id = await (await backend()).lookup(code); }
     catch (e) { return info("Couldn't connect", "Are you online?"); }
+    if (id && !/^[a-z0-9]{16,32}$/.test(id)) id = null;
     if (!id) return info("No bill with that code", "Check the code with whoever shared it. Settled bills are deleted along with their code.");
     upsertBill({ id, kind: "shared" });
     switchTo(id);
