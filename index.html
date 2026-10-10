@@ -818,7 +818,7 @@
             async create(id, key, bill, mePerson, firstCode) {
               for (let attempt = 0; ; attempt++) {
                 const code = attempt === 0 && firstCode ? firstCode : newCode();
-                try { return await this.createWith(id, key, bill, mePerson, code); }
+                try { await this.createWith(id, key, bill, mePerson, code); return code; }
                 catch (e) { if (attempt >= 4 || !/permission/i.test(e.message)) throw e; }
               }
             },
@@ -856,6 +856,13 @@
   async function openShared(id, opts = {}) {
     const be = await backend();
     authUid = be.uid;
+    // A new bill has to be saved before we can listen to it: the rules only show a bill that has an expiry.
+    let code = null;
+    if (opts.create) {
+      const key = uid(24);
+      code = await be.create(id, key, opts.create, opts.me, newCode());
+      lsSet(KEYS + id, key);
+    }
     billId = id; localId = null;
     lsSet(CURRENT, id);
     upsertBill({ id, kind: "shared" });
@@ -865,10 +872,7 @@
     const setAdmin = (k) => { isAdmin = !!k; adminKey = k || null; lsSet(KEYS + id, adminKey); render(); };
 
     if (opts.create) {
-      setAdmin(uid(24));
-      const code = newCode();
-      opts.create.meta.code = code; state.meta.code = code;   // so the invite sheet can show it straight away
-      be.create(id, adminKey, opts.create, opts.me, code).catch((e) => toast("Couldn't create shared bill: " + e.message));
+      state.meta.code = code;   // so the invite sheet can show it straight away
     } else {
       loaded = false; state = normalize(null);
       const check = () => be.adminKey(id).then(setAdmin, () => {});
