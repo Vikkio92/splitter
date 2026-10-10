@@ -157,6 +157,17 @@
 
   /* ---------- bill switcher ---------- */
   .title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .brand { cursor: pointer; }
+  #home { display: none; }
+  body.home #home { display: block; }
+  body.home main > section:not(#home), body.home #sharedBar, body.home #billSwitch,
+  body.home #shareLink, body.home #newBill { display: none !important; }
+  main { position: relative; }
+  body.home .title-row { position: absolute; top: 18px; right: 16px; }
+  .home-hero { padding: 36px 4px 8px; }
+  .home-hero h1 { font: 700 40px/1.05 var(--display-font); letter-spacing: -0.035em; margin: 0 0 22px; }
+  .home-hero h1 span { color: var(--muted); }
+  .home-list { margin-top: 28px; }
   .title-row .icon-btn { margin-top: -2px; }
   .bill-switch { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 2px 0 12px; font: 700 26px/1.15 var(--display-font); letter-spacing: -0.02em; text-align: left; }
   .bill-switch span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -345,7 +356,7 @@
 <body>
 <main>
   <header>
-    <div class="brand"><span class="mark">÷</span><span>Splitter<span class="dot-ino">.ino</span></span></div>
+    <div class="brand" id="homeBtn" role="button" tabindex="0" aria-label="Home"><span class="mark">÷</span><span>Splitter<span class="dot-ino">.ino</span></span></div>
     <div class="head-actions">
       <button class="btn small pill" id="shareLink"><svg class="i" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>Share</button>
       <button class="btn small pill" id="newBill"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New</button>
@@ -363,6 +374,14 @@
     <button class="icon-btn" id="adminLink" title="Admin link" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
   </div>
+
+  <section id="home">
+    <div class="home-hero">
+      <h1>Split the bill.<br><span>Keep the friends.</span></h1>
+      <button class="btn add primary" id="homeNew"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New bill</button>
+    </div>
+    <div class="home-list" id="homeList"></div>
+  </section>
 
   <section class="display" id="display"></section>
 
@@ -612,30 +631,51 @@
     history.replaceState(null, "", location.pathname + location.search);
     render();
   }
-  function switchTo(id, key) {
-    if (localId && localId !== id && isEmptyBill(state)) dropBill(localId);   // don't keep blank drafts around
+  // Leave whatever bill is open (tidying away a blank draft).
+  function closeCurrent(nextId) {
+    if (localId && localId !== nextId && isEmptyBill(state)) dropBill(localId);
     if (remote) leaveShared();
     localId = null; receiptWho = null;
+  }
+  function switchTo(id, key) {
+    closeCurrent(id);
+    home = false;
     const e = bills().find((b) => b.id === id);
-    if (!e) return startLocal(createLocalBill());
+    if (!e) return goHome();
     if (e.kind === "local" || !window.FIREBASE_CONFIG) return startLocal(id);
     state = normalize(null); loaded = false; billId = id; isAdmin = !!lsGet(KEYS + id);
     lsSet(CURRENT, id);
     render();
     openShared(id, { key }).catch(() => { billId = null; loaded = true; isAdmin = true; toast("Couldn't open that bill. Are you online?"); render(); });
   }
-  function goNext() { const next = bills()[0]; switchTo(next ? next.id : createLocalBill()); }
+  // The home page: no bill open, just "New bill" and the list of bills on this phone.
+  let home = false;
+  function goHome() {
+    closeCurrent(null);
+    home = true; billId = null; loaded = true; isAdmin = true;
+    state = emptyBill();
+    lsSet(CURRENT, null);
+    history.replaceState(null, "", location.pathname + location.search);
+    render();
+  }
 
-  async function openBills() {
-    const cur = currentId();
+  function billRows(cur) {
     const when = (t) => new Date(t || Date.now()).toLocaleDateString(undefined, { day: "numeric", month: "short" });
-    const rows = bills().map((b) => {
+    return bills().map((b) => {
       const sub = b.kind === "local" ? "Only on this phone" : (b.role === "guest" ? "Guest" : "Admin") + " · " + (b.locked ? "Locked" : "Open");
       return '<div class="bill-row' + (b.id === cur ? " on" : "") + '" data-pick="' + b.id + '" role="button" tabindex="0">' +
         '<span class="bill-ico">' + (b.kind === "local" ? ICON.phone : ICON.users) + "</span>" +
         '<span class="bill-txt"><b>' + esc(billName(b)) + "</b><small>" + sub + " · " + when(b.at) + "</small></span>" +
         '<button class="icon-btn" data-pick="rm:' + b.id + '" aria-label="Remove">' + ICON.trash + "</button></div>";
     }).join("");
+  }
+  function renderHome() {
+    const rows = billRows(null);
+    setHTML($("#homeList"), rows ? '<div class="subhead">Your bills</div>' + rows : "");
+  }
+
+  async function openBills() {
+    const cur = currentId(), rows = billRows(cur);
     const pick = await sheet({
       title: "Your bills", body: rows || '<p class="empty">No bills yet.</p>',
       buttons: [{ label: "Close", value: null }, { label: "New bill", value: "new", kind: "primary", icon: ICON.plus }],
@@ -655,7 +695,7 @@
     const wasOpen = id === currentId();
     if (wasOpen && remote) leaveShared();
     dropBill(id);
-    if (wasOpen) { localId = null; goNext(); } else render();
+    if (wasOpen) { localId = null; goHome(); } else render();
   }
 
   // The admin settled and deleted it (or the link was wrong): drop it from this phone too.
@@ -664,7 +704,7 @@
     if (billId === id) leaveShared();
     dropBill(id);
     toast(e && e.name ? "“" + billName(e) + "” was settled and deleted" : "That bill no longer exists");
-    goNext();
+    goHome();
   }
   // Bills deleted while this phone wasn't looking are tidied away on launch.
   async function pruneGoneBills() {
@@ -673,6 +713,7 @@
     for (const b of bills().filter((x) => x.kind === "shared" && x.id !== billId)) {
       if ((await be.exists(b.id).catch(() => true)) === false) dropBill(b.id);
     }
+    if (home) render();
   }
 
   function newBill() {
@@ -979,6 +1020,8 @@
   }
 
   function render() {
+    document.body.classList.toggle("home", home);
+    if (home) return renderHome();
     const people = sorted(state.people);
     const items = sorted(state.items);
     const payments = sorted(state.payments);
@@ -1329,7 +1372,7 @@
         }
         dropBill(id); localId = null;
         toast("Bill deleted");
-        return goNext();
+        return goHome();
       }
     }
   });
@@ -1380,6 +1423,14 @@
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintTheme);
   paintTheme();
   $("#billSwitch").addEventListener("click", openBills);
+  $("#homeNew").addEventListener("click", newBill);
+  $("#homeBtn").addEventListener("click", () => { if (!home) goHome(); });
+  $("#homeList").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-pick]");
+    if (!t) return;
+    if (t.dataset.pick.startsWith("rm:")) removeBill(t.dataset.pick.slice(3));
+    else switchTo(t.dataset.pick);
+  });
   window.addEventListener("hashchange", () => location.reload());
 
   // ---------- start ----------
@@ -1400,8 +1451,7 @@
     upsertBill({ id: m[1], kind: "shared" });
     switchTo(m[1], m[2]);
   } else {
-    const list = bills(), cur = list.find((b) => b.id === lsGet(CURRENT)) || list[0];
-    switchTo(cur ? cur.id : createLocalBill());
+    goHome();
   }
   if (window.FIREBASE_CONFIG) pruneGoneBills();   // also preloads Firebase so "Share" is instant
 
