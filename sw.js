@@ -1,6 +1,6 @@
 // Offline support: network first (so updates show up straight away), cache as fallback.
 // Only the app's own files, the Firebase SDK and the fonts are cached; live database traffic is left alone.
-const CACHE = "splitter-v5";
+const CACHE = "splitter-v6";
 const ASSETS = ["./", "./index.html", "./firebase-config.js", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -20,6 +20,7 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const cacheable = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com"];
   if (url.origin !== location.origin && !cacheable.includes(url.hostname)) return;
+  if (url.pathname.includes("/recaptcha/")) return;   // let reCAPTCHA talk to Google directly
 
   e.respondWith(
     caches.open(CACHE).then((cache) => {
