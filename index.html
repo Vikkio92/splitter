@@ -758,9 +758,10 @@
     const cur = currentId(), rows = billRows(cur);
     const pick = await sheet({
       title: "Your bills", body: rows || '<p class="empty">No bills yet.</p>',
-      buttons: [{ label: "Close", value: null }, { label: "New bill", value: "new", kind: "primary", icon: ICON.plus }],
+      buttons: [{ label: "Close", value: null }, { label: "Join bill", value: "join" }, { label: "New bill", value: "new", kind: "primary", icon: ICON.plus }],
     });
     if (pick === "new") return newBill();
+    if (pick === "join") return joinBill();
     if (pick && pick.startsWith("rm:")) return removeBill(pick.slice(3));
     if (pick && pick !== cur) switchTo(pick);
   }
@@ -1638,7 +1639,12 @@
     "Opening this link makes that device an admin of this bill, able to change everything. Use it for your own other devices, or to make someone co-admin. Don't post it in the group chat.",
     shareUrl(true)));
   $("#newBill").addEventListener("click", async () => {
-    if (await ask("Start a new bill?", "This one stays in your bills, so you can come back to it.", "New bill")) newBill();
+    const pick = await sheet({
+      title: "Start or join a bill?", text: "This one stays in your bills, so you can come back to it.",
+      buttons: [{ label: "Cancel", value: null }, { label: "Join with a code", value: "join" }, { label: "New bill", value: "new", kind: "primary" }],
+    });
+    if (pick === "new") newBill();
+    if (pick === "join") joinBill();
   });
 
   // Light/dark: follows the phone until you pick one here.
