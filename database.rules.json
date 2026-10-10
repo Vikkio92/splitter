@@ -4,13 +4,13 @@
     ".write": false,
     "secrets": {
       "$billId": {
-        ".write": "auth != null && $billId.matches(/^[a-z0-9]{16,32}$/) && ((!data.exists() && newData.isString() && newData.val().length >= 16 && newData.val().length <= 64) || !newData.exists() && (root.child('owners').child($billId).child(auth.uid).exists() || root.child('bills').child($billId).child('meta').child('expires').val() < now))"
+        ".write": "auth != null && $billId.matches(/^[a-z0-9]{16,32}$/) && ((!data.exists() && newData.isString() && newData.val().length >= 16 && newData.val().length <= 64 && !root.child('bills').child($billId).exists() && newData.parent().parent().child('bills').child($billId).child('meta').child('expires').isNumber()) || (!newData.exists() && (root.child('owners').child($billId).child(auth.uid).exists() || (root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() < now)) && !newData.parent().parent().child('bills').child($billId).exists()))"
       }
     },
     "owners": {
       "$billId": {
         ".read": "auth != null && data.child(auth.uid).exists()",
-        ".write": "auth != null && !newData.exists() && (root.child('owners').child($billId).child(auth.uid).exists() || root.child('bills').child($billId).child('meta').child('expires').val() < now)",
+        ".write": "auth != null && !newData.exists() && (root.child('owners').child($billId).child(auth.uid).exists() || (root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() < now)) && !newData.parent().parent().child('bills').child($billId).exists()",
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
           ".write": "auth != null && auth.uid === $uid && newData.val() === newData.parent().parent().parent().child('secrets').child($billId).val()"
@@ -20,16 +20,16 @@
     "codes": {
       "$code": {
         ".read": "auth != null",
-        ".write": "auth != null && $code.matches(/^[A-Z0-9]{6}$/) && ((!data.exists() && newData.isString() && newData.val().matches(/^[a-z0-9]{16,32}$/) && newData.parent().parent().child('owners').child(newData.val()).child(auth.uid).exists()) || (!newData.exists() && (root.child('owners').child(data.val()).child(auth.uid).exists() || root.child('bills').child(data.val()).child('meta').child('expires').val() < now)))"
+        ".write": "auth != null && $code.matches(/^[A-Z0-9]{6,8}$/) && ((!data.exists() && newData.isString() && newData.val().matches(/^[a-z0-9]{16,32}$/) && newData.parent().parent().child('owners').child(newData.val()).child(auth.uid).exists() && newData.parent().parent().child('bills').child(newData.val()).child('meta').child('code').val() === $code) || (!newData.exists() && (!data.exists() || root.child('owners').child(data.val()).child(auth.uid).exists() || (root.child('bills').child(data.val()).child('meta').child('expires').isNumber() && root.child('bills').child(data.val()).child('meta').child('expires').val() < now))))"
       }
     },
     "bills": {
       "$billId": {
-        ".read": "auth != null && $billId.matches(/^[a-z0-9]{16,32}$/) && data.child('meta').child('expires').val() > now",
-        ".write": "auth != null && !newData.exists() && (root.child('owners').child($billId).child(auth.uid).exists() || root.child('bills').child($billId).child('meta').child('expires').val() < now)",
+        ".read": "auth != null && $billId.matches(/^[a-z0-9]{16,32}$/) && data.child('meta').child('expires').isNumber() && data.child('meta').child('expires').val() > now",
+        ".write": "auth != null && !newData.exists() && (root.child('owners').child($billId).child(auth.uid).exists() || (root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() < now))",
         "meta": {
           ".read": "auth != null",
-          ".write": "auth != null && newData.parent().parent().parent().child('owners').child($billId).child(auth.uid).exists()",
+          ".write": "auth != null && newData.parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() && newData.exists()",
           ".validate": "newData.hasChild('expires')",
           "expires": {
             ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() : newData.val() <= now + 259200000 + 600000)"
@@ -38,16 +38,16 @@
             ".validate": "newData.isString() && newData.val().length <= 60"
           },
           "service": {
-            ".validate": "newData.isString() && newData.val().length <= 8"
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{0,3}([.,][0-9]{0,2})?$/)"
           },
           "billTotal": {
-            ".validate": "newData.isString() && newData.val().length <= 12"
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{0,7}([.,][0-9]{0,2})?$/)"
           },
           "currency": {
             ".validate": "newData.isString() && newData.val().length <= 4"
           },
           "code": {
-            ".validate": "newData.isString() && newData.val().matches(/^[A-Z0-9]{6}$/)"
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Z0-9]{6,8}$/)"
           },
           "locked": {
             ".validate": "newData.isBoolean()"
@@ -67,7 +67,7 @@
               ".validate": "newData.isNumber()"
             },
             "monzo": {
-              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9._-]{1,40}$/)"
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/)"
             },
             "$other": {
               ".validate": false
@@ -82,7 +82,7 @@
               ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)"
             },
             "amount": {
-              ".validate": "newData.isString() && newData.val().length <= 12"
+              ".validate": "newData.isString() && newData.val().matches(/^[0-9]{0,7}([.,][0-9]{0,2})?$/)"
             },
             "note": {
               ".validate": "newData.isString() && newData.val().length <= 40"
@@ -97,16 +97,16 @@
         },
         "items": {
           "$itemId": {
-            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (data.parent().parent().child('meta').child('locked').val() !== true && newData.parent().parent().child('devices').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))",
-            ".validate": "$itemId.matches(/^[a-z0-9]{1,32}$/)",
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || ((root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && data.parent().parent().child('meta').child('locked').val() !== true && newData.parent().parent().child('devices').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))",
+            ".validate": "$itemId.matches(/^[a-z0-9]{1,32}$/) && newData.hasChildren(['createdBy', 'order'])",
             "name": {
               ".validate": "newData.isString() && newData.val().length <= 60"
             },
             "price": {
-              ".validate": "newData.isString() && newData.val().length <= 12"
+              ".validate": "newData.isString() && newData.val().matches(/^[0-9]{0,7}([.,][0-9]{0,2})?$/)"
             },
             "qty": {
-              ".validate": "newData.isString() && newData.val().length <= 6"
+              ".validate": "newData.isString() && newData.val().matches(/^[0-9]{0,3}$/)"
             },
             "order": {
               ".validate": "newData.isNumber()"
@@ -116,7 +116,7 @@
             },
             "people": {
               "$personId": {
-                ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/) && newData.val() === true"
+                ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/) && newData.val() === true && newData.parent().parent().parent().parent().parent().parent().child('bills').child($billId).child('people').child($personId).exists()"
               }
             },
             "$other": {
@@ -126,13 +126,13 @@
         },
         "claims": {
           "$personId": {
-            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (!data.exists() && newData.val() === auth.uid && newData.parent().parent().child('devices').child(auth.uid).val() === $personId))",
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || ((root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && !data.exists() && newData.val() === auth.uid && newData.parent().parent().child('people').child($personId).exists() && newData.parent().parent().child('devices').child(auth.uid).val() === $personId))",
             ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/) && newData.isString() && newData.val().length <= 128"
           }
         },
         "devices": {
           "$uid": {
-            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (auth.uid === $uid && !data.exists() && newData.exists() && newData.parent().parent().child('claims').child(newData.val()).val() === auth.uid))",
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || ((root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && auth.uid === $uid && !data.exists() && newData.exists() && newData.parent().parent().child('claims').child(newData.val()).val() === auth.uid))",
             ".validate": "$uid.matches(/^[A-Za-z0-9]{1,128}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)"
           }
         },
