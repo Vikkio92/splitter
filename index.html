@@ -322,6 +322,7 @@
   .banner.owe { background: var(--owe-bg); color: var(--owe); }
   .btn.pay { width: 100%; margin: 8px 0 4px; background: var(--owe); color: #fff; text-decoration: none; }
   .banner.owed .btn.pay { background: var(--owed); }
+  .pay-note { font-size: 12px; opacity: .8; margin: 0 2px 6px; }
   .bar #myMonzo { min-height: 30px; padding: 4px 10px; font-size: 13px; }
   .bar #myMonzo.on { color: var(--owed); }
   .btn.small.on { color: var(--owed); }
@@ -841,6 +842,22 @@
     if (raw === null) return;
     const user = raw.trim().replace(/^https?:\/\//i, "").replace(/^(www\.)?monzo\.me\//i, "").split(/[/?#]/)[0];
     if (user && !MONZO.test(user)) return info("That doesn't look like a Monzo username", "Use just the name from the monzo.me link, e.g. monzo.me/vittorio → vittorio.");
+    // The app can't look usernames up, but monzo.me shows the account holder's name and photo: check it there.
+    if (user && user !== cur) {
+      const url = "https://monzo.me/" + encodeURIComponent(user);
+      const ok = await sheet({
+        title: "Check it's " + (self ? "you" : personName(pid)),
+        text: "Open this link and make sure Monzo shows " + (self ? "your" : personName(pid) + "'s") + " name and photo. " +
+          "If it shows someone else, or \"not found\", the username is wrong and payments could go to the wrong person.",
+        link: url,
+        buttons: [
+          { label: "Open to check", value: null, stay: true, run: () => window.open(url, "_blank", "noopener") },
+          { label: "Cancel", value: false },
+          { label: self ? "Yes, that's me" : "Yes, that's them", value: true, kind: "primary" },
+        ],
+      });
+      if (ok !== true) return;
+    }
     write({ ["people/" + pid + "/monzo"]: user || null });
     toast(user ? "Monzo saved" : "Monzo removed");
   }
@@ -1373,7 +1390,8 @@
           r.transfers.filter((t) => t.from === who).map((t) => {
             const link = monzoLink(t.to, t.amt);
             return '<div class="to">' + avatar(t.to, true) + "to " + esc(personName(t.to)) + "<b>" + money(t.amt) + "</b></div>" +
-              (link ? '<a class="btn pay" href="' + esc(link) + '" target="_blank" rel="noopener">Pay ' + money(t.amt) + " to @" + esc((state.people[t.to] || {}).monzo || "") + " on Monzo</a>" : "");
+              (link ? '<a class="btn pay" href="' + esc(link) + '" target="_blank" rel="noopener">Pay ' + money(t.amt) + " to @" + esc((state.people[t.to] || {}).monzo || "") + " on Monzo</a>" +
+                '<div class="pay-note">Monzo will show who you’re paying: check it’s ' + esc(personName(t.to)) + ".</div>" : "");
           }).join("") + "</div>";
       } else if (net < 0) {
         const canAdd = you && !(state.people[who] || {}).monzo && (billId ? !!meId() : true);
