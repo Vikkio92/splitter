@@ -168,6 +168,10 @@
   .home-hero h1 { font: 700 40px/1.05 var(--display-font); letter-spacing: -0.035em; margin: 0 0 22px; }
   .home-hero h1 span { color: var(--muted); }
   .home-list { margin-top: 28px; }
+  #homeJoin { margin-top: 8px; }
+  .code-big { font: 700 44px/1 var(--display-font); letter-spacing: 0.08em; text-align: center; padding: 18px 0; background: var(--surface-2); border-radius: 18px; font-variant-numeric: tabular-nums; }
+  .code-label { text-align: center; color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+  button.role.code { cursor: pointer; letter-spacing: .08em; }
   .title-row .icon-btn { margin-top: -2px; }
   .bill-switch { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 2px 0 12px; font: 700 26px/1.15 var(--display-font); letter-spacing: -0.02em; text-align: left; }
   .bill-switch span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -371,14 +375,16 @@
   <div class="bar" id="sharedBar" hidden>
     <span class="live" id="dot"></span><span id="statusText">Connecting…</span>
     <span class="role" id="role"></span>
+    <button class="role code" id="codePill" title="Copy the join code" hidden></button>
     <button class="icon-btn" id="adminLink" title="Admin link" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
   </div>
 
   <section id="home">
     <div class="home-hero">
-      <h1>Split the bill.<br><span>Keep the friends.</span></h1>
+      <h1>Split the bill.</h1>
       <button class="btn add primary" id="homeNew"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New bill</button>
+      <button class="btn add" id="homeJoin"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Join bill</button>
     </div>
     <div class="home-list" id="homeList"></div>
   </section>
@@ -554,7 +560,11 @@
       $("#mTitle").textContent = title;
       $("#mText").textContent = text; $("#mText").hidden = !text;
       inp.hidden = !input;
-      if (input) { inp.value = input.value || ""; inp.placeholder = input.placeholder || ""; }
+      if (input) {
+        inp.value = input.value || ""; inp.placeholder = input.placeholder || "";
+        inp.autocapitalize = input.caps ? "characters" : "sentences";
+        inp.style.textTransform = input.caps ? "uppercase" : "";
+      }
       $("#mLink").hidden = !link; $("#mLink").textContent = link || "";
       const bodyEl = $("#mBody");
       bodyEl.hidden = !body; bodyEl.innerHTML = body || "";
@@ -603,6 +613,10 @@
   }
   function dropBill(id) { saveBills(bills().filter((b) => b.id !== id)); lsSet(LOCAL_PREFIX + id, null); }
   function currentId() { return billId || localId; }
+  // Join codes: 6 characters, no look-alikes (0/O, 1/I/L).
+  const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  function newCode() { return Array.from(crypto.getRandomValues(new Uint8Array(6)), (x) => CODE_CHARS[x % CODE_CHARS.length]).join(""); }
+  function formatCode(c) { return c.slice(0, 3) + " " + c.slice(3); }
   function billName(b) { return String((b && b.name) || "").trim() || "Untitled bill"; }
   function isEmptyBill(st) {
     return !Object.keys(st.people).length && !Object.keys(st.items).length && !Object.keys(st.payments).length &&
@@ -688,12 +702,20 @@
   async function removeBill(id) {
     const e = bills().find((b) => b.id === id);
     if (!e) return;
-    const text = e.kind === "local" ? "It only exists on this phone, so it'll be gone for good."
-      : e.role === "admin" ? "It stays available to everyone else. To delete it for everyone, lock it and use Settle & delete."
-      : "You can open it again from the original link.";
-    if (!(await ask("Remove “" + billName(e) + "”?", text, "Remove", "danger"))) return;
+    const forEveryone = e.kind === "shared" && (e.role === "admin" || !!lsGet(KEYS + id));
+    if (forEveryone) {
+      if (!(await ask("Delete “" + billName(e) + "” for everyone?", "You're its admin, so it's deleted from everyone's phone and from the database. This can't be undone.", "Delete for everyone", "danger"))) return;
+    } else {
+      const text = e.kind === "local" ? "It only exists on this phone, so it'll be gone for good."
+        : "It's removed from this phone only. You can rejoin with the link or code while the bill exists.";
+      if (!(await ask("Remove “" + billName(e) + "”?", text, "Remove", "danger"))) return;
+    }
     const wasOpen = id === currentId();
     if (wasOpen && remote) leaveShared();
+    if (forEveryone) {
+      try { await (await backend()).deleteBill(id); }
+      catch (err) { if (wasOpen) switchTo(id); return info("Couldn't delete the bill", "Are you online? " + err.message); }
+    }
     dropBill(id);
     if (wasOpen) { localId = null; goHome(); } else render();
   }
@@ -750,8 +772,19 @@
               };
             },
             // Creates the bill with this device as admin. Each path is checked by its own rule.
-            create(id, key, bill, mePerson) {
-              const p = { ["secrets/" + id]: key, ["owners/" + id + "/" + me]: key, ["bills/" + id + "/meta"]: bill.meta };
+            // A short join code is claimed with the bill; if it's already taken the whole write is refused, so try another.
+            async create(id, key, bill, mePerson, firstCode) {
+              for (let attempt = 0; ; attempt++) {
+                const code = attempt === 0 && firstCode ? firstCode : newCode();
+                try { return await this.createWith(id, key, bill, mePerson, code); }
+                catch (e) { if (attempt >= 4 || !/permission/i.test(e.message)) throw e; }
+              }
+            },
+            createWith(id, key, bill, mePerson, code) {
+              const p = {
+                ["secrets/" + id]: key, ["owners/" + id + "/" + me]: key, ["codes/" + code]: id,
+                ["bills/" + id + "/meta"]: Object.assign({}, bill.meta, { code }),
+              };
               if (Object.keys(bill.people).length) p["bills/" + id + "/people"] = bill.people;
               if (Object.keys(bill.payments).length) p["bills/" + id + "/payments"] = bill.payments;
               Object.keys(bill.items).forEach((iid) => { p["bills/" + id + "/items/" + iid] = Object.assign({}, bill.items[iid], { createdBy: me }); });
@@ -759,6 +792,7 @@
               return D.update(D.ref(db), p);
             },
             exists: (id) => D.get(D.ref(db, "bills/" + id + "/meta")).then((s) => s.exists()),
+            lookup: (code) => D.get(D.ref(db, "codes/" + code)).then((s) => s.val()),
             claim: (id, key) => D.set(D.ref(db, "owners/" + id + "/" + me), key),
             adminKey: (id) => D.get(D.ref(db, "owners/" + id + "/" + me)).then((s) => s.val()),
             // Delete the bill's contents while still an admin, then the admin records themselves.
@@ -770,6 +804,7 @@
               try {
                 const owners = (await D.get(D.ref(db, "owners/" + id))).val() || {};
                 const q = { ["secrets/" + id]: null };
+                if (v.meta && v.meta.code) q["codes/" + v.meta.code] = null;
                 Object.keys(owners).forEach((u) => { q["owners/" + id + "/" + u] = null; });
                 await D.update(D.ref(db), q);
               } catch (e) { /* the bill itself is gone; leftover admin records are harmless */ }
@@ -794,7 +829,9 @@
 
     if (opts.create) {
       setAdmin(uid(24));
-      be.create(id, adminKey, opts.create, opts.me).catch((e) => toast("Couldn't create shared bill: " + e.message));
+      const code = newCode();
+      opts.create.meta.code = code; state.meta.code = code;   // so the invite sheet can show it straight away
+      be.create(id, adminKey, opts.create, opts.me, code).catch((e) => toast("Couldn't create shared bill: " + e.message));
     } else {
       loaded = false; state = normalize(null);
       const check = () => be.adminKey(id).then(setAdmin, () => {});
@@ -858,7 +895,35 @@
       catch (e) { return info("Couldn't connect", "The sharing service isn't reachable. Are you online?"); }
       if (draft) dropBill(draft);   // the draft now lives on as the shared bill
     }
-    linkSheet("Invite friends", "Anyone with this link can add what they had. Only you can change the rest.", shareUrl(false));
+    inviteSheet();
+  }
+
+  function inviteSheet() {
+    const code = state.meta.code, url = shareUrl(false);
+    const body = code ? '<p class="code-label">Join code</p><div class="code-big">' + formatCode(code) + "</div>" : null;
+    const text = "Join my bill on Splitter.ino" + (code ? " with code " + formatCode(code) + "," : "") + " or open:";
+    const buttons = [{ label: "Copy link", value: true, run: () => copy(url), stay: true }];
+    if (navigator.share) buttons.push({ label: "Share…", value: true, kind: "primary", icon: ICON.share, run: () => navigator.share({ title: "Splitter.ino", text, url }).catch(() => {}) });
+    else buttons.push({ label: "Done", value: true, kind: "primary" });
+    return sheet({ title: "Invite friends", text: "Send the link, or have them tap Join bill and enter the code.", body, link: url, buttons });
+  }
+
+  async function joinBill() {
+    if (!window.FIREBASE_CONFIG) return info("Sharing isn't set up", "Add your Firebase settings to firebase-config.js (see README).");
+    const raw = await sheet({
+      title: "Join a bill", text: "Enter the code you were given.",
+      input: { placeholder: "e.g. K7Q 2MX", caps: true },
+      buttons: [{ label: "Cancel", value: null }, { label: "Join", value: true, kind: "primary" }],
+    });
+    if (raw === null) return;
+    const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (code.length !== 6) return info("That code doesn't look right", "Codes are 6 letters and numbers.");
+    let id;
+    try { id = await (await backend()).lookup(code); }
+    catch (e) { return info("Couldn't connect", "Are you online?"); }
+    if (!id) return info("No bill with that code", "Check the code with whoever shared it. Settled bills are deleted along with their code.");
+    upsertBill({ id, kind: "shared" });
+    switchTo(id);
   }
 
   // Share/copy happen straight from a tap inside the sheet, which phones require.
@@ -1017,6 +1082,9 @@
     $("#role").textContent = isAdmin ? "Admin" : "Guest";
     $("#role").classList.toggle("admin", isAdmin);
     $("#adminLink").hidden = !isAdmin || !adminKey;
+    const code = state.meta.code;
+    $("#codePill").hidden = !isAdmin || !code;
+    if (code) $("#codePill").textContent = formatCode(code);
   }
 
   function render() {
@@ -1424,6 +1492,8 @@
   paintTheme();
   $("#billSwitch").addEventListener("click", openBills);
   $("#homeNew").addEventListener("click", newBill);
+  $("#homeJoin").addEventListener("click", joinBill);
+  $("#codePill").addEventListener("click", () => copy(state.meta.code));
   $("#homeBtn").addEventListener("click", () => { if (!home) goHome(); });
   $("#homeList").addEventListener("click", (e) => {
     const t = e.target.closest("[data-pick]");

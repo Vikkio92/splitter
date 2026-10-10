@@ -16,6 +16,12 @@
         ".read": "auth != null && data.child(auth.uid).exists()"
       }
     },
+    "codes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && $code.length === 6 && ((!data.exists() && newData.isString() && newData.parent().parent().child('owners').child(newData.val()).child(auth.uid).exists()) || (!newData.exists() && root.child('owners').child(data.val()).child(auth.uid).exists()))"
+      }
+    },
     "bills": {
       "$billId": {
         ".read": "auth != null && $billId.length >= 16",
