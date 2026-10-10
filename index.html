@@ -295,7 +295,8 @@
   .banner.settled { background: var(--surface-2); color: var(--text); }
   body.is-locked .edit { display: none !important; }
   /* guests only see what they can act on */
-  body.guest .admin-card, body.guest #shareLink { display: none !important; }
+  body.guest .admin-card, body.guest #shareLink, body.guest #display, body.guest #results { display: none !important; }
+  body.guest.unpicked .edit { display: none !important; }
   .item.locked { background: none; border-radius: 0; padding: 10px 2px; border-bottom: 1px solid var(--line); }
   .item.locked, .item + .item.locked { margin-top: 0; }
   .item.locked + .item:not(.locked) { margin-top: 10px; }
@@ -381,7 +382,7 @@
   </section>
 
   <section class="card edit">
-    <div class="card-head"><h2>Food &amp; drinks</h2><span class="count" id="itemsCount"></span></div>
+    <div class="card-head"><h2 id="itemsHead">Food &amp; drinks</h2><span class="count" id="itemsCount"></span></div>
     <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
     <div id="items" data-sec="items"></div>
     <button class="btn add primary" id="addItem"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add item</button>
@@ -972,13 +973,17 @@
     const admin = canAdmin();
     document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !admin; });
     document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !admin; });
-    document.body.classList.toggle("guest", !!billId && !isAdmin);
+    const guest = !!billId && !isAdmin;
+    document.body.classList.toggle("guest", guest);
+    document.body.classList.toggle("unpicked", !picked());
     $("#billTitle").textContent = loaded ? billName(state.meta) : billName(bills().find((b) => b.id === billId));
     syncEntry();
     $("#addItem").hidden = !picked();
     $("#peopleEmpty").hidden = people.length > 0;
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") : "";
-    $("#itemsCount").textContent = items.length ? items.length + (items.length === 1 ? " item" : " items") : "";
+    const shown = guest ? items.filter((it) => it.createdBy && it.createdBy === authUid) : items;
+    $("#itemsHead").textContent = guest ? "Your food & drinks" : "Food & drinks";
+    $("#itemsCount").textContent = shown.length ? shown.length + (shown.length === 1 ? " item" : " items") : "";
     renderBar();
 
     syncList($("#people"), people,
@@ -1004,8 +1009,8 @@
         avatar(p.id, true) + esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
         (people.length > 1 && !dis ? '<button class="chip all" data-act="all">' + (all ? "None" : "Everyone") + "</button>" : "");
     };
-    $("#itemsEmpty").hidden = items.length > 0;
-    syncList($("#items"), items,
+    $("#itemsEmpty").hidden = shown.length > 0;
+    syncList($("#items"), shown,
       () => el('<div class="item"><div class="item-row">' +
         '<input class="name" data-f="name" placeholder="What was it?" autocomplete="off">' +
         '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity">' +
