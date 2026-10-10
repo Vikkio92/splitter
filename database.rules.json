@@ -4,15 +4,16 @@
     ".write": false,
     "secrets": {
       "$billId": {
-        ".write": "auth != null && $billId.length >= 16 && !data.exists() && newData.isString() && newData.val().length >= 16"
+        ".write": "auth != null && $billId.length >= 16 && ((!data.exists() && newData.isString() && newData.val().length >= 16) || (!newData.exists() && root.child('owners').child($billId).child(auth.uid).exists()))"
       }
     },
     "owners": {
       "$billId": {
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
-          ".write": "auth != null && auth.uid === $uid && newData.val() === newData.parent().parent().parent().child('secrets').child($billId).val()"
-        }
+          ".write": "auth != null && ((auth.uid === $uid && newData.val() === newData.parent().parent().parent().child('secrets').child($billId).val()) || (!newData.exists() && root.child('owners').child($billId).child(auth.uid).exists()))"
+        },
+        ".read": "auth != null && data.child(auth.uid).exists()"
       }
     },
     "bills": {
@@ -34,12 +35,12 @@
         },
         "claims": {
           "$personId": {
-            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (!data.exists() && newData.val() === auth.uid && newData.parent().parent().child('devices').child(auth.uid).val() === $personId) || (data.val() === auth.uid && !newData.exists()))"
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (!data.exists() && newData.val() === auth.uid && newData.parent().parent().child('devices').child(auth.uid).val() === $personId))"
           }
         },
         "devices": {
           "$uid": {
-            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (auth.uid === $uid && (!newData.exists() || newData.parent().parent().child('claims').child(newData.val()).val() === auth.uid) && (!data.exists() || data.val() === newData.val() || newData.parent().parent().child('claims').child(data.val()).val() !== auth.uid)))"
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (auth.uid === $uid && !data.exists() && newData.exists() && newData.parent().parent().child('claims').child(newData.val()).val() === auth.uid))"
           }
         },
         "$other": {

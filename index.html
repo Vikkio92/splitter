@@ -123,6 +123,25 @@
   input::placeholder { color: var(--muted); opacity: .7; }
   input:disabled, select:disabled { background: transparent; color: var(--text); -webkit-text-fill-color: var(--text); opacity: 1; padding-left: 0; padding-right: 0; background-image: none; }
 
+  /* ---------- bill switcher ---------- */
+  .bill-switch { display: flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 0 12px; font: 700 26px/1.15 var(--display-font); letter-spacing: -0.02em; text-align: left; }
+  .bill-switch span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bill-switch .i { width: 22px; height: 22px; color: var(--muted); }
+  .bill-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 16px; background: var(--surface-2); cursor: pointer; }
+  .bill-row + .bill-row { margin-top: 8px; }
+  .bill-row.on { box-shadow: inset 0 0 0 2px var(--text); }
+  .bill-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--surface); flex: none; }
+  .bill-row.on .bill-ico { background: var(--accent); color: var(--on-accent); }
+  .bill-txt { flex: 1; min-width: 0; }
+  .bill-txt b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bill-txt small { color: var(--muted); font-size: 13px; }
+  #mBody { margin-bottom: 16px; }
+  #missingCard { display: none; text-align: center; padding: 28px 20px; }
+  #missingCard h2 { margin-bottom: 6px; }
+  #missingCard p { color: var(--muted); margin: 0 0 18px; }
+  body.missing #missingCard { display: block; }
+  body.missing main > section:not(#missingCard), body.missing #sharedBar { display: none !important; }
+
   /* ---------- status bar ---------- */
   .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; background: var(--surface); border-radius: 18px; padding: 10px 12px 10px 14px; margin-bottom: 12px; box-shadow: var(--shadow); font-size: 14px; }
   .bar.needme { outline: 2px solid var(--accent); }
@@ -147,13 +166,16 @@
   .d-paid { display: flex; justify-content: space-between; font-size: 13px; color: var(--display-muted); font-variant-numeric: tabular-nums; }
 
   /* ---------- cards ---------- */
-  .card { background: var(--surface); border-radius: 24px; padding: 18px; margin: 12px 0; box-shadow: var(--shadow); }
+  .card { background: var(--surface); border-radius: 24px; padding: 18px 14px; margin: 12px 0; box-shadow: var(--shadow); }
+  .card-head { padding: 0 4px; }
   .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
   h2 { font: 600 18px/1.2 var(--display-font); letter-spacing: -0.01em; margin: 0; }
   .count { color: var(--muted); font-size: 14px; }
   .empty { color: var(--muted); font-size: 14px; margin: 0; padding: 18px; text-align: center; border: 1.5px dashed var(--line); border-radius: 16px; }
 
   .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tile.wide { grid-column: 1 / -1; }
+  .tile.wide input { font: 600 18px/1.3 var(--font); }
   .tile { background: var(--surface-2); border-radius: 16px; padding: 10px 12px 8px; display: block; }
   .tile span { display: block; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
   .tile input { background: transparent; border: 0; padding: 2px 0 0; font: 600 20px/1.3 var(--display-font); border-radius: 0; }
@@ -169,12 +191,13 @@
   .prow input { flex: 1; font-weight: 600; }
 
   /* items */
-  .item { background: var(--surface-2); border-radius: 18px; padding: 10px; }
+  .item { background: var(--surface-2); border-radius: 18px; padding: 8px; }
   .item + .item { margin-top: 8px; }
-  .item-row { display: grid; grid-template-columns: 1fr 108px 32px; gap: 6px; align-items: center; }
-  .item-foot { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
-  .item-foot .chips { flex: 1; margin-top: 0; }
-  .item-foot .qty { width: 56px; flex: none; }
+  .item-row { display: grid; grid-template-columns: 1fr 38px 90px 24px; gap: 5px; align-items: center; }
+  .item .name { padding-left: 10px; padding-right: 6px; }
+  .item .money input { padding-left: 20px; padding-right: 9px; }
+  .item .money .cur { left: 9px; }
+  .item .icon-btn { width: 24px; }
   .item input { background: var(--surface); }
   .item input:disabled { background: transparent; }
   .item .name { font-weight: 600; }
@@ -231,7 +254,7 @@
   .transfer .arrow { color: var(--muted); }
   .transfer b { margin-left: auto; font: 700 17px var(--display-font); font-variant-numeric: tabular-nums; }
   .actions { display: flex; gap: 8px; margin-top: 16px; }
-  .actions .btn { flex: 1; }
+  .actions .btn { flex: 1; white-space: nowrap; }
 
   /* receipt */
   .receipt-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
@@ -250,10 +273,10 @@
   .item.locked { background: none; border-radius: 0; padding: 10px 2px; border-bottom: 1px solid var(--line); }
   .item.locked, .item + .item.locked { margin-top: 0; }
   .item.locked + .item:not(.locked) { margin-top: 10px; }
-  .item.locked .item-row { grid-template-columns: 1fr 96px; }
+  .item.locked .item-row { grid-template-columns: 1fr 40px 96px; }
   .item.locked input { padding-top: 2px; padding-bottom: 2px; }
   .item.locked .name { text-overflow: ellipsis; }
-  .item.locked .item-foot { margin-top: 2px; }
+  .item.locked .chips { margin-top: 2px; }
   .item.locked .chip { background: none; padding: 2px 6px 2px 0; font-size: 13px; }
 
   /* ---------- sheet (in-app dialogs) ---------- */
@@ -283,7 +306,7 @@
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   @media (max-width: 380px) {
-    .item-row { grid-template-columns: 1fr 96px 28px; }
+    .item-row { grid-template-columns: 1fr 36px 84px 24px; }
     .payrow { grid-template-columns: 1fr 1fr 92px 28px; }
     .d-total { font-size: 48px; }
   }
@@ -299,12 +322,20 @@
     </div>
   </header>
 
+  <button class="bill-switch" id="billSwitch"><span id="billTitle"></span><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+
   <div class="bar" id="sharedBar" hidden>
     <span class="live" id="dot"></span><span id="statusText">Connecting…</span>
     <span class="role" id="role"></span>
     <button class="icon-btn" id="adminLink" title="Admin link" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
   </div>
+
+  <section class="card" id="missingCard">
+    <h2>This bill is gone</h2>
+    <p>It was settled and deleted by its admin, or the link is wrong.</p>
+    <button class="btn primary block" data-act="forget">Remove from my bills</button>
+  </section>
 
   <section class="display" id="display"></section>
 
@@ -313,6 +344,7 @@
   <section class="card edit admin-card" data-sec="meta">
     <div class="card-head"><h2>Bill</h2></div>
     <div class="tiles">
+      <label class="tile wide"><span>Bill name</span><input data-f="name" placeholder="e.g. Friday at Dishoom" autocomplete="off"></label>
       <label class="tile"><span>Service %</span><input data-f="service" inputmode="decimal" placeholder="0"></label>
       <label class="tile"><span>Bill total</span><input data-f="billTotal" inputmode="decimal" placeholder="0.00"></label>
     </div>
@@ -349,6 +381,7 @@
     <p id="mText"></p>
     <input id="mInput" autocomplete="off" hidden>
     <div class="linkbox" id="mLink" hidden></div>
+    <div id="mBody" hidden></div>
     <div class="sheet-actions" id="mActions"></div>
   </div>
 </div>
@@ -358,8 +391,9 @@
 <script>
 (() => {
   "use strict";
-  const LOCAL = "bill-splitter-v2";        // the bill kept on this device only
-  const SHARED = "bill-splitter-shared";   // id of the shared bill this device has open
+  const BILLS = "splitter-bills";          // every bill this phone has made or opened (see bills())
+  const CURRENT = "splitter-current";      // id of the bill that's open
+  const LOCAL_PREFIX = "splitter-local:";  // + id -> a bill that lives only on this phone
   const KEYS = "bill-splitter-key:";       // + bill id -> admin key, if this device is an admin
   const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/10.12.2/";
   const DEFAULT_META = { currency: "£", service: "", billTotal: "" };
@@ -374,6 +408,10 @@
     share: '<svg class="i" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
     alert: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>',
     check: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10"/></svg>',
+    plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+    users: '<svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>',
+    phone: '<svg class="i" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M11 18h2"/></svg>',
+    trash: '<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
   };
 
   // ---------- state ----------
@@ -386,6 +424,8 @@
   //   claims: { personId: uid } and devices: { uid: personId } link each phone to exactly one person.
   let state, billId = null, remote = null, loaded = true, online = false;
   let authUid = null, isAdmin = true, adminKey = null;   // a bill on this device only: you're the admin
+  let localId = null;    // id of the open bill when it lives only on this phone
+  let missing = false;   // the open shared bill no longer exists
 
   // In a shared bill you have to pick who you are before you can edit anything.
   function picked() { return !billId || !!meId(); }
@@ -421,7 +461,7 @@
   function write(paths, deniedMsg) {
     if (remote) { remote.write(paths, deniedMsg); return; }
     Object.keys(paths).forEach((p) => setPath(state, p.split("/"), paths[p]));
-    lsSet(LOCAL, JSON.stringify(state));
+    lsSet(LOCAL_PREFIX + localId, JSON.stringify(state));
     render();
   }
 
@@ -435,7 +475,7 @@
   // Link this phone to a person (or to nobody), releasing any previous pick in the same write.
   function pickPerson(pid) {
     const old = state.devices[authUid], paths = {};
-    if (old === pid && meId()) return;
+    if (meId()) return;
     if (old && state.claims[old] === authUid) paths["claims/" + old] = null;
     if (pid) { paths["claims/" + pid] = authUid; paths["devices/" + authUid] = pid; }
     else paths["devices/" + authUid] = null;
@@ -444,7 +484,7 @@
 
   // ---------- in-app dialogs (native alert/confirm/prompt are blocked in some browsers and installed apps) ----------
   let closeSheet = null;
-  function sheet({ title, text = "", input = null, link = null, buttons }) {
+  function sheet({ title, text = "", input = null, link = null, body = null, buttons }) {
     if (closeSheet) closeSheet(null);
     return new Promise((resolve) => {
       const modal = $("#modal"), inp = $("#mInput"), acts = $("#mActions");
@@ -453,6 +493,9 @@
       inp.hidden = !input;
       if (input) { inp.value = input.value || ""; inp.placeholder = input.placeholder || ""; }
       $("#mLink").hidden = !link; $("#mLink").textContent = link || "";
+      const bodyEl = $("#mBody");
+      bodyEl.hidden = !body; bodyEl.innerHTML = body || "";
+      bodyEl.onclick = (e) => { const t = e.target.closest("[data-pick]"); if (t) done(t.dataset.pick); };
       acts.innerHTML = "";
       const cancelValue = input ? null : false;
       const done = (v) => {
@@ -484,6 +527,97 @@
   const info = (title, text) => sheet({ title, text, buttons: [{ label: "Got it", value: true, kind: "primary" }] });
   const ask = (title, text, ok, kind = "primary") =>
     sheet({ title, text, buttons: [{ label: "Cancel", value: false }, { label: ok, value: true, kind }] });
+
+  // ---------- bills on this phone ----------
+  // [{ id, kind: "local" | "shared", name, role: "admin" | "guest", locked, at }], newest first.
+  function bills() { try { return JSON.parse(lsGet(BILLS)) || []; } catch (e) { return []; } }
+  function saveBills(list) { lsSet(BILLS, JSON.stringify(list)); }
+  function upsertBill(entry) {
+    const list = bills(), i = list.findIndex((b) => b.id === entry.id);
+    if (i >= 0) list[i] = Object.assign(list[i], entry);
+    else list.unshift(Object.assign({ at: Date.now() }, entry));
+    saveBills(list);
+  }
+  function dropBill(id) { saveBills(bills().filter((b) => b.id !== id)); lsSet(LOCAL_PREFIX + id, null); }
+  function currentId() { return billId || localId; }
+  function billName(b) { return String((b && b.name) || "").trim() || "Untitled bill"; }
+  function isEmptyBill(st) {
+    return !Object.keys(st.people).length && !Object.keys(st.items).length && !Object.keys(st.payments).length &&
+      !String(st.meta.name || "").trim() && !String(st.meta.service || "").trim() && !String(st.meta.billTotal || "").trim();
+  }
+  // Keep the list's name/role/status in step with the open bill.
+  function syncEntry() {
+    const id = currentId(), e = id && bills().find((b) => b.id === id);
+    if (!e || !loaded || missing) return;
+    const want = { name: String(state.meta.name || ""), locked: !!state.meta.locked, role: billId && !isAdmin ? "guest" : "admin" };
+    if (e.name !== want.name || e.locked !== want.locked || e.role !== want.role) upsertBill(Object.assign({ id }, want));
+  }
+
+  function createLocalBill() {
+    const id = uid();
+    lsSet(LOCAL_PREFIX + id, JSON.stringify(emptyBill()));
+    upsertBill({ id, kind: "local", name: "" });
+    return id;
+  }
+  function startLocal(id) {
+    let s = null;
+    try { s = JSON.parse(lsGet(LOCAL_PREFIX + id)); } catch (e) {}
+    localId = id; billId = null; loaded = true; isAdmin = true; missing = false;
+    state = s ? normalize(s) : emptyBill();
+    lsSet(CURRENT, id);
+    history.replaceState(null, "", location.pathname + location.search);
+    render();
+  }
+  function switchTo(id, key) {
+    if (localId && localId !== id && isEmptyBill(state)) dropBill(localId);   // don't keep blank drafts around
+    if (remote) leaveShared();
+    localId = null; receiptWho = null;
+    const e = bills().find((b) => b.id === id);
+    if (!e) return startLocal(createLocalBill());
+    if (e.kind === "local" || !window.FIREBASE_CONFIG) return startLocal(id);
+    state = normalize(null); loaded = false; missing = false; billId = id; isAdmin = !!lsGet(KEYS + id);
+    lsSet(CURRENT, id);
+    render();
+    openShared(id, { key }).catch(() => { billId = null; loaded = true; isAdmin = true; toast("Couldn't open that bill. Are you online?"); render(); });
+  }
+  function goNext() { const next = bills()[0]; switchTo(next ? next.id : createLocalBill()); }
+
+  async function openBills() {
+    const cur = currentId();
+    const when = (t) => new Date(t || Date.now()).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+    const rows = bills().map((b) => {
+      const sub = b.kind === "local" ? "Only on this phone" : (b.role === "guest" ? "Guest" : "Admin") + " · " + (b.locked ? "Locked" : "Open");
+      return '<div class="bill-row' + (b.id === cur ? " on" : "") + '" data-pick="' + b.id + '" role="button" tabindex="0">' +
+        '<span class="bill-ico">' + (b.kind === "local" ? ICON.phone : ICON.users) + "</span>" +
+        '<span class="bill-txt"><b>' + esc(billName(b)) + "</b><small>" + sub + " · " + when(b.at) + "</small></span>" +
+        '<button class="icon-btn" data-pick="rm:' + b.id + '" aria-label="Remove">' + ICON.trash + "</button></div>";
+    }).join("");
+    const pick = await sheet({
+      title: "Your bills", body: rows || '<p class="empty">No bills yet.</p>',
+      buttons: [{ label: "Close", value: null }, { label: "New bill", value: "new", kind: "primary", icon: ICON.plus }],
+    });
+    if (pick === "new") return newBill();
+    if (pick && pick.startsWith("rm:")) return removeBill(pick.slice(3));
+    if (pick && pick !== cur) switchTo(pick);
+  }
+
+  async function removeBill(id) {
+    const e = bills().find((b) => b.id === id);
+    if (!e) return;
+    const text = e.kind === "local" ? "It only exists on this phone, so it'll be gone for good."
+      : e.role === "admin" ? "It stays available to everyone else. To delete it for everyone, lock it and use Settle & delete."
+      : "You can open it again from the original link.";
+    if (!(await ask("Remove “" + billName(e) + "”?", text, "Remove", "danger"))) return;
+    const wasOpen = id === currentId();
+    if (wasOpen && remote) leaveShared();
+    dropBill(id);
+    if (wasOpen) { localId = null; goNext(); } else render();
+  }
+
+  function newBill() {
+    switchTo(createLocalBill());
+    toast("New bill started");
+  }
 
   // ---------- Firebase ----------
   // Each device signs in anonymously so the database rules can tell people apart:
@@ -524,6 +658,17 @@
             },
             claim: (id, key) => D.set(D.ref(db, "owners/" + id + "/" + me), key),
             adminKey: (id) => D.get(D.ref(db, "owners/" + id + "/" + me)).then((s) => s.val()),
+            // Delete the bill's contents while still an admin, then the admin records themselves.
+            async deleteBill(id) {
+              const v = (await D.get(D.ref(db, "bills/" + id))).val() || {};
+              const p = { meta: null, people: null, payments: null };
+              ["items", "claims", "devices"].forEach((c) => Object.keys(v[c] || {}).forEach((k) => { p[c + "/" + k] = null; }));
+              await D.update(D.ref(db, "bills/" + id), p);
+              const owners = (await D.get(D.ref(db, "owners/" + id))).val() || {};
+              const q = { ["secrets/" + id]: null };
+              Object.keys(owners).forEach((u) => { q["owners/" + id + "/" + u] = null; });
+              await D.update(D.ref(db), q);
+            },
           };
         });
       backendP.catch(() => { backendP = null; });
@@ -534,8 +679,9 @@
   async function openShared(id, opts = {}) {
     const be = await backend();
     authUid = be.uid;
-    billId = id;
-    lsSet(SHARED, id);
+    billId = id; localId = null; missing = false;
+    lsSet(CURRENT, id);
+    upsertBill({ id, kind: "shared" });
     if (location.hash !== "#b=" + id) history.replaceState(null, "", "#b=" + id);
     adminKey = lsGet(KEYS + id);
     isAdmin = !!adminKey;
@@ -550,14 +696,13 @@
       if (opts.key) be.claim(id, opts.key).then(() => { toast("You're now an admin of this bill"); check(); }, () => { toast("That admin link isn't valid"); check(); });
       else check();
     }
-    remote = be.open(id, (v) => { state = normalize(v); loaded = true; render(); }, (s) => { online = s; renderBar(); });
+    remote = be.open(id, (v) => { missing = v === null; state = normalize(v); loaded = true; render(); }, (s) => { online = s; renderBar(); });
     render();
   }
 
   function leaveShared() {
     if (remote) remote.close();
-    remote = null; billId = null; loaded = true; isAdmin = true; adminKey = null;
-    lsSet(SHARED, null);
+    remote = null; billId = null; loaded = true; isAdmin = true; adminKey = null; missing = false;
     history.replaceState(null, "", location.pathname + location.search);
   }
 
@@ -566,6 +711,15 @@
   async function shareLink() {
     if (!window.FIREBASE_CONFIG) return info("Sharing isn't set up", "Add your Firebase settings to firebase-config.js (see README).");
     if (!billId) {
+      if (!String(state.meta.name || "").trim()) {
+        const name = await sheet({
+          title: "Name this bill", text: "It's how everyone finds it in their list of bills.",
+          input: { placeholder: "e.g. Friday at Dishoom" },
+          buttons: [{ label: "Cancel", value: null }, { label: "Continue", value: true, kind: "primary" }],
+        });
+        if (name === null || !name.trim()) return;
+        write({ "meta/name": name.trim() });
+      }
       const meRow = sorted(state.people).find((p) => /^\s*me\s*$/i.test(p.name || ""));
       if (meRow) {
         const name = await sheet({
@@ -589,10 +743,13 @@
         });
         if (!me) return;
       }
-      if (!(await ask("Share with " + names.join(", ") + "?", "Only you can add people, so check everyone is listed. You can still add people later.", "Share bill"))) return;
-      const id = uid(20);
+      const others = people.filter((p) => p.id !== me).map((p) => String(p.name).trim());
+      const list = others.length > 1 ? others.slice(0, -1).join(", ") + " and " + others[others.length - 1] : others[0];
+      if (!(await ask("Share with " + list + "?", "Only you can add people, so check everyone is listed. You can still add people later.", "Share bill"))) return;
+      const id = uid(20), draft = localId;
       try { await openShared(id, { create: JSON.parse(JSON.stringify(state)), me }); }
       catch (e) { return info("Couldn't connect", "The sharing service isn't reachable. Are you online?"); }
+      if (draft) dropBill(draft);   // the draft now lives on as the shared bill
     }
     linkSheet("Invite friends", "Anyone with this link can add what they had. Only you can change the rest.", shareUrl(false));
   }
@@ -748,6 +905,7 @@
     const sel = $("#meSel");
     setHTML(sel, pickerOptions('<option value="">Choose…</option>'));
     if (document.activeElement !== sel) sel.value = meId() || "";
+    sel.disabled = !!meId();   // your name is fixed once picked
     bar.classList.toggle("needme", loaded && !meId());
     $("#role").textContent = isAdmin ? "Admin" : "Guest";
     $("#role").classList.toggle("admin", isAdmin);
@@ -763,6 +921,9 @@
     document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !admin; });
     document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !admin; });
     document.body.classList.toggle("guest", !!billId && !isAdmin);
+    document.body.classList.toggle("missing", !!billId && loaded && missing);
+    $("#billTitle").textContent = loaded ? billName(state.meta) : billName(bills().find((b) => b.id === billId));
+    syncEntry();
     $("#addItem").hidden = !picked();
     $("#peopleEmpty").hidden = people.length > 0;
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") : "";
@@ -796,10 +957,10 @@
     syncList($("#items"), items,
       () => el('<div class="item"><div class="item-row">' +
         '<input class="name" data-f="name" placeholder="What was it?" autocomplete="off">' +
+        '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity">' +
         '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each"></label>' +
         '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button></div>' +
-        '<div class="item-foot"><div class="chips"></div>' +
-        '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity"></div></div>'),
+        '<div class="chips"></div></div>'),
       (row, it) => {
         const mine = canEditItem(it);
         row.querySelector(".cur").textContent = state.meta.currency;
@@ -900,9 +1061,13 @@
         '</span><span class="big">' + money(Math.abs(net)) + "</span></div>";
       h += '<div class="actions"><button class="btn primary" data-act="shareReceipt">' + ICON.share + "Share receipt</button></div>";
     }
-    if (canAdmin()) h += '<div class="actions"><button class="btn" data-act="unlock">' + ICON.unlock + "Unlock to edit</button></div>";
+    if (canAdmin()) {
+      h += '<div class="actions"><button class="btn" data-act="unlock">' + ICON.unlock + "Unlock</button>" +
+        '<button class="btn danger" data-act="settle">' + (billId ? "Settle &amp; delete" : "Delete bill") + "</button></div>";
+    }
     box.innerHTML = h;
     $("#receiptWho").value = who || "";
+    $("#receiptWho").disabled = !!billId && !!meId();
   }
 
   function receiptText(who) {
@@ -1074,6 +1239,25 @@
       case "unlock":
         if (await ask("Unlock the bill?", "Items can be edited again until you lock it.", "Unlock")) write({ "meta/locked": null });
         return;
+      case "settle": {
+        const text = billId ? "Only do this once everyone has paid. The bill is deleted for everyone and can't be recovered."
+          : "The bill is deleted from this phone and can't be recovered.";
+        if (!(await ask("Delete “" + billName(state.meta) + "”?", text, billId ? "Delete for everyone" : "Delete", "danger"))) return;
+        const id = currentId();
+        if (billId) {
+          try { await (await backend()).deleteBill(id); }
+          catch (err) { return info("Couldn't delete the bill", "Are you online? " + err.message); }
+          leaveShared();
+        }
+        dropBill(id); localId = null;
+        toast("Bill deleted");
+        return goNext();
+      }
+      case "forget": {
+        const id = billId;
+        leaveShared(); dropBill(id);
+        return goNext();
+      }
     }
   });
 
@@ -1100,32 +1284,32 @@
   $("#adminLink").addEventListener("click", () => linkSheet("Admin link",
     "Opening this link makes that device an admin of this bill, able to change everything. Use it for your own other devices, or to make someone co-admin. Don't post it in the group chat.",
     shareUrl(true)));
-  $("#newBill").addEventListener("click", async () => {
-    const text = billId ? "This one stays available to everyone through its link." : "Everything on this bill is cleared.";
-    if (!(await ask("Start a new bill?", text, "New bill"))) return;
-    if (billId) leaveShared();
-    state = emptyBill();
-    lsSet(LOCAL, JSON.stringify(state));
-    render();
-  });
+  $("#newBill").addEventListener("click", newBill);
+  $("#billSwitch").addEventListener("click", openBills);
   window.addEventListener("hashchange", () => location.reload());
 
   // ---------- start ----------
-  function startLocal() {
-    let s = null;
-    try { s = JSON.parse(lsGet(LOCAL)); } catch (e) {}
-    state = s && s.people ? normalize(s) : emptyBill();
-    render();
+  // Earlier versions kept a single bill on the phone; move it into the list.
+  function migrate() {
+    if (lsGet(BILLS)) return;
+    const list = [], oldLocal = lsGet("bill-splitter-v2"), oldShared = lsGet("bill-splitter-shared");
+    if (oldLocal) { const id = uid(); lsSet(LOCAL_PREFIX + id, oldLocal); list.push({ id, kind: "local", name: "", at: Date.now() }); lsSet(CURRENT, id); }
+    if (oldShared) { list.unshift({ id: oldShared, kind: "shared", name: "", at: Date.now() }); lsSet(CURRENT, oldShared); }
+    saveBills(list);
+    lsSet("bill-splitter-v2", null); lsSet("bill-splitter-shared", null);
   }
+
+  state = emptyBill();
+  migrate();
   const m = location.hash.match(/^#b=([a-z0-9]{16,})(?:&k=([a-z0-9]{16,}))?$/);
-  const sharedId = m ? m[1] : lsGet(SHARED);
-  if (sharedId && window.FIREBASE_CONFIG) {
-    state = normalize(null); loaded = false; billId = sharedId; isAdmin = !!lsGet(KEYS + sharedId); render();
-    openShared(sharedId, { key: m && m[2] }).catch(() => { billId = null; loaded = true; isAdmin = true; toast("Couldn't open the shared bill. Are you online?"); startLocal(); });
+  if (m && window.FIREBASE_CONFIG) {
+    upsertBill({ id: m[1], kind: "shared" });
+    switchTo(m[1], m[2]);
   } else {
-    startLocal();
-    if (window.FIREBASE_CONFIG) backend().catch(() => {});  // preload so "Share" is instant
+    const list = bills(), cur = list.find((b) => b.id === lsGet(CURRENT)) || list[0];
+    switchTo(cur ? cur.id : createLocalBill());
   }
+  if (window.FIREBASE_CONFIG) backend().catch(() => {});  // preload so "Share" is instant
 
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
