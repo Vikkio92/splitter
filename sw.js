@@ -1,6 +1,6 @@
 // Offline support: network first (so updates show up straight away), cache as fallback.
 // Only the app's own files, the Firebase SDK and the fonts are cached; live database traffic is left alone.
-const CACHE = "splitter-v6";
+const CACHE = "splitter-v7";
 const ASSETS = ["./", "./index.html", "./firebase-config.js", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -25,7 +25,10 @@ self.addEventListener("fetch", (e) => {
   e.respondWith(
     caches.open(CACHE).then((cache) => {
       const cached = () => cache.match(e.request, { ignoreSearch: true });
-      const net = fetch(e.request).then((res) => {
+      // The app's own files always ask the website whether there's a newer version (GitHub Pages
+      // otherwise lets phones reuse a copy for 10 minutes); other files come from the browser's cache.
+      const ownFile = url.origin === location.origin;
+      const net = (ownFile ? fetch(e.request.url, { cache: "no-cache", credentials: "same-origin" }) : fetch(e.request)).then((res) => {
         if (res.ok) cache.put(e.request, res.clone());
         return res;
       });
