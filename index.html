@@ -11,6 +11,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Splitter">
+<script>
+  // Apply a chosen theme before anything paints.
+  try { var t = localStorage.getItem("splitter-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -44,8 +48,9 @@
     --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --display-font: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   }
+  /* dark: follows the phone unless the user picked a theme (data-theme on <html>) */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #0b0b0c;
       --surface: #161618;
       --surface-2: #1f1f22;
@@ -69,6 +74,30 @@
       --focus: #d4ff3a;
       --shadow: none;
     }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0b0c;
+    --surface: #161618;
+    --surface-2: #1f1f22;
+    --text: #f4f4f5;
+    --muted: #9b9ba3;
+    --line: rgba(255, 255, 255, 0.08);
+    --accent: #d4ff3a;
+    --on-accent: #0b0b0c;
+    --key: #f4f4f5;
+    --on-key: #0b0b0c;
+    --display: #d4ff3a;
+    --on-display: #0b0b0c;
+    --display-muted: rgba(11, 11, 12, 0.6);
+    --display-track: rgba(11, 11, 12, 0.15);
+    --owe: #ff7b72;
+    --owe-bg: #331816;
+    --owed: #4fd68a;
+    --owed-bg: #11291b;
+    --warn: #ffcc66;
+    --warn-bg: #2e2410;
+    --focus: #d4ff3a;
+    --shadow: none;
   }
 
   * { box-sizing: border-box; }
@@ -124,7 +153,9 @@
   input:disabled, select:disabled { background: transparent; color: var(--text); -webkit-text-fill-color: var(--text); opacity: 1; padding-left: 0; padding-right: 0; background-image: none; }
 
   /* ---------- bill switcher ---------- */
-  .bill-switch { display: flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 0 12px; font: 700 26px/1.15 var(--display-font); letter-spacing: -0.02em; text-align: left; }
+  .title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .title-row .icon-btn { margin-top: -2px; }
+  .bill-switch { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 2px 0 12px; font: 700 26px/1.15 var(--display-font); letter-spacing: -0.02em; text-align: left; }
   .bill-switch span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bill-switch .i { width: 22px; height: 22px; color: var(--muted); }
   .bill-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 16px; background: var(--surface-2); cursor: pointer; }
@@ -136,11 +167,6 @@
   .bill-txt b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bill-txt small { color: var(--muted); font-size: 13px; }
   #mBody { margin-bottom: 16px; }
-  #missingCard { display: none; text-align: center; padding: 28px 20px; }
-  #missingCard h2 { margin-bottom: 6px; }
-  #missingCard p { color: var(--muted); margin: 0 0 18px; }
-  body.missing #missingCard { display: block; }
-  body.missing main > section:not(#missingCard), body.missing #sharedBar { display: none !important; }
 
   /* ---------- status bar ---------- */
   .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; background: var(--surface); border-radius: 18px; padding: 10px 12px 10px 14px; margin-bottom: 12px; box-shadow: var(--shadow); font-size: 14px; }
@@ -322,7 +348,10 @@
     </div>
   </header>
 
-  <button class="bill-switch" id="billSwitch"><span id="billTitle"></span><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+  <div class="title-row">
+    <button class="bill-switch" id="billSwitch"><span id="billTitle"></span><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+    <button class="icon-btn" id="themeBtn" aria-label="Switch between light and dark"></button>
+  </div>
 
   <div class="bar" id="sharedBar" hidden>
     <span class="live" id="dot"></span><span id="statusText">Connecting…</span>
@@ -330,12 +359,6 @@
     <button class="icon-btn" id="adminLink" title="Admin link" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
   </div>
-
-  <section class="card" id="missingCard">
-    <h2>This bill is gone</h2>
-    <p>It was settled and deleted by its admin, or the link is wrong.</p>
-    <button class="btn primary block" data-act="forget">Remove from my bills</button>
-  </section>
 
   <section class="display" id="display"></section>
 
@@ -412,6 +435,8 @@
     users: '<svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>',
     phone: '<svg class="i" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M11 18h2"/></svg>',
     trash: '<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
+    sun: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    moon: '<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>',
   };
 
   // ---------- state ----------
@@ -425,7 +450,6 @@
   let state, billId = null, remote = null, loaded = true, online = false;
   let authUid = null, isAdmin = true, adminKey = null;   // a bill on this device only: you're the admin
   let localId = null;    // id of the open bill when it lives only on this phone
-  let missing = false;   // the open shared bill no longer exists
 
   // In a shared bill you have to pick who you are before you can edit anything.
   function picked() { return !billId || !!meId(); }
@@ -473,9 +497,14 @@
   function claimedBy(pid) { return state.claims[pid] || null; }
 
   // Link this phone to a person (or to nobody), releasing any previous pick in the same write.
-  function pickPerson(pid) {
+  async function pickPerson(pid) {
     const old = state.devices[authUid], paths = {};
     if (meId()) return;
+    if (pid && !(await ask("Are you " + personName(pid) + "?", "You can't change this afterwards. Only the bill's admin can undo it.", "Yes, I'm " + personName(pid)))) {
+      if (document.activeElement) document.activeElement.blur();
+      render();   // put the picker back to "Choose…"
+      return;
+    }
     if (old && state.claims[old] === authUid) paths["claims/" + old] = null;
     if (pid) { paths["claims/" + pid] = authUid; paths["devices/" + authUid] = pid; }
     else paths["devices/" + authUid] = null;
@@ -548,7 +577,7 @@
   // Keep the list's name/role/status in step with the open bill.
   function syncEntry() {
     const id = currentId(), e = id && bills().find((b) => b.id === id);
-    if (!e || !loaded || missing) return;
+    if (!e || !loaded) return;
     const want = { name: String(state.meta.name || ""), locked: !!state.meta.locked, role: billId && !isAdmin ? "guest" : "admin" };
     if (e.name !== want.name || e.locked !== want.locked || e.role !== want.role) upsertBill(Object.assign({ id }, want));
   }
@@ -562,7 +591,7 @@
   function startLocal(id) {
     let s = null;
     try { s = JSON.parse(lsGet(LOCAL_PREFIX + id)); } catch (e) {}
-    localId = id; billId = null; loaded = true; isAdmin = true; missing = false;
+    localId = id; billId = null; loaded = true; isAdmin = true;
     state = s ? normalize(s) : emptyBill();
     lsSet(CURRENT, id);
     history.replaceState(null, "", location.pathname + location.search);
@@ -575,7 +604,7 @@
     const e = bills().find((b) => b.id === id);
     if (!e) return startLocal(createLocalBill());
     if (e.kind === "local" || !window.FIREBASE_CONFIG) return startLocal(id);
-    state = normalize(null); loaded = false; missing = false; billId = id; isAdmin = !!lsGet(KEYS + id);
+    state = normalize(null); loaded = false; billId = id; isAdmin = !!lsGet(KEYS + id);
     lsSet(CURRENT, id);
     render();
     openShared(id, { key }).catch(() => { billId = null; loaded = true; isAdmin = true; toast("Couldn't open that bill. Are you online?"); render(); });
@@ -612,6 +641,23 @@
     if (wasOpen && remote) leaveShared();
     dropBill(id);
     if (wasOpen) { localId = null; goNext(); } else render();
+  }
+
+  // The admin settled and deleted it (or the link was wrong): drop it from this phone too.
+  function billGone(id) {
+    const e = bills().find((b) => b.id === id);
+    if (billId === id) leaveShared();
+    dropBill(id);
+    toast(e && e.name ? "“" + billName(e) + "” was settled and deleted" : "That bill no longer exists");
+    goNext();
+  }
+  // Bills deleted while this phone wasn't looking are tidied away on launch.
+  async function pruneGoneBills() {
+    let be;
+    try { be = await backend(); } catch (e) { return; }
+    for (const b of bills().filter((x) => x.kind === "shared" && x.id !== billId)) {
+      if ((await be.exists(b.id).catch(() => true)) === false) dropBill(b.id);
+    }
   }
 
   function newBill() {
@@ -656,6 +702,7 @@
               if (mePerson) { p["bills/" + id + "/claims/" + mePerson] = me; p["bills/" + id + "/devices/" + me] = mePerson; }
               return D.update(D.ref(db), p);
             },
+            exists: (id) => D.get(D.ref(db, "bills/" + id + "/meta")).then((s) => s.exists()),
             claim: (id, key) => D.set(D.ref(db, "owners/" + id + "/" + me), key),
             adminKey: (id) => D.get(D.ref(db, "owners/" + id + "/" + me)).then((s) => s.val()),
             // Delete the bill's contents while still an admin, then the admin records themselves.
@@ -664,10 +711,12 @@
               const p = { meta: null, people: null, payments: null };
               ["items", "claims", "devices"].forEach((c) => Object.keys(v[c] || {}).forEach((k) => { p[c + "/" + k] = null; }));
               await D.update(D.ref(db, "bills/" + id), p);
-              const owners = (await D.get(D.ref(db, "owners/" + id))).val() || {};
-              const q = { ["secrets/" + id]: null };
-              Object.keys(owners).forEach((u) => { q["owners/" + id + "/" + u] = null; });
-              await D.update(D.ref(db), q);
+              try {
+                const owners = (await D.get(D.ref(db, "owners/" + id))).val() || {};
+                const q = { ["secrets/" + id]: null };
+                Object.keys(owners).forEach((u) => { q["owners/" + id + "/" + u] = null; });
+                await D.update(D.ref(db), q);
+              } catch (e) { /* the bill itself is gone; leftover admin records are harmless */ }
             },
           };
         });
@@ -679,7 +728,7 @@
   async function openShared(id, opts = {}) {
     const be = await backend();
     authUid = be.uid;
-    billId = id; localId = null; missing = false;
+    billId = id; localId = null;
     lsSet(CURRENT, id);
     upsertBill({ id, kind: "shared" });
     if (location.hash !== "#b=" + id) history.replaceState(null, "", "#b=" + id);
@@ -696,13 +745,16 @@
       if (opts.key) be.claim(id, opts.key).then(() => { toast("You're now an admin of this bill"); check(); }, () => { toast("That admin link isn't valid"); check(); });
       else check();
     }
-    remote = be.open(id, (v) => { missing = v === null; state = normalize(v); loaded = true; render(); }, (s) => { online = s; renderBar(); });
+    remote = be.open(id, (v) => {
+      if (v === null) return billGone(id);
+      state = normalize(v); loaded = true; render();
+    }, (s) => { online = s; renderBar(); });
     render();
   }
 
   function leaveShared() {
     if (remote) remote.close();
-    remote = null; billId = null; loaded = true; isAdmin = true; adminKey = null; missing = false;
+    remote = null; billId = null; loaded = true; isAdmin = true; adminKey = null;
     history.replaceState(null, "", location.pathname + location.search);
   }
 
@@ -921,7 +973,6 @@
     document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !admin; });
     document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !admin; });
     document.body.classList.toggle("guest", !!billId && !isAdmin);
-    document.body.classList.toggle("missing", !!billId && loaded && missing);
     $("#billTitle").textContent = loaded ? billName(state.meta) : billName(bills().find((b) => b.id === billId));
     syncEntry();
     $("#addItem").hidden = !picked();
@@ -1245,17 +1296,12 @@
         if (!(await ask("Delete “" + billName(state.meta) + "”?", text, billId ? "Delete for everyone" : "Delete", "danger"))) return;
         const id = currentId();
         if (billId) {
+          leaveShared();   // stop listening first, or the deletion would look like someone else's
           try { await (await backend()).deleteBill(id); }
-          catch (err) { return info("Couldn't delete the bill", "Are you online? " + err.message); }
-          leaveShared();
+          catch (err) { switchTo(id); return info("Couldn't delete the bill", "Are you online? " + err.message); }
         }
         dropBill(id); localId = null;
         toast("Bill deleted");
-        return goNext();
-      }
-      case "forget": {
-        const id = billId;
-        leaveShared(); dropBill(id);
         return goNext();
       }
     }
@@ -1284,7 +1330,28 @@
   $("#adminLink").addEventListener("click", () => linkSheet("Admin link",
     "Opening this link makes that device an admin of this bill, able to change everything. Use it for your own other devices, or to make someone co-admin. Don't post it in the group chat.",
     shareUrl(true)));
-  $("#newBill").addEventListener("click", newBill);
+  $("#newBill").addEventListener("click", async () => {
+    if (await ask("Start a new bill?", "This one stays in your bills, so you can come back to it.", "New bill")) newBill();
+  });
+
+  // Light/dark: follows the phone until you pick one here.
+  function isDark() {
+    const t = document.documentElement.dataset.theme;
+    return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function paintTheme() {
+    const dark = isDark();
+    $("#themeBtn").innerHTML = dark ? ICON.sun : ICON.moon;
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", dark ? "#0b0b0c" : "#f2f1ec"));
+  }
+  $("#themeBtn").addEventListener("click", () => {
+    const next = isDark() ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    lsSet("splitter-theme", next);
+    paintTheme();
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintTheme);
+  paintTheme();
   $("#billSwitch").addEventListener("click", openBills);
   window.addEventListener("hashchange", () => location.reload());
 
@@ -1309,7 +1376,7 @@
     const list = bills(), cur = list.find((b) => b.id === lsGet(CURRENT)) || list[0];
     switchTo(cur ? cur.id : createLocalBill());
   }
-  if (window.FIREBASE_CONFIG) backend().catch(() => {});  // preload so "Share" is instant
+  if (window.FIREBASE_CONFIG) pruneGoneBills();   // also preloads Firebase so "Share" is instant
 
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
