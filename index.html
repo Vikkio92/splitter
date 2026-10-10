@@ -496,6 +496,17 @@
     return id && state.people[id] && state.claims[id] === authUid ? id : null;
   }
   function claimedBy(pid) { return state.claims[pid] || null; }
+  function myself() {
+    const id = billId ? meId() : state.meta.me;
+    return id && state.people[id] ? id : null;
+  }
+  // "Which one is you?" — used before sharing or locking a bill that doesn't know yet.
+  function askWhoYouAre() {
+    return sheet({
+      title: "Which one is you?", text: "So the app knows which receipt is yours.",
+      buttons: sorted(state.people).map((p) => ({ label: String(p.name || "").trim() || "Unnamed", value: p.id })).concat([{ label: "Cancel", value: null }]),
+    });
+  }
 
   // Link this phone to a person (or to nobody), releasing any previous pick in the same write.
   async function pickPerson(pid) {
@@ -788,19 +799,18 @@
       if (names.some((n) => !n)) return info("Some people have no name", "Give every person a name before sharing, so everyone can find themselves.");
       const dupe = names.find((n, i) => names.findIndex((m) => m.toLowerCase() === n.toLowerCase()) !== i);
       if (dupe) return info("Two people are called " + dupe, "Use different names so everyone can find themselves.");
-      let me = meRow && meRow.id;
+      let me = myself() || (meRow && meRow.id);
       if (!me) {
-        me = await sheet({
-          title: "Which one is you?", text: "Your phone is linked to this name, so your items are ticked to you.",
-          buttons: people.map((p) => ({ label: String(p.name).trim(), value: p.id })).concat([{ label: "Cancel", value: null }]),
-        });
+        me = await askWhoYouAre();
         if (!me) return;
       }
       const others = people.filter((p) => p.id !== me).map((p) => String(p.name).trim());
       const list = others.length > 1 ? others.slice(0, -1).join(", ") + " and " + others[others.length - 1] : others[0];
       if (!(await ask("Share with " + list + "?", "Only you can add people, so check everyone is listed. You can still add people later.", "Share bill"))) return;
       const id = uid(20), draft = localId;
-      try { await openShared(id, { create: JSON.parse(JSON.stringify(state)), me }); }
+      const copy = JSON.parse(JSON.stringify(state));
+      delete copy.meta.me;   // on a shared bill, who you are is the phone's claim
+      try { await openShared(id, { create: copy, me }); }
       catch (e) { return info("Couldn't connect", "The sharing service isn't reachable. Are you online?"); }
       if (draft) dropBill(draft);   // the draft now lives on as the shared bill
     }
@@ -1068,12 +1078,12 @@
   }
 
   // Once the admin locks the bill, everyone sees their own receipt instead of the editor.
-  let receiptWho = null;   // whose receipt is shown, for a bill on this device only
+  let receiptWho = null;   // whose receipt the admin is looking at (defaults to their own)
   function receiptPerson() {
-    const id = billId ? meId() : receiptWho;
-    if (id && state.people[id]) return id;
+    if (!canAdmin()) return meId();
+    if (receiptWho && state.people[receiptWho]) return receiptWho;
     const first = sorted(state.people)[0];
-    return billId ? null : first && first.id;
+    return myself() || (first && first.id);
   }
 
   function renderReceipt() {
@@ -1083,13 +1093,15 @@
     box.hidden = !locked;
     if (!locked) return;
     const r = last, who = receiptPerson();
+    const admin = canAdmin(), me = myself();
     const first = who ? "" : '<option value="">Who are you?</option>';
-    let h = '<div class="receipt-head"><h2>Your receipt</h2><select id="receiptWho">' +
-      (billId ? pickerOptions(first) : personOptions(r.people, first)) + "</select></div>";
+    const viewOptions = r.people.map((p) => '<option value="' + p.id + '">' + esc(personName(p.id)) + (p.id === me ? " (you)" : "") + "</option>").join("");
+    let h = '<div class="receipt-head"><h2>' + (admin && who !== me ? "Viewing" : "Your receipt") + '</h2><select id="receiptWho">' +
+      (admin ? viewOptions : pickerOptions(first)) + "</select></div>";
 
     if (!who) h += '<p class="empty">Pick your name to see what you owe.</p>';
     else {
-      const you = !!billId && who === meId();
+      const you = who === me;
       const name = esc(personName(who)), net = r.net[who];
       if (net > 0) {
         h += '<div class="banner owe"><div class="lead">' + (you ? "You need" : name + " needs") + ' to pay</div><div class="amt">' + money(net) + "</div>" +
@@ -1123,7 +1135,7 @@
     }
     box.innerHTML = h;
     $("#receiptWho").value = who || "";
-    $("#receiptWho").disabled = !!billId && !!meId();
+    $("#receiptWho").disabled = !admin && !!meId();
   }
 
   function receiptText(who) {
@@ -1233,8 +1245,8 @@
   $("#meSel").addEventListener("change", (e) => pickPerson(e.target.value));
   $("#receipt").addEventListener("change", (e) => {
     if (e.target.id !== "receiptWho") return;
-    if (billId) pickPerson(e.target.value);
-    else { receiptWho = e.target.value; render(); }
+    if (canAdmin()) { receiptWho = e.target.value; render(); }
+    else pickPerson(e.target.value);
   });
 
   document.addEventListener("click", async (e) => {
@@ -1289,7 +1301,14 @@
         const idle = r.people.filter((p) => !r.share[p.id] && !r.paid[p.id]).map((p) => personName(p.id));
         const msg = (idle.length ? idle.join(", ") + (idle.length > 1 ? " have" : " has") + " nothing on the bill.\n\n" : "") +
           "Everyone will see their own receipt, and nobody else can change items until you unlock it.";
+        let me = myself();
+        if (!me) {
+          me = await askWhoYouAre();
+          if (!me) return;
+          write({ "meta/me": me });
+        }
         if (!(await ask("Lock the bill?", msg, "Lock bill", "dark"))) return;
+        receiptWho = null;
         return write({ "meta/locked": true });
       }
       case "unlock":
