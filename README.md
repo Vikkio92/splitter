@@ -2,8 +2,10 @@
 
 A single-page web app for splitting a restaurant bill by item, with a service charge and payments or deposits that people have already made. It's an installable PWA that works offline, and bills can optionally be shared so friends can add their own items live.
 
+Live at **https://vikkio92.github.io/splitter/**
+
 ## Install on iPhone
-Open the GitHub Pages URL in **Safari**, then tap **Share → Add to Home Screen**.
+Open the link in **Safari**, then tap **Share → Add to Home Screen**.
 
 ## Turn on shared bills (one-off, ~5 minutes, free)
 1. Go to <https://console.firebase.google.com>, then **Create a project** (any name; Google Analytics can be off).
