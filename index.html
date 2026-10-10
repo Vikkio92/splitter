@@ -407,8 +407,8 @@
   <div class="bar" id="sharedBar" hidden>
     <span class="live" id="dot"></span><span id="statusText">Connecting…</span>
     <span class="role" id="role"></span>
-    <button class="role code" id="codePill" title="Copy the join code" hidden></button>
-    <button class="icon-btn" id="adminLink" title="Admin link" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
+    <button class="role code" id="codePill" aria-label="Copy the join code" hidden></button>
+    <button class="icon-btn" id="adminLink" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
     <button class="btn small pill" id="myMonzo" hidden></button>
   </div>
@@ -1262,8 +1262,8 @@
 
     syncList($("#people"), people,
       () => el('<div class="prow"><span class="av"></span><input data-f="name" placeholder="Name" autocomplete="off" maxlength="40">' +
-        '<button class="btn small" data-act="monzo" title="Monzo.me username, so people can pay them from their receipt"></button>' +
-        '<button class="btn small" data-act="unlink" title="Let this person pick their name again">Unlink</button>' +
+        '<button class="btn small" data-act="monzo"></button>' +
+        '<button class="btn small" data-act="unlink">Unlink</button>' +
         '<button class="icon-btn" data-act="delPerson" aria-label="Remove">' + ICON.x + "</button></div>"),
       (row, p) => {
         const av = row.querySelector(".av");
