@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bill Splitter</title>
+<meta name="description" content="Split a restaurant bill by item, with service charge and deposits.">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Split">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #15181d;
+    --muted: #6b7280;
+    --line: #e3e5e9;
+    --accent: #0f766e;
+    --accent-soft: #d5f0ec;
+    --accent-text: #ffffff;
+    --chip: #eef0f3;
+    --owe: #b42318;
+    --owed: #067647;
+    --warn-bg: #fff4e0;
+    --warn-text: #8a4b00;
+    --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1013;
+      --card: #181b20;
+      --text: #eceef1;
+      --muted: #9aa1ab;
+      --line: #2a2f37;
+      --accent: #2dd4bf;
+      --accent-soft: #123b37;
+      --accent-text: #04201d;
+      --chip: #242931;
+      --owe: #ff8a7a;
+      --owed: #5fe0a0;
+      --warn-bg: #3a2a10;
+      --warn-text: #ffd08a;
+      --input: #111418;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 24px);
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 8px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  section.card { background: var(--card); border-radius: 14px; padding: 14px; margin: 12px 0; border: 1px solid var(--line); }
+  input, select {
+    font: inherit; color: var(--text); background: var(--input);
+    border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; min-width: 0; width: 100%;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button {
+    font: inherit; border: 0; border-radius: 9px; padding: 9px 12px; cursor: pointer;
+    background: var(--chip); color: var(--text);
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button.ghost { background: transparent; color: var(--muted); }
+  button.x { background: transparent; color: var(--muted); padding: 6px 8px; font-size: 20px; line-height: 1; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row + .row { margin-top: 8px; }
+  .grow { flex: 1; }
+  .w-price { width: 92px; flex: none; }
+  .w-qty { width: 56px; flex: none; text-align: center; }
+  .w-small { width: 76px; flex: none; }
+  .add { margin-top: 10px; width: 100%; }
+  .item { padding: 10px 0; border-top: 1px solid var(--line); }
+  .item:first-child { border-top: 0; padding-top: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { padding: 5px 11px; border-radius: 999px; font-size: 14px; background: var(--chip); color: var(--text); border: 1px solid transparent; }
+  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); font-weight: 600; }
+  .chip.all { color: var(--muted); }
+  .item.unassigned .chips::after { content: "Tap who had this"; font-size: 13px; color: var(--warn-text); align-self: center; margin-left: 4px; }
+  .settings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  label.f { display: block; font-size: 13px; color: var(--muted); }
+  label.f input { margin-top: 4px; }
+  .hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 8px 0; }
+  .warn .row { margin-top: 8px; }
+  .warn select { width: auto; flex: 1; }
+  .totals { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-variant-numeric: tabular-nums; }
+  .totals .big { font-size: 20px; font-weight: 700; }
+  .person { border-top: 1px solid var(--line); padding: 10px 0; }
+  .person summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .person summary::-webkit-details-marker { display: none; }
+  .pname { font-weight: 600; }
+  .pshare { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; }
+  .pnet { font-size: 14px; margin-top: 2px; }
+  .owe { color: var(--owe); }
+  .owed { color: var(--owed); }
+  .settled { color: var(--muted); }
+  .breakdown { font-size: 14px; color: var(--muted); margin-top: 8px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-variant-numeric: tabular-nums; }
+  .breakdown .sep { grid-column: 1 / -1; border-top: 1px dashed var(--line); margin: 4px 0; }
+  .transfer { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .transfer:first-child { border-top: 0; }
+  .transfer b { font-weight: 700; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .actions button { flex: 1; }
+  .empty { color: var(--muted); font-size: 14px; margin: 0; }
+  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Bill Splitter</h1>
+    <button class="ghost" id="newBill">New bill</button>
+  </header>
+
+  <section class="card">
+    <h2>Bill</h2>
+    <div class="settings">
+      <label class="f">Service %<input id="service" inputmode="decimal" placeholder="0"></label>
+      <label class="f">Bill total<input id="billTotal" inputmode="decimal" placeholder="optional"></label>
+      <label class="f">Currency<input id="currency" maxlength="4"></label>
+    </div>
+    <p class="hint">Enter the total printed on the bill to check nothing is missing.</p>
+  </section>
+
+  <section class="card">
+    <h2>People</h2>
+    <div id="people"></div>
+    <button class="add" id="addPerson">+ Add person</button>
+  </section>
+
+  <section class="card">
+    <h2>Food &amp; drinks</h2>
+    <div id="items"></div>
+    <button class="add primary" id="addItem">+ Add item</button>
+    <p class="hint">Tick more than one person to split an item equally between them.</p>
+  </section>
+
+  <section class="card">
+    <h2>Payments already made</h2>
+    <div id="payments"></div>
+    <button class="add" id="addPayment">+ Add payment / deposit</button>
+  </section>
+
+  <section class="card" id="results"></section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "bill-splitter-v1";
+
+  function uid() { return Math.random().toString(36).slice(2, 10); }
+  function fresh() {
+    return { currency: "£", service: "12.5", billTotal: "", people: [{ id: uid(), name: "Me" }], items: [], payments: [] };
+  }
+  function load() {
+    try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && s.people) return s; } catch (e) {}
+    return null;
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  var state = load() || fresh();
+
+  function num(v) {
+    var n = parseFloat(String(v == null ? "" : v).replace(",", ".").replace(/[^0-9.\-]/g, ""));
+    return isFinite(n) ? n : 0;
+  }
+  function qty(v) { return String(v == null ? "" : v).trim() === "" ? 1 : num(v); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function money(cents) {
+    var neg = cents < 0;
+    return (neg ? "-" : "") + state.currency + (Math.abs(cents) / 100).toFixed(2);
+  }
+  function personName(id) {
+    var p = state.people.find(function (p) { return p.id === id; });
+    return p ? (p.name.trim() || "Unnamed") : "?";
+  }
+  var $ = function (s) { return document.querySelector(s); };
+
+  // Round a set of fractional cent amounts so they sum exactly to `target` (largest remainder).
+  function allocate(rawById, target) {
+    var ids = Object.keys(rawById);
+    var out = {}, sum = 0;
+    var rems = ids.map(function (id) {
+      var f = Math.floor(rawById[id] + 1e-9);
+      out[id] = f; sum += f;
+      return { id: id, r: rawById[id] - f };
+    });
+    var diff = target - sum;
+    rems.sort(function (a, b) { return diff > 0 ? b.r - a.r : a.r - b.r; });
+    for (var i = 0; diff !== 0 && rems.length; i = (i + 1) % rems.length) {
+      out[rems[i].id] += diff > 0 ? 1 : -1;
+      diff += diff > 0 ? -1 : 1;
+    }
+    return out;
+  }
+
+  function compute() {
+    var rate = num(state.service) / 100;
+    var base = {}, lines = {};
+    state.people.forEach(function (p) { base[p.id] = 0; lines[p.id] = []; });
+    var subtotal = 0, unassigned = 0;
+
+    state.items.forEach(function (it) {
+      var c = num(it.price) * qty(it.qty) * 100;
+      subtotal += c;
+      var who = it.people.filter(function (id) { return id in base; });
+      if (!who.length) { unassigned += c; return; }
+      who.forEach(function (id) {
+        base[id] += c / who.length;
+        lines[id].push({ name: it.name.trim() || "Item", amt: c / who.length, n: who.length, q: qty(it.qty) });
+      });
+    });
+
+    var totalC = Math.round(subtotal * (1 + rate));
+    var subtotalC = Math.round(subtotal);
+    var assignedC = Math.round((subtotal - unassigned) * (1 + rate));
+    var raw = {};
+    Object.keys(base).forEach(function (id) { raw[id] = base[id] * (1 + rate); });
+    var share = allocate(raw, assignedC);
+
+    var paid = {}; state.people.forEach(function (p) { paid[p.id] = 0; });
+    var paidTotal = 0;
+    state.payments.forEach(function (pm) {
+      var c = Math.round(num(pm.amount) * 100);
+      if (pm.personId in paid) { paid[pm.personId] += c; paidTotal += c; }
+    });
+
+    var net = {};
+    state.people.forEach(function (p) { net[p.id] = share[p.id] - paid[p.id]; });
+
+    var transfers = [];
+    if (paidTotal === assignedC && unassigned === 0) {
+      var debt = [], cred = [];
+      state.people.forEach(function (p) {
+        if (net[p.id] > 0) debt.push({ id: p.id, v: net[p.id] });
+        else if (net[p.id] < 0) cred.push({ id: p.id, v: -net[p.id] });
+      });
+      debt.sort(function (a, b) { return b.v - a.v; });
+      cred.sort(function (a, b) { return b.v - a.v; });
+      var i = 0, j = 0;
+      while (i < debt.length && j < cred.length) {
+        var amt = Math.min(debt[i].v, cred[j].v);
+        transfers.push({ from: debt[i].id, to: cred[j].id, amt: amt });
+        debt[i].v -= amt; cred[j].v -= amt;
+        if (!debt[i].v) i++;
+        if (!cred[j].v) j++;
+      }
+    }
+
+    var billC = String(state.billTotal).trim() === "" ? null : Math.round(num(state.billTotal) * 100);
+    return {
+      rate: rate, subtotalC: subtotalC, serviceC: totalC - subtotalC, totalC: totalC,
+      unassignedC: Math.round(unassigned * (1 + rate)), share: share, paid: paid, paidTotal: paidTotal,
+      net: net, transfers: transfers, lines: lines, billC: billC, assignedC: assignedC
+    };
+  }
+
+  // ---------- rendering ----------
+  function renderSettings() {
+    $("#service").value = state.service;
+    $("#billTotal").value = state.billTotal;
+    $("#currency").value = state.currency;
+  }
+
+  function renderPeople() {
+    $("#people").innerHTML = state.people.map(function (p) {
+      return '<div class="row" data-id="' + p.id + '">' +
+        '<input class="grow" data-f="name" value="' + esc(p.name) + '" placeholder="Name" autocomplete="off">' +
+        (state.people.length > 1 ? '<button class="x" data-act="delPerson" aria-label="Remove">×</button>' : "") +
+        "</div>";
+    }).join("");
+  }
+
+  function chipsFor(it) {
+    var all = state.people.length > 1 && state.people.every(function (p) { return it.people.indexOf(p.id) >= 0; });
+    var html = state.people.map(function (p) {
+      var on = it.people.indexOf(p.id) >= 0;
+      return '<button class="chip' + (on ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '">' + esc(p.name.trim() || "Unnamed") + "</button>";
+    }).join("");
+    if (state.people.length > 1) html += '<button class="chip all" data-act="all">' + (all ? "None" : "Everyone") + "</button>";
+    return html;
+  }
+
+  function renderItems() {
+    if (!state.items.length) { $("#items").innerHTML = '<p class="empty">No items yet.</p>'; return; }
+    $("#items").innerHTML = state.items.map(function (it) {
+      return '<div class="item' + (it.people.length ? "" : " unassigned") + '" data-id="' + it.id + '">' +
+        '<div class="row">' +
+          '<input class="grow" data-f="name" value="' + esc(it.name) + '" placeholder="Item (optional)" autocomplete="off">' +
+          '<input class="w-qty" data-f="qty" value="' + esc(it.qty) + '" placeholder="×1" inputmode="numeric" aria-label="Quantity">' +
+          '<input class="w-price" data-f="price" value="' + esc(it.price) + '" placeholder="Price" inputmode="decimal" aria-label="Price each">' +
+          '<button class="x" data-act="delItem" aria-label="Remove">×</button>' +
+        "</div>" +
+        '<div class="chips">' + chipsFor(it) + "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  function personOptions(selected) {
+    return state.people.map(function (p) {
+      return '<option value="' + p.id + '"' + (p.id === selected ? " selected" : "") + ">" + esc(p.name.trim() || "Unnamed") + "</option>";
+    }).join("");
+  }
+
+  function renderPayments() {
+    if (!state.payments.length) { $("#payments").innerHTML = '<p class="empty">None yet. Add deposits and what was paid at the table.</p>'; return; }
+    $("#payments").innerHTML = state.payments.map(function (pm) {
+      return '<div class="row" data-id="' + pm.id + '">' +
+        '<select class="grow" data-f="personId">' + personOptions(pm.personId) + "</select>" +
+        '<input class="w-small" data-f="note" value="' + esc(pm.note) + '" placeholder="Note">' +
+        '<input class="w-price" data-f="amount" value="' + esc(pm.amount) + '" placeholder="Amount" inputmode="decimal">' +
+        '<button class="x" data-act="delPayment" aria-label="Remove">×</button>' +
+      "</div>";
+    }).join("");
+  }
+
+  var last = null;
+  function renderResults() {
+    var r = compute(); last = r;
+    var h = "<h2>Split</h2>";
+
+    h += '<div class="totals">' +
+      "<span>Food &amp; drinks</span><span>" + money(r.subtotalC) + "</span>" +
+      "<span>Service (" + esc(String(num(state.service))) + "%)</span><span>" + money(r.serviceC) + "</span>" +
+      '<span class="big">Total</span><span class="big">' + money(r.totalC) + "</span>" +
+      "<span>Paid so far</span><span>" + money(r.paidTotal) + "</span>" +
+    "</div>";
+
+    if (r.billC !== null && r.billC !== r.totalC) {
+      var d = r.billC - r.totalC;
+      h += '<div class="warn">The bill says <b>' + money(r.billC) + "</b> but your items + service come to <b>" + money(r.totalC) + "</b> (" +
+        (d > 0 ? money(d) + " missing, maybe an item?" : money(-d) + " too much") + ").</div>";
+    }
+    if (r.unassignedC > 0) {
+      h += '<div class="warn">' + money(r.unassignedC) + " of items aren't assigned to anyone yet.</div>";
+    }
+    var remaining = r.assignedC - r.paidTotal;
+    if (r.unassignedC === 0 && remaining > 0 && r.totalC > 0) {
+      h += '<div class="warn">' + money(remaining) + " of the total hasn't been paid by anyone yet." +
+        '<div class="row"><select id="restWho">' + personOptions(state.people[0].id) + '</select>' +
+        '<button class="primary" data-act="payRest">paid the rest</button></div></div>';
+    } else if (remaining < 0) {
+      h += '<div class="warn">Payments are ' + money(-remaining) + " more than the total. Check the amounts.</div>";
+    }
+
+    state.people.forEach(function (p) {
+      var id = p.id, net = r.net[id];
+      var status = net > 0 ? '<span class="owe">owes ' + money(net) + "</span>"
+                 : net < 0 ? '<span class="owed">is owed ' + money(-net) + "</span>"
+                 : '<span class="settled">all square</span>';
+      var bd = r.lines[id].map(function (l) {
+        var label = esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " (1/" + l.n + ")" : "");
+        return "<span>" + label + "</span><span>" + money(Math.round(l.amt)) + "</span>";
+      }).join("");
+      var food = r.lines[id].reduce(function (s, l) { return s + l.amt; }, 0);
+      bd += '<span class="sep"></span>' +
+        "<span>Food &amp; drinks</span><span>" + money(Math.round(food)) + "</span>" +
+        "<span>+ service</span><span>" + money(r.share[id] - Math.round(food)) + "</span>" +
+        "<span>Share</span><span>" + money(r.share[id]) + "</span>" +
+        "<span>− already paid</span><span>" + money(r.paid[id]) + "</span>";
+      h += '<details class="person"><summary><div><div class="pname">' + esc(p.name.trim() || "Unnamed") + '</div><div class="pnet">' + status + "</div></div>" +
+        '<div class="pshare">' + money(r.share[id]) + "</div></summary>" +
+        '<div class="breakdown">' + bd + "</div></details>";
+    });
+
+    if (r.transfers.length) {
+      h += '<h2 style="margin-top:16px">Who pays whom</h2>';
+      h += r.transfers.map(function (t) {
+        return '<div class="transfer"><span>' + esc(personName(t.from)) + " → " + esc(personName(t.to)) + "</span><b>" + money(t.amt) + "</b></div>";
+      }).join("");
+    }
+
+    h += '<div class="actions"><button class="primary" data-act="share">Share summary</button></div>';
+    $("#results").innerHTML = h;
+  }
+
+  function renderAll() { renderSettings(); renderPeople(); renderItems(); renderPayments(); renderResults(); }
+
+  function summaryText() {
+    var r = last || compute();
+    var t = "Bill split: total " + money(r.totalC) + " (incl. " + num(state.service) + "% service)\n\n";
+    state.people.forEach(function (p) {
+      t += personName(p.id) + ": " + money(r.share[p.id]) + (r.paid[p.id] ? " (paid " + money(r.paid[p.id]) + ")" : "") + "\n";
+    });
+    if (r.transfers.length) {
+      t += "\n";
+      r.transfers.forEach(function (x) { t += personName(x.from) + " → " + personName(x.to) + ": " + money(x.amt) + "\n"; });
+    }
+    return t.trim();
+  }
+
+  function toast(msg) {
+    var el = $("#toast"); el.textContent = msg; el.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove("show"); }, 1800);
+  }
+
+  // ---------- events ----------
+  function find(list, id) { return list.find(function (x) { return x.id === id; }); }
+  function changed(structural) { save(); if (structural) { renderItems(); renderPayments(); } renderResults(); }
+
+  ["service", "billTotal", "currency"].forEach(function (k) {
+    $("#" + k).addEventListener("input", function (e) { state[k] = e.target.value; changed(false); });
+  });
+
+  $("#people").addEventListener("input", function (e) {
+    var p = find(state.people, e.target.closest("[data-id]").dataset.id);
+    p.name = e.target.value; changed(true);
+  });
+  $("#items").addEventListener("input", function (e) {
+    var it = find(state.items, e.target.closest("[data-id]").dataset.id);
+    it[e.target.dataset.f] = e.target.value; changed(false);
+  });
+  $("#payments").addEventListener("input", function (e) {
+    var pm = find(state.payments, e.target.closest("[data-id]").dataset.id);
+    pm[e.target.dataset.f] = e.target.value; changed(false);
+  });
+  $("#payments").addEventListener("change", function (e) {
+    if (e.target.tagName !== "SELECT") return;
+    var pm = find(state.payments, e.target.closest("[data-id]").dataset.id);
+    pm.personId = e.target.value; changed(false);
+  });
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-act]"); if (!b) return;
+    var row = b.closest("[data-id]"), id = row && row.dataset.id;
+    switch (b.dataset.act) {
+      case "delPerson":
+        var hasPay = state.payments.some(function (pm) { return pm.personId === id; });
+        if (hasPay && !confirm("Remove " + personName(id) + " and their payments?")) return;
+        state.people = state.people.filter(function (p) { return p.id !== id; });
+        state.items.forEach(function (it) { it.people = it.people.filter(function (x) { return x !== id; }); });
+        state.payments = state.payments.filter(function (pm) { return pm.personId !== id; });
+        save(); renderPeople(); changed(true); break;
+      case "toggle":
+        var it = find(state.items, id), pid = b.dataset.p, k = it.people.indexOf(pid);
+        if (k >= 0) it.people.splice(k, 1); else it.people.push(pid);
+        changed(true); break;
+      case "all":
+        var it2 = find(state.items, id);
+        var all = state.people.every(function (p) { return it2.people.indexOf(p.id) >= 0; });
+        it2.people = all ? [] : state.people.map(function (p) { return p.id; });
+        changed(true); break;
+      case "delItem":
+        state.items = state.items.filter(function (x) { return x.id !== id; }); changed(true); break;
+      case "delPayment":
+        state.payments = state.payments.filter(function (x) { return x.id !== id; }); changed(true); break;
+      case "payRest":
+        var rem = last.assignedC - last.paidTotal;
+        state.payments.push({ id: uid(), personId: $("#restWho").value, amount: (rem / 100).toFixed(2), note: "At table" });
+        changed(true); break;
+      case "share":
+        var text = summaryText();
+        if (navigator.share) navigator.share({ text: text }).catch(function () {});
+        else if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast("Copied to clipboard"); });
+        break;
+    }
+  });
+
+  $("#addPerson").addEventListener("click", function () {
+    state.people.push({ id: uid(), name: "" });
+    save(); renderPeople(); changed(true);
+    var inputs = document.querySelectorAll("#people input"); inputs[inputs.length - 1].focus();
+  });
+  $("#addItem").addEventListener("click", function () {
+    var prev = state.items[state.items.length - 1];
+    state.items.push({ id: uid(), name: "", price: "", qty: "", people: prev && prev.people.length === 1 ? prev.people.slice() : [] });
+    changed(true);
+    var rows = document.querySelectorAll("#items .item"); rows[rows.length - 1].querySelector('[data-f="price"]').focus();
+  });
+  $("#addPayment").addEventListener("click", function () {
+    state.payments.push({ id: uid(), personId: state.people[0].id, amount: "", note: "Deposit" });
+    changed(true);
+    var rows = document.querySelectorAll("#payments .row"); rows[rows.length - 1].querySelector('[data-f="amount"]').focus();
+  });
+  $("#newBill").addEventListener("click", function () {
+    if (!confirm("Start a new bill? Items and payments are cleared; people and service % are kept.")) return;
+    state.items = []; state.payments = []; state.billTotal = "";
+    save(); renderAll();
+  });
+
+  renderAll();
+
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
