@@ -132,7 +132,6 @@
   .role.admin { background: var(--accent); color: var(--on-accent); }
   .bar .me { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); }
   .bar .me select { width: auto; padding-top: 7px; padding-bottom: 7px; font-weight: 600; }
-  #guestHint { flex-basis: 100%; margin: 2px 0 0; color: var(--muted); font-size: 13px; }
 
   /* ---------- display panel ---------- */
   .display { background: var(--display); color: var(--on-display); border-radius: 28px; padding: 20px 22px 22px; margin-bottom: 12px; }
@@ -152,10 +151,9 @@
   .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
   h2 { font: 600 18px/1.2 var(--display-font); letter-spacing: -0.01em; margin: 0; }
   .count { color: var(--muted); font-size: 14px; }
-  .hint { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
   .empty { color: var(--muted); font-size: 14px; margin: 0; padding: 18px; text-align: center; border: 1.5px dashed var(--line); border-radius: 16px; }
 
-  .tiles { display: grid; grid-template-columns: 1fr 1fr 0.7fr; gap: 8px; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .tile { background: var(--surface-2); border-radius: 16px; padding: 10px 12px 8px; display: block; }
   .tile span { display: block; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
   .tile input { background: transparent; border: 0; padding: 2px 0 0; font: 600 20px/1.3 var(--display-font); border-radius: 0; }
@@ -193,10 +191,8 @@
   .chip.all { padding: 4px 11px; color: var(--muted); font-weight: 600; }
   .chip:disabled { cursor: default; }
   .item.unassigned { box-shadow: inset 0 0 0 1.5px var(--warn); }
-  .item.unassigned .chips::after { content: "Tap who had this"; font-size: 13px; color: var(--warn); align-self: center; margin-left: 2px; }
   .item.locked .chip:not(.on) { display: none; }
   .item.locked .chip.on { border-color: transparent; }
-  .item.locked .chips::after { content: none !important; }
   .item.locked .qty:placeholder-shown { visibility: hidden; }
 
   /* payments */
@@ -248,7 +244,17 @@
   .banner.owe { background: var(--owe-bg); color: var(--owe); }
   .banner.owed { background: var(--owed-bg); color: var(--owed); }
   .banner.settled { background: var(--surface-2); color: var(--text); }
-  body.is-locked .edit, body.is-locked #guestHint { display: none !important; }
+  body.is-locked .edit { display: none !important; }
+  /* guests only see what they can act on */
+  body.guest .admin-card, body.guest #shareLink { display: none !important; }
+  .item.locked { background: none; border-radius: 0; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .item.locked, .item + .item.locked { margin-top: 0; }
+  .item.locked + .item:not(.locked) { margin-top: 10px; }
+  .item.locked .item-row { grid-template-columns: 1fr 96px; }
+  .item.locked input { padding-top: 2px; padding-bottom: 2px; }
+  .item.locked .name { text-overflow: ellipsis; }
+  .item.locked .item-foot { margin-top: 2px; }
+  .item.locked .chip { background: none; padding: 2px 6px 2px 0; font-size: 13px; }
 
   /* ---------- sheet (in-app dialogs) ---------- */
   .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
@@ -298,25 +304,23 @@
     <span class="role" id="role"></span>
     <button class="icon-btn" id="adminLink" title="Admin link" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
-    <p id="guestHint" hidden></p>
   </div>
 
   <section class="display" id="display"></section>
 
   <section class="card" id="receipt" hidden></section>
 
-  <section class="card edit" data-sec="meta">
+  <section class="card edit admin-card" data-sec="meta">
     <div class="card-head"><h2>Bill</h2></div>
     <div class="tiles">
       <label class="tile"><span>Service %</span><input data-f="service" inputmode="decimal" placeholder="0"></label>
       <label class="tile"><span>Bill total</span><input data-f="billTotal" inputmode="decimal" placeholder="0.00"></label>
-      <label class="tile"><span>Currency</span><input data-f="currency" maxlength="4"></label>
     </div>
-    <p class="hint">Type the total printed on the receipt so the app can check nothing's missing.</p>
   </section>
 
-  <section class="card edit">
+  <section class="card edit admin-card">
     <div class="card-head"><h2>People</h2><span class="count" id="peopleCount"></span></div>
+    <p class="empty" id="peopleEmpty">No one yet. Add everyone at the table.</p>
     <div id="people" data-sec="people"></div>
     <button class="btn add" id="addPerson" data-admin><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add person</button>
   </section>
@@ -326,11 +330,10 @@
     <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
     <div id="items" data-sec="items"></div>
     <button class="btn add primary" id="addItem"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add item</button>
-    <p class="hint">Tick more than one person to split an item equally.</p>
   </section>
 
-  <section class="card edit">
-    <div class="card-head"><h2>Payments</h2><span class="count">deposits &amp; at the table</span></div>
+  <section class="card edit admin-card">
+    <div class="card-head"><h2>Payments</h2></div>
     <p class="empty" id="paymentsEmpty">No payments yet.</p>
     <div id="payments" data-sec="payments"></div>
     <button class="btn add" id="addPayment" data-admin><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add payment</button>
@@ -359,7 +362,7 @@
   const SHARED = "bill-splitter-shared";   // id of the shared bill this device has open
   const KEYS = "bill-splitter-key:";       // + bill id -> admin key, if this device is an admin
   const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/10.12.2/";
-  const DEFAULT_META = { currency: "£", service: "12.5", billTotal: "" };
+  const DEFAULT_META = { currency: "£", service: "", billTotal: "" };
   const COLORS = ["#ff9f6b", "#8fa8ff", "#5fdcb3", "#ffd25e", "#e693ff", "#6fd3ff", "#ff8fab", "#b4e86a"];
 
   const ICON = {
@@ -397,9 +400,7 @@
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
 
-  function emptyBill() {
-    return normalize({ people: { [uid()]: { name: "Me", order: 1 } } });
-  }
+  function emptyBill() { return normalize(null); }
   function normalize(v) {
     v = v || {};
     return {
@@ -751,10 +752,6 @@
     $("#role").textContent = isAdmin ? "Admin" : "Guest";
     $("#role").classList.toggle("admin", isAdmin);
     $("#adminLink").hidden = !isAdmin || !adminKey;
-    const hint = $("#guestHint");
-    hint.hidden = !loaded || (isAdmin && !!meId());
-    hint.textContent = !meId() ? "Pick your name under “You are” to start adding what you had."
-      : "You can add food & drinks and change the ones you added. The rest is managed by the bill's admin.";
   }
 
   function render() {
@@ -765,7 +762,9 @@
     const admin = canAdmin();
     document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !admin; });
     document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !admin; });
+    document.body.classList.toggle("guest", !!billId && !isAdmin);
     $("#addItem").hidden = !picked();
+    $("#peopleEmpty").hidden = people.length > 0;
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") : "";
     $("#itemsCount").textContent = items.length ? items.length + (items.length === 1 ? " item" : " items") : "";
     renderBar();
@@ -783,7 +782,7 @@
         input.disabled = !admin;
         const by = claimedBy(p.id);
         row.querySelector('[data-act="unlink"]').hidden = !admin || !by || by === authUid;
-        row.lastChild.hidden = !admin || people.length < 2;
+        row.lastChild.hidden = !admin;
       });
 
     const chipsFor = (it) => {
@@ -932,17 +931,18 @@
 
     let h = '<div class="card-head"><h2>' + (state.meta.locked ? "Everyone" : "Split") + "</h2></div>";
     const warn = (html) => '<div class="warn">' + ICON.alert + "<div>" + html + "</div></div>";
-    if (r.billC !== null && r.billC !== r.totalC && r.totalC > 0) {
+    if (canAdmin() && r.billC !== null && r.billC !== r.totalC && r.totalC > 0) {
       const d = r.billC - r.totalC;
       h += warn("The bill says <b>" + money(r.billC) + "</b> but items + service come to <b>" + money(r.totalC) + "</b> — " +
         (d > 0 ? money(d) + " missing. Maybe an item?" : money(-d) + " too much."));
     }
-    if (r.unassignedC > 0) h += warn(money(r.unassignedC) + " of items aren't assigned to anyone yet.");
+    if (canAdmin() && r.unassignedC > 0) h += warn(money(r.unassignedC) + " of items aren't assigned to anyone yet.");
     const remaining = r.assignedC - r.paidTotal;
-    if (r.unassignedC === 0 && remaining > 0 && r.totalC > 0) {
+    if (!canAdmin()) { /* nothing to fix for guests */ }
+    else if (r.unassignedC === 0 && remaining > 0 && r.totalC > 0) {
       h += warn(money(remaining) + " hasn't been paid by anyone yet." +
-        (canAdmin() ? '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
-        '<button class="btn small dark" data-act="payRest">paid the rest</button></div>' : ""));
+        '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
+        '<button class="btn small dark" data-act="payRest">paid the rest</button></div>');
     } else if (remaining < 0) {
       h += warn("Payments are " + money(-remaining) + " more than the total. Check the amounts.");
     }
@@ -1101,17 +1101,10 @@
     "Opening this link makes that device an admin of this bill, able to change everything. Use it for your own other devices, or to make someone co-admin. Don't post it in the group chat.",
     shareUrl(true)));
   $("#newBill").addEventListener("click", async () => {
-    if (billId) {
-      if (!(await ask("Start a new bill?", "The shared bill stays available to everyone through its link.", "New bill"))) return;
-      const people = {};
-      sorted(state.people).forEach((p, i) => { people[uid()] = { name: p.name || "", order: i + 1 }; });
-      const meta = Object.assign({}, state.meta, { billTotal: "", locked: null });
-      leaveShared();
-      state = normalize({ meta, people: Object.keys(people).length ? people : emptyBill().people });
-    } else {
-      if (!(await ask("Start a new bill?", "Items and payments are cleared. People and service % are kept.", "New bill"))) return;
-      state.items = {}; state.payments = {}; state.meta.billTotal = ""; delete state.meta.locked;
-    }
+    const text = billId ? "This one stays available to everyone through its link." : "Everything on this bill is cleared.";
+    if (!(await ask("Start a new bill?", text, "New bill"))) return;
+    if (billId) leaveShared();
+    state = emptyBill();
     lsSet(LOCAL, JSON.stringify(state));
     render();
   });
