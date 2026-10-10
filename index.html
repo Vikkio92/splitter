@@ -402,9 +402,9 @@
   <section class="card edit admin-card" data-sec="meta">
     <div class="card-head"><h2>Bill</h2></div>
     <div class="tiles">
-      <label class="tile wide"><span>Bill name</span><input data-f="name" placeholder="e.g. Friday at Dishoom" autocomplete="off"></label>
-      <label class="tile"><span>Service %</span><input data-f="service" inputmode="decimal" placeholder="0"></label>
-      <label class="tile"><span>Bill total</span><input data-f="billTotal" inputmode="decimal" placeholder="0.00"></label>
+      <label class="tile wide"><span>Bill name</span><input data-f="name" placeholder="e.g. Friday at Dishoom" autocomplete="off" maxlength="60"></label>
+      <label class="tile"><span>Service %</span><input data-f="service" inputmode="decimal" placeholder="0" maxlength="8"></label>
+      <label class="tile"><span>Bill total</span><input data-f="billTotal" inputmode="decimal" placeholder="0.00" maxlength="12"></label>
     </div>
   </section>
 
@@ -582,6 +582,7 @@
       if (input) {
         inp.value = input.value || ""; inp.placeholder = input.placeholder || "";
         inp.autocapitalize = input.caps ? "characters" : "sentences";
+        if (input.max) inp.maxLength = input.max; else inp.removeAttribute("maxlength");
         inp.style.textTransform = input.caps ? "uppercase" : "";
       }
       $("#mLink").hidden = !link; $("#mLink").textContent = link || "";
@@ -906,7 +907,7 @@
       if (!String(state.meta.name || "").trim()) {
         const name = await sheet({
           title: "Name this bill", text: "It's how everyone finds it in their list of bills.",
-          input: { placeholder: "e.g. Friday at Dishoom" },
+          input: { placeholder: "e.g. Friday at Dishoom", max: 60 },
           buttons: [{ label: "Cancel", value: null }, { label: "Continue", value: true, kind: "primary" }],
         });
         if (name === null || !name.trim()) return;
@@ -916,7 +917,7 @@
       if (meRow) {
         const name = await sheet({
           title: "What's your name?", text: "Your friends will see it on the bill.",
-          input: { placeholder: "Your name" },
+          input: { placeholder: "Your name", max: 40 },
           buttons: [{ label: "Cancel", value: null }, { label: "Continue", value: true, kind: "primary" }],
         });
         if (name === null) return;
@@ -1159,7 +1160,7 @@
     renderBar();
 
     syncList($("#people"), people,
-      () => el('<div class="prow"><span class="av"></span><input data-f="name" placeholder="Name" autocomplete="off">' +
+      () => el('<div class="prow"><span class="av"></span><input data-f="name" placeholder="Name" autocomplete="off" maxlength="40">' +
         '<button class="btn small" data-act="unlink" title="Let this person pick their name again">Unlink</button>' +
         '<button class="icon-btn" data-act="delPerson" aria-label="Remove">' + ICON.x + "</button></div>"),
       (row, p) => {
@@ -1184,9 +1185,9 @@
     $("#itemsEmpty").hidden = shown.length > 0;
     syncList($("#items"), shown,
       () => el('<div class="item"><div class="item-row">' +
-        '<input class="name" data-f="name" placeholder="What was it?" autocomplete="off">' +
-        '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity">' +
-        '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each"></label>' +
+        '<input class="name" data-f="name" placeholder="What was it?" autocomplete="off" maxlength="60">' +
+        '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity" maxlength="6">' +
+        '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"></label>' +
         '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button></div>' +
         '<div class="chips"></div></div>'),
       (row, it) => {
@@ -1203,8 +1204,8 @@
     $("#paymentsEmpty").hidden = payments.length > 0;
     syncList($("#payments"), payments,
       () => el('<div class="payrow"><select data-f="personId"></select>' +
-        '<input data-f="note" placeholder="Note">' +
-        '<label class="money"><span class="cur"></span><input data-f="amount" placeholder="0.00" inputmode="decimal"></label>' +
+        '<input data-f="note" placeholder="Note" maxlength="40">' +
+        '<label class="money"><span class="cur"></span><input data-f="amount" placeholder="0.00" inputmode="decimal" maxlength="12"></label>' +
         '<button class="icon-btn" data-act="delPayment" aria-label="Remove">' + ICON.x + "</button></div>"),
       (row, pm) => {
         const sel = row.firstChild;

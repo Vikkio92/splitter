@@ -4,7 +4,7 @@
     ".write": false,
     "secrets": {
       "$billId": {
-        ".write": "auth != null && $billId.matches(/^[a-z0-9]{16,32}$/) && ((!data.exists() && newData.isString() && newData.val().length >= 16) || !newData.exists() && (root.child('owners').child($billId).child(auth.uid).exists() || root.child('bills').child($billId).child('meta').child('expires').val() < now))"
+        ".write": "auth != null && $billId.matches(/^[a-z0-9]{16,32}$/) && ((!data.exists() && newData.isString() && newData.val().length >= 16 && newData.val().length <= 64) || !newData.exists() && (root.child('owners').child($billId).child(auth.uid).exists() || root.child('bills').child($billId).child('meta').child('expires').val() < now))"
       }
     },
     "owners": {
@@ -33,41 +33,104 @@
           ".validate": "newData.hasChild('expires')",
           "expires": {
             ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() : newData.val() <= now + 259200000 + 600000)"
+          },
+          "name": {
+            ".validate": "newData.isString() && newData.val().length <= 60"
+          },
+          "service": {
+            ".validate": "newData.isString() && newData.val().length <= 8"
+          },
+          "billTotal": {
+            ".validate": "newData.isString() && newData.val().length <= 12"
+          },
+          "currency": {
+            ".validate": "newData.isString() && newData.val().length <= 4"
+          },
+          "code": {
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Z0-9]{6}$/)"
+          },
+          "locked": {
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": false
           }
         },
         "people": {
           ".write": "auth != null && newData.parent().parent().parent().child('owners').child($billId).child(auth.uid).exists()",
           "$personId": {
-            ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/)"
+            ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/)",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "order": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         },
         "payments": {
           ".write": "auth != null && newData.parent().parent().parent().child('owners').child($billId).child(auth.uid).exists()",
           "$paymentId": {
-            ".validate": "$paymentId.matches(/^[a-z0-9]{1,32}$/)"
+            ".validate": "$paymentId.matches(/^[a-z0-9]{1,32}$/)",
+            "personId": {
+              ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)"
+            },
+            "amount": {
+              ".validate": "newData.isString() && newData.val().length <= 12"
+            },
+            "note": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "order": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         },
         "items": {
           "$itemId": {
             ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (data.parent().parent().child('meta').child('locked').val() !== true && newData.parent().parent().child('devices').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))",
             ".validate": "$itemId.matches(/^[a-z0-9]{1,32}$/)",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 60"
+            },
+            "price": {
+              ".validate": "newData.isString() && newData.val().length <= 12"
+            },
+            "qty": {
+              ".validate": "newData.isString() && newData.val().length <= 6"
+            },
+            "order": {
+              ".validate": "newData.isNumber()"
+            },
+            "createdBy": {
+              ".validate": "newData.isString() && newData.val().length <= 128"
+            },
             "people": {
               "$personId": {
-                ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/)"
+                ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/) && newData.val() === true"
               }
+            },
+            "$other": {
+              ".validate": false
             }
           }
         },
         "claims": {
           "$personId": {
             ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (!data.exists() && newData.val() === auth.uid && newData.parent().parent().child('devices').child(auth.uid).val() === $personId))",
-            ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/)"
+            ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/) && newData.isString() && newData.val().length <= 128"
           }
         },
         "devices": {
           "$uid": {
             ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (auth.uid === $uid && !data.exists() && newData.exists() && newData.parent().parent().child('claims').child(newData.val()).val() === auth.uid))",
-            ".validate": "$uid.matches(/^[A-Za-z0-9]{1,128}$/)"
+            ".validate": "$uid.matches(/^[A-Za-z0-9]{1,128}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)"
           }
         },
         "$other": {

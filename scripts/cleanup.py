@@ -7,9 +7,13 @@ The repo is public, so its Actions logs are too: this only ever prints counts, n
 or codes (either would let someone open a bill).
 
 Set DRY_RUN=1 to report what would be deleted without deleting anything.
+
+If there are more live bills than MAX_LIVE_BILLS (default 200, far beyond normal use), the run
+fails on purpose after cleaning up, so GitHub emails the repo owner about possible spam.
 """
 import json
 import os
+import sys
 import time
 
 import requests
@@ -70,6 +74,11 @@ def main():
     else:
         session.patch(f"{DATABASE_URL}/.json", data=json.dumps(delete), timeout=60).raise_for_status()
         print(f"Deleted {len(delete)} entries.")
+
+    limit = int(os.environ.get("MAX_LIVE_BILLS", "200"))
+    if len(live) > limit:
+        print(f"ALERT: {len(live)} live bills is far more than normal (limit {limit}). Someone may be spamming the database.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
