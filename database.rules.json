@@ -2,10 +2,39 @@
   "rules": {
     ".read": false,
     ".write": false,
+    "secrets": {
+      "$billId": {
+        ".write": "auth != null && $billId.length >= 16 && !data.exists() && newData.isString() && newData.val().length >= 16"
+      }
+    },
+    "owners": {
+      "$billId": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && newData.val() === newData.parent().parent().parent().child('secrets').child($billId).val()"
+        }
+      }
+    },
     "bills": {
       "$billId": {
-        ".read": "$billId.length >= 16",
-        ".write": "$billId.length >= 16"
+        ".read": "auth != null && $billId.length >= 16",
+        "meta": {
+          ".write": "auth != null && newData.parent().parent().parent().child('owners').child($billId).child(auth.uid).exists()"
+        },
+        "people": {
+          ".write": "auth != null && newData.parent().parent().parent().child('owners').child($billId).child(auth.uid).exists()"
+        },
+        "payments": {
+          ".write": "auth != null && newData.parent().parent().parent().child('owners').child($billId).child(auth.uid).exists()"
+        },
+        "items": {
+          "$itemId": {
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (data.parent().parent().child('meta').child('locked').val() !== true && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     }
   }

@@ -29,6 +29,8 @@
     --warn-bg: #fff4e0;
     --warn-text: #8a4b00;
     --input: #ffffff;
+    --owe-bg: #fdecea;
+    --owed-bg: #e3f5ea;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -46,6 +48,8 @@
       --warn-bg: #3a2a10;
       --warn-text: #ffd08a;
       --input: #111418;
+      --owe-bg: #3a1916;
+      --owed-bg: #10301f;
     }
   }
   * { box-sizing: border-box; }
@@ -124,7 +128,29 @@
   .dot.on { background: var(--owed); }
   .bar .me { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); }
   .bar .me select { width: auto; padding: 6px 8px; }
-  .empty[hidden] { display: none; }
+  .empty[hidden], [hidden] { display: none !important; }
+  .role { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+  button.small { padding: 4px 8px; font-size: 13px; }
+  #guestHint { flex-basis: 100%; margin: 0; }
+  input:disabled, select:disabled { background: transparent; border-color: transparent; color: var(--text); opacity: 1; -webkit-text-fill-color: var(--text); }
+  .chip:disabled { cursor: default; }
+  .item.locked .chip:not(.on) { display: none; }
+  body.is-locked .edit, body.is-locked #guestHint { display: none !important; }
+  .receipt-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .receipt-head h2 { margin: 0; }
+  .receipt-head select { width: auto; max-width: 60%; }
+  .banner { border-radius: 12px; padding: 14px; margin: 10px 0 14px; font-variant-numeric: tabular-nums; }
+  .banner .lead { font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+  .banner.owe { background: var(--owe-bg); }
+  .banner.owe .lead { color: var(--owe); }
+  .banner.owed { background: var(--owed-bg); }
+  .banner.owed .lead { color: var(--owed); }
+  .banner.settled { background: var(--chip); }
+  .receipt-lines { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-variant-numeric: tabular-nums; }
+  .receipt-lines .sep { grid-column: 1 / -1; border-top: 1px dashed var(--line); margin: 4px 0; }
+  .receipt-lines .muted { color: var(--muted); }
+  .receipt-lines .total { font-weight: 700; font-size: 18px; }
+  .item.locked.unassigned .chips::after { content: none; }
 </style>
 </head>
 <body>
@@ -139,10 +165,15 @@
 
   <div class="bar" id="sharedBar" hidden>
     <span class="dot" id="dot"></span><span id="statusText">Connecting…</span>
+    <span class="role" id="role"></span>
+    <button class="ghost small" id="adminLink" hidden>Admin link</button>
     <label class="me">You are <select id="meSel"></select></label>
+    <p class="hint" id="guestHint" hidden>You can add food &amp; drinks and change the ones you added. The rest is managed by the bill's admin.</p>
   </div>
 
-  <section class="card" data-sec="meta">
+  <section class="card" id="receipt" hidden></section>
+
+  <section class="card edit" data-sec="meta">
     <h2>Bill</h2>
     <div class="settings">
       <label class="f">Service %<input data-f="service" inputmode="decimal" placeholder="0"></label>
@@ -152,13 +183,13 @@
     <p class="hint">Enter the total printed on the bill to check nothing is missing.</p>
   </section>
 
-  <section class="card">
+  <section class="card edit">
     <h2>People</h2>
     <div id="people" data-sec="people"></div>
-    <button class="add" id="addPerson">+ Add person</button>
+    <button class="add" id="addPerson" data-admin>+ Add person</button>
   </section>
 
-  <section class="card">
+  <section class="card edit">
     <h2>Food &amp; drinks</h2>
     <p class="empty" id="itemsEmpty">No items yet.</p>
     <div id="items" data-sec="items"></div>
@@ -166,11 +197,11 @@
     <p class="hint">Tick more than one person to split an item equally between them.</p>
   </section>
 
-  <section class="card">
+  <section class="card edit">
     <h2>Payments already made</h2>
     <p class="empty" id="paymentsEmpty">None yet. Add deposits and what was paid at the table.</p>
     <div id="payments" data-sec="payments"></div>
-    <button class="add" id="addPayment">+ Add payment / deposit</button>
+    <button class="add" id="addPayment" data-admin>+ Add payment / deposit</button>
   </section>
 
   <section class="card" id="results"></section>
@@ -184,6 +215,7 @@
   const LOCAL = "bill-splitter-v2";        // the bill kept on this device only
   const SHARED = "bill-splitter-shared";   // id of the shared bill this device has open
   const ME = "bill-splitter-me:";          // + bill id -> which person this device is
+  const KEYS = "bill-splitter-key:";       // + bill id -> admin key, if this device is an admin
   const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/10.12.2/";
   const DEFAULT_META = { currency: "£", service: "12.5", billTotal: "" };
 
@@ -193,7 +225,11 @@
   //   people:   { id: {name, order} },
   //   items:    { id: {name, price, qty, order, people: {personId: true}} },
   //   payments: { id: {personId, amount, note, order} } }
+  //   items also carry createdBy (device uid) once the bill is shared.
   let state, billId = null, remote = null, loaded = true, online = false;
+  let authUid = null, isAdmin = true, adminKey = null;   // a bill on this device only: you're the admin
+
+  function canEditItem(it) { return isAdmin || (!!it.createdBy && it.createdBy === authUid); }
 
   const $ = (s) => document.querySelector(s);
   function uid(n = 8) {
@@ -233,58 +269,93 @@
   }
 
   // ---------- Firebase ----------
+  // Each device signs in anonymously so the database rules can tell people apart:
+  // owners/<bill>/<uid> marks a device as admin (it can edit everything);
+  // everyone else can only add items and edit/delete the ones they created.
   let backendP = null;
   function backend() {
     if (!backendP) {
-      backendP = Promise.all([import(SDK + "firebase-app.js"), import(SDK + "firebase-database.js")]).then(([A, D]) => {
-        const db = D.getDatabase(A.initializeApp(window.FIREBASE_CONFIG));
-        return {
-          open(id, onData, onStatus) {
-            const r = D.ref(db, "bills/" + id);
-            const offs = [
-              D.onValue(r, (s) => onData(s.val()), (err) => toast("Can't read bill: " + err.message)),
-              D.onValue(D.ref(db, ".info/connected"), (s) => onStatus(!!s.val())),
-            ];
-            return {
-              write: (p) => D.update(r, p).catch((e) => toast("Not saved: " + e.message)),
-              seed: (d) => D.set(r, d).catch((e) => toast("Not saved: " + e.message)),
-              close: () => offs.forEach((off) => off()),
-            };
-          },
-        };
-      });
+      backendP = Promise.all([import(SDK + "firebase-app.js"), import(SDK + "firebase-database.js"), import(SDK + "firebase-auth.js")])
+        .then(async ([A, D, U]) => {
+          const app = A.initializeApp(window.FIREBASE_CONFIG);
+          const db = D.getDatabase(app), auth = U.getAuth(app);
+          await auth.authStateReady();
+          if (!auth.currentUser) await U.signInAnonymously(auth);
+          const me = auth.currentUser.uid;
+          const failed = (e) => toast(/permission/i.test(e.message) ? "Only the bill's admin can change that" : "Not saved: " + e.message);
+          return {
+            uid: me,
+            open(id, onData, onStatus) {
+              const r = D.ref(db, "bills/" + id);
+              const offs = [
+                D.onValue(r, (s) => onData(s.val()), (err) => toast("Can't read bill: " + err.message)),
+                D.onValue(D.ref(db, ".info/connected"), (s) => onStatus(!!s.val())),
+              ];
+              return { write: (p) => D.update(r, p).catch(failed), close: () => offs.forEach((off) => off()) };
+            },
+            // Creates the bill with this device as admin. Each path is checked by its own rule.
+            create(id, key, bill) {
+              const p = { ["secrets/" + id]: key, ["owners/" + id + "/" + me]: key, ["bills/" + id + "/meta"]: bill.meta };
+              if (Object.keys(bill.people).length) p["bills/" + id + "/people"] = bill.people;
+              if (Object.keys(bill.payments).length) p["bills/" + id + "/payments"] = bill.payments;
+              Object.keys(bill.items).forEach((iid) => { p["bills/" + id + "/items/" + iid] = Object.assign({}, bill.items[iid], { createdBy: me }); });
+              return D.update(D.ref(db), p);
+            },
+            claim: (id, key) => D.set(D.ref(db, "owners/" + id + "/" + me), key),
+            adminKey: (id) => D.get(D.ref(db, "owners/" + id + "/" + me)).then((s) => s.val()),
+          };
+        });
       backendP.catch(() => { backendP = null; });
     }
     return backendP;
   }
 
-  async function openShared(id, seed) {
+  async function openShared(id, opts = {}) {
     const be = await backend();
+    authUid = be.uid;
     billId = id;
     lsSet(SHARED, id);
     if (location.hash !== "#b=" + id) history.replaceState(null, "", "#b=" + id);
-    if (!seed) { state = normalize(null); loaded = false; }
+    adminKey = lsGet(KEYS + id);
+    isAdmin = !!adminKey;
+    const setAdmin = (k) => { isAdmin = !!k; adminKey = k || null; lsSet(KEYS + id, adminKey); render(); };
+
+    if (opts.create) {
+      setAdmin(uid(24));
+      be.create(id, adminKey, opts.create).catch((e) => toast("Couldn't create shared bill: " + e.message));
+    } else {
+      loaded = false; state = normalize(null);
+      const check = () => be.adminKey(id).then(setAdmin, () => {});
+      if (opts.key) be.claim(id, opts.key).then(() => { toast("You're now an admin of this bill"); check(); }, () => { toast("That admin link isn't valid"); check(); });
+      else check();
+    }
     remote = be.open(id, (v) => { state = normalize(v); loaded = true; render(); }, (s) => { online = s; renderBar(); });
-    if (seed) remote.seed(seed);
     render();
   }
 
   function leaveShared() {
     if (remote) remote.close();
-    remote = null; billId = null; loaded = true;
+    remote = null; billId = null; loaded = true; isAdmin = true; adminKey = null;
     lsSet(SHARED, null);
     history.replaceState(null, "", location.pathname + location.search);
   }
 
-  function shareUrl() { return location.origin + location.pathname + "#b=" + billId; }
+  function shareUrl(withKey) { return location.origin + location.pathname + "#b=" + billId + (withKey ? "&k=" + adminKey : ""); }
 
   async function shareLink() {
     if (!window.FIREBASE_CONFIG) { alert("Sharing isn't set up yet: add your Firebase settings to firebase-config.js (see README)."); return; }
     if (!billId) {
-      try { await openShared(uid(20), JSON.parse(JSON.stringify(state))); }
+      const meRow = sorted(state.people).find((p) => /^\s*me\s*$/i.test(p.name || ""));
+      if (meRow) {
+        const name = prompt("What's your name? Your friends will see it on the bill.", "");
+        if (name && name.trim()) write({ ["people/" + meRow.id + "/name"]: name.trim() });
+      }
+      const id = uid(20);
+      if (meRow) lsSet(ME + id, meRow.id);
+      try { await openShared(id, { create: JSON.parse(JSON.stringify(state)) }); }
       catch (e) { alert("Couldn't connect to the sharing service. Are you online?"); return; }
     }
-    const url = shareUrl();
+    const url = shareUrl(false);
     if (navigator.share) {
       navigator.share({ title: "Bill", text: "Add what you had to the bill:", url }).catch((e) => {
         if (e.name !== "AbortError") copy(url);
@@ -348,11 +419,11 @@
     Object.keys(base).forEach((id) => { raw[id] = base[id] * (1 + rate); });
     const share = allocate(raw, assignedC);
 
-    const paid = {}; people.forEach((p) => { paid[p.id] = 0; });
+    const paid = {}, payLines = {}; people.forEach((p) => { paid[p.id] = 0; payLines[p.id] = []; });
     let paidTotal = 0;
     sorted(state.payments).forEach((pm) => {
       const c = Math.round(num(pm.amount) * 100);
-      if (pm.personId in paid) { paid[pm.personId] += c; paidTotal += c; }
+      if (pm.personId in paid) { paid[pm.personId] += c; paidTotal += c; payLines[pm.personId].push({ note: String(pm.note || "").trim(), c }); }
     });
 
     const net = {};
@@ -380,7 +451,7 @@
     const billC = String(state.meta.billTotal).trim() === "" ? null : Math.round(num(state.meta.billTotal) * 100);
     return {
       people, subtotalC, serviceC: totalC - subtotalC, totalC, unassignedC: Math.round(unassigned * (1 + rate)),
-      share, paid, paidTotal, net, transfers, lines, billC, assignedC,
+      share, paid, payLines, paidTotal, net, transfers, lines, billC, assignedC,
     };
   }
 
@@ -418,6 +489,9 @@
     setHTML(sel, personOptions(sorted(state.people), '<option value="">Choose…</option>'));
     if (document.activeElement !== sel) sel.value = meId() || "";
     bar.classList.toggle("needme", loaded && !meId());
+    $("#role").textContent = isAdmin ? "Admin" : "Guest";
+    $("#adminLink").hidden = !isAdmin || !adminKey;
+    $("#guestHint").hidden = isAdmin || !loaded;
   }
 
   function render() {
@@ -425,19 +499,20 @@
     const items = sorted(state.items);
     const payments = sorted(state.payments);
 
-    document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => setVal(i, state.meta[i.dataset.f]));
+    document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !isAdmin; });
+    document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !isAdmin; });
     renderBar();
 
     syncList($("#people"), people,
       () => el('<div class="row"><input class="grow" data-f="name" placeholder="Name" autocomplete="off"><button class="x" data-act="delPerson" aria-label="Remove">×</button></div>'),
-      (row, p) => { setVal(row.firstChild, p.name); row.lastChild.hidden = people.length < 2; });
+      (row, p) => { setVal(row.firstChild, p.name); row.firstChild.disabled = !isAdmin; row.lastChild.hidden = !isAdmin || people.length < 2; });
 
     const chipsFor = (it) => {
-      const on = it.people || {};
+      const on = it.people || {}, dis = canEditItem(it) ? "" : " disabled";
       const all = people.length > 1 && people.every((p) => on[p.id]);
-      return people.map((p) => '<button class="chip' + (on[p.id] ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '">' +
+      return people.map((p) => '<button class="chip' + (on[p.id] ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '"' + dis + ">" +
         esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
-        (people.length > 1 ? '<button class="chip all" data-act="all">' + (all ? "None" : "Everyone") + "</button>" : "");
+        (people.length > 1 && !dis ? '<button class="chip all" data-act="all">' + (all ? "None" : "Everyone") + "</button>" : "");
     };
     $("#itemsEmpty").hidden = items.length > 0;
     syncList($("#items"), items,
@@ -447,7 +522,10 @@
         '<input class="w-price" data-f="price" placeholder="Price" inputmode="decimal" aria-label="Price each">' +
         '<button class="x" data-act="delItem" aria-label="Remove">×</button></div><div class="chips"></div></div>'),
       (row, it) => {
-        row.querySelectorAll("[data-f]").forEach((i) => setVal(i, it[i.dataset.f]));
+        const mine = canEditItem(it);
+        row.querySelectorAll("[data-f]").forEach((i) => { setVal(i, it[i.dataset.f]); i.disabled = !mine; });
+        row.querySelector('[data-act="delItem"]').hidden = !mine;
+        row.classList.toggle("locked", !mine);
         row.classList.toggle("unassigned", !Object.keys(it.people || {}).some((id) => state.people[id]));
         setHTML(row.querySelector(".chips"), chipsFor(it));
       });
@@ -464,9 +542,81 @@
         setHTML(sel, opts);
         if (document.activeElement !== sel) sel.value = pm.personId;
         row.querySelectorAll("input[data-f]").forEach((i) => setVal(i, pm[i.dataset.f]));
+        row.querySelectorAll("[data-f]").forEach((i) => { i.disabled = !isAdmin; });
+        row.lastChild.hidden = !isAdmin;
       });
 
     renderResults();
+    renderReceipt();
+  }
+
+  // Once the admin locks the bill, everyone sees their own receipt instead of the editor.
+  let receiptWho = null;   // whose receipt is shown, for a bill on this device only
+  function receiptPerson() {
+    const id = billId ? meId() : receiptWho;
+    if (id && state.people[id]) return id;
+    const first = sorted(state.people)[0];
+    return billId ? null : first && first.id;
+  }
+
+  function renderReceipt() {
+    const box = $("#receipt");
+    const locked = loaded && !!state.meta.locked;
+    document.body.classList.toggle("is-locked", locked);
+    box.hidden = !locked;
+    if (!locked) return;
+    const r = last, who = receiptPerson();
+    let h = '<div class="receipt-head"><h2>Your receipt</h2><select id="receiptWho">' +
+      personOptions(r.people, who ? "" : '<option value="">Who are you?</option>') + "</select></div>";
+
+    if (!who) h += '<p class="empty">Pick your name to see what you owe.</p>';
+    else {
+      const you = !!billId && who === meId();
+      const name = esc(personName(who)), net = r.net[who];
+      if (net > 0) {
+        h += '<div class="banner owe"><div class="lead">' + (you ? "You need" : name + " needs") + " to pay " + money(net) + "</div>" +
+          r.transfers.filter((t) => t.from === who).map((t) => "<div>" + money(t.amt) + " to <b>" + esc(personName(t.to)) + "</b></div>").join("") + "</div>";
+      } else if (net < 0) {
+        h += '<div class="banner owed"><div class="lead">' + (you ? "You're" : name + " is") + " owed " + money(-net) + "</div>" +
+          r.transfers.filter((t) => t.to === who).map((t) => "<div>" + money(t.amt) + " from <b>" + esc(personName(t.from)) + "</b></div>").join("") + "</div>";
+      } else {
+        h += '<div class="banner settled"><div class="lead">' + (you ? "You're" : name + " is") + " all square</div><div>Nothing to pay or collect.</div></div>";
+      }
+
+      const food = Math.round(r.lines[who].reduce((s, l) => s + l.amt, 0));
+      h += '<div class="receipt-lines">' + r.lines[who].map((l) =>
+        "<span>" + esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? ' <span class="muted">(split ' + l.n + " ways)</span>" : "") +
+        "</span><span>" + money(Math.round(l.amt)) + "</span>").join("");
+      if (!r.lines[who].length) h += '<span class="muted">No items</span><span></span>';
+      h += '<span class="sep"></span>' +
+        '<span class="muted">Food &amp; drinks</span><span>' + money(food) + "</span>" +
+        '<span class="muted">Service (' + esc(String(num(state.meta.service))) + "%)</span><span>" + money(r.share[who] - food) + "</span>" +
+        '<span class="total">' + (you ? "Your share" : "Share") + '</span><span class="total">' + money(r.share[who]) + "</span>";
+      r.payLines[who].forEach((p) => {
+        h += '<span class="muted">Already paid' + (p.note ? " (" + esc(p.note) + ")" : "") + "</span><span>−" + money(p.c) + "</span>";
+      });
+      h += '<span class="sep"></span><span class="total">' + (net > 0 ? "To pay" : net < 0 ? "To receive" : "Balance") +
+        '</span><span class="total">' + money(Math.abs(net)) + "</span></div>";
+      h += '<div class="actions"><button class="primary" data-act="shareReceipt">Share receipt</button></div>';
+    }
+    if (isAdmin) h += '<div class="actions"><button data-act="unlock">Unlock to edit</button></div>';
+    box.innerHTML = h;
+    $("#receiptWho").value = who || "";
+  }
+
+  function receiptText(who) {
+    const r = last, net = r.net[who];
+    let t = "Receipt for " + personName(who) + "\n\n";
+    r.lines[who].forEach((l) => {
+      t += l.name + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " (split " + l.n + " ways)" : "") + ": " + money(Math.round(l.amt)) + "\n";
+    });
+    t += "Share incl. " + num(state.meta.service) + "% service: " + money(r.share[who]) + "\n";
+    if (r.paid[who]) t += "Already paid: " + money(r.paid[who]) + "\n";
+    t += "\n";
+    if (net > 0) r.transfers.filter((x) => x.from === who).forEach((x) => { t += "Pay " + personName(x.to) + " " + money(x.amt) + "\n"; });
+    else if (net < 0) r.transfers.filter((x) => x.to === who).forEach((x) => { t += personName(x.from) + " pays you " + money(x.amt) + "\n"; });
+    else t += "All square.";
+    return t.trim();
   }
 
   let last = null;
@@ -478,7 +628,7 @@
     const restSel = $("#restWho");
     const restWho = (restSel && restSel.value) || meId() || (r.people[0] && r.people[0].id);
 
-    let h = "<h2>Split</h2>";
+    let h = "<h2>" + (state.meta.locked ? "Everyone" : "Split") + "</h2>";
     h += '<div class="totals">' +
       "<span>Food &amp; drinks</span><span>" + money(r.subtotalC) + "</span>" +
       "<span>Service (" + esc(String(num(state.meta.service))) + "%)</span><span>" + money(r.serviceC) + "</span>" +
@@ -495,8 +645,8 @@
     const remaining = r.assignedC - r.paidTotal;
     if (r.unassignedC === 0 && remaining > 0 && r.totalC > 0) {
       h += '<div class="warn">' + money(remaining) + " of the total hasn't been paid by anyone yet." +
-        '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
-        '<button class="primary" data-act="payRest">paid the rest</button></div></div>';
+        (isAdmin ? '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
+        '<button class="primary" data-act="payRest">paid the rest</button></div>' : "") + "</div>";
     } else if (remaining < 0) {
       h += '<div class="warn">Payments are ' + money(-remaining) + " more than the total. Check the amounts.</div>";
     }
@@ -526,7 +676,9 @@
       h += '<h2 style="margin-top:16px">Who pays whom</h2>' + r.transfers.map((t) =>
         '<div class="transfer"><span>' + esc(personName(t.from)) + " → " + esc(personName(t.to)) + "</span><b>" + money(t.amt) + "</b></div>").join("");
     }
-    h += '<div class="actions"><button class="primary" data-act="share">Share summary</button></div>';
+    const canLock = isAdmin && !state.meta.locked;
+    h += '<div class="actions"><button' + (canLock ? "" : ' class="primary"') + ' data-act="share">Share summary</button>' +
+      (canLock ? '<button class="primary" data-act="lock">Lock &amp; show receipts</button>' : "") + "</div>";
     box.innerHTML = h;
     const rs = $("#restWho"); if (rs && restWho) rs.value = restWho;
   }
@@ -558,6 +710,11 @@
   });
 
   $("#meSel").addEventListener("change", (e) => { lsSet(ME + billId, e.target.value || null); render(); });
+  $("#receipt").addEventListener("change", (e) => {
+    if (e.target.id !== "receiptWho") return;
+    if (billId) lsSet(ME + billId, e.target.value || null); else receiptWho = e.target.value;
+    render();
+  });
 
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-act]"); if (!b) return;
@@ -588,11 +745,27 @@
         const rem = last.assignedC - last.paidTotal;
         return write({ ["payments/" + uid()]: { personId: $("#restWho").value, amount: (rem / 100).toFixed(2), note: "At table", order: Date.now() } });
       }
-      case "share": {
-        const text = summaryText();
+      case "share": case "shareReceipt": {
+        const text = b.dataset.act === "share" ? summaryText() : receiptText(receiptPerson());
         if (navigator.share) navigator.share({ text }).catch(() => {});
         else copy(text);
+        return;
       }
+      case "lock": {
+        const r = last, rem = r.assignedC - r.paidTotal;
+        if (!r.totalC) return alert("Add some items first.");
+        if (r.unassignedC) return alert("Some items aren't assigned to anyone yet. Tick who had them before locking.");
+        if (rem > 0) return alert(money(rem) + " hasn't been paid by anyone yet. Record who paid the bill (the \"paid the rest\" button) before locking.");
+        if (rem < 0) return alert("Payments come to " + money(-rem) + " more than the total. Fix the payments before locking.");
+        const mismatch = r.billC !== null && r.billC !== r.totalC;
+        const msg = (mismatch ? "Heads up: the bill says " + money(r.billC) + " but the items + service come to " + money(r.totalC) + ".\n\n" : "") +
+          "Lock the bill? Everyone will see their own receipt, and nobody else can change items until you unlock it.";
+        if (!confirm(msg)) return;
+        return write({ "meta/locked": true });
+      }
+      case "unlock":
+        if (confirm("Unlock the bill so items can be edited again?")) write({ "meta/locked": null });
+        return;
     }
   });
 
@@ -604,6 +777,7 @@
     const items = sorted(state.items), prev = items[items.length - 1];
     const me = meId(), prevWho = prev ? Object.keys(prev.people || {}) : [];
     const item = { name: "", price: "", qty: "", order: Date.now() };
+    if (authUid) item.createdBy = authUid;
     if (me) item.people = { [me]: true };
     else if (prevWho.length === 1) item.people = { [prevWho[0]]: true };
     write({ ["items/" + uid()]: item });
@@ -615,6 +789,10 @@
     focusLast($("#payments"), '[data-f="amount"]');
   });
   $("#shareLink").addEventListener("click", shareLink);
+  $("#adminLink").addEventListener("click", () => {
+    if (!confirm("The admin link lets whoever opens it edit everything on this bill. Use it for your own other devices, or to make someone co-admin. Copy it?")) return;
+    copy(shareUrl(true));
+  });
   $("#newBill").addEventListener("click", () => {
     if (billId) {
       if (!confirm("Start a new bill? The shared bill stays available to everyone through its link.")) return;
@@ -639,11 +817,11 @@
     state = s && s.people ? normalize(s) : emptyBill();
     render();
   }
-  const m = location.hash.match(/^#b=([a-z0-9]{16,})$/);
+  const m = location.hash.match(/^#b=([a-z0-9]{16,})(?:&k=([a-z0-9]{16,}))?$/);
   const sharedId = m ? m[1] : lsGet(SHARED);
   if (sharedId && window.FIREBASE_CONFIG) {
-    state = normalize(null); loaded = false; billId = sharedId; render();
-    openShared(sharedId).catch(() => { billId = null; loaded = true; toast("Couldn't open the shared bill. Are you online?"); startLocal(); });
+    state = normalize(null); loaded = false; billId = sharedId; isAdmin = !!lsGet(KEYS + sharedId); render();
+    openShared(sharedId, { key: m && m[2] }).catch(() => { billId = null; loaded = true; isAdmin = true; toast("Couldn't open the shared bill. Are you online?"); startLocal(); });
   } else {
     startLocal();
     if (window.FIREBASE_CONFIG) backend().catch(() => {});  // preload so "Share link" is instant
