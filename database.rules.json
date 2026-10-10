@@ -49,7 +49,7 @@
         },
         "items": {
           "$itemId": {
-            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (data.parent().parent().child('meta').child('locked').val() !== true && newData.parent().parent().child('devices').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid))))))",
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (data.parent().parent().child('meta').child('locked').val() !== true && newData.parent().parent().child('devices').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))",
             ".validate": "$itemId.matches(/^[a-z0-9]{1,32}$/)",
             "people": {
               "$personId": {
