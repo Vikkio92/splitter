@@ -116,41 +116,60 @@
   .empty { color: var(--muted); font-size: 14px; margin: 0; }
   .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
   .toast.show { opacity: 1; }
+  .head-actions { display: flex; gap: 4px; }
+  .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; font-size: 14px; }
+  .bar[hidden] { display: none; }
+  .bar.needme { border-color: var(--accent); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.on { background: var(--owed); }
+  .bar .me { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  .bar .me select { width: auto; padding: 6px 8px; }
+  .empty[hidden] { display: none; }
 </style>
 </head>
 <body>
 <main>
   <header>
     <h1>Bill Splitter</h1>
-    <button class="ghost" id="newBill">New bill</button>
+    <div class="head-actions">
+      <button class="ghost" id="shareLink">Share link</button>
+      <button class="ghost" id="newBill">New bill</button>
+    </div>
   </header>
 
-  <section class="card">
+  <div class="bar" id="sharedBar" hidden>
+    <span class="dot" id="dot"></span><span id="statusText">Connecting…</span>
+    <label class="me">You are <select id="meSel"></select></label>
+  </div>
+
+  <section class="card" data-sec="meta">
     <h2>Bill</h2>
     <div class="settings">
-      <label class="f">Service %<input id="service" inputmode="decimal" placeholder="0"></label>
-      <label class="f">Bill total<input id="billTotal" inputmode="decimal" placeholder="optional"></label>
-      <label class="f">Currency<input id="currency" maxlength="4"></label>
+      <label class="f">Service %<input data-f="service" inputmode="decimal" placeholder="0"></label>
+      <label class="f">Bill total<input data-f="billTotal" inputmode="decimal" placeholder="optional"></label>
+      <label class="f">Currency<input data-f="currency" maxlength="4"></label>
     </div>
     <p class="hint">Enter the total printed on the bill to check nothing is missing.</p>
   </section>
 
   <section class="card">
     <h2>People</h2>
-    <div id="people"></div>
+    <div id="people" data-sec="people"></div>
     <button class="add" id="addPerson">+ Add person</button>
   </section>
 
   <section class="card">
     <h2>Food &amp; drinks</h2>
-    <div id="items"></div>
+    <p class="empty" id="itemsEmpty">No items yet.</p>
+    <div id="items" data-sec="items"></div>
     <button class="add primary" id="addItem">+ Add item</button>
     <p class="hint">Tick more than one person to split an item equally between them.</p>
   </section>
 
   <section class="card">
     <h2>Payments already made</h2>
-    <div id="payments"></div>
+    <p class="empty" id="paymentsEmpty">None yet. Add deposits and what was paid at the table.</p>
+    <div id="payments" data-sec="payments"></div>
     <button class="add" id="addPayment">+ Add payment / deposit</button>
   </section>
 
@@ -158,51 +177,146 @@
 </main>
 <div class="toast" id="toast"></div>
 
+<script src="firebase-config.js"></script>
 <script>
-(function () {
+(() => {
   "use strict";
-  var KEY = "bill-splitter-v1";
+  const LOCAL = "bill-splitter-v2";        // the bill kept on this device only
+  const SHARED = "bill-splitter-shared";   // id of the shared bill this device has open
+  const ME = "bill-splitter-me:";          // + bill id -> which person this device is
+  const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/10.12.2/";
+  const DEFAULT_META = { currency: "£", service: "12.5", billTotal: "" };
 
-  function uid() { return Math.random().toString(36).slice(2, 10); }
-  function fresh() {
-    return { currency: "£", service: "12.5", billTotal: "", people: [{ id: uid(), name: "Me" }], items: [], payments: [] };
+  // ---------- state ----------
+  // Bill shape (same locally and in Firebase):
+  // { meta: {currency, service, billTotal},
+  //   people:   { id: {name, order} },
+  //   items:    { id: {name, price, qty, order, people: {personId: true}} },
+  //   payments: { id: {personId, amount, note, order} } }
+  let state, billId = null, remote = null, loaded = true, online = false;
+
+  const $ = (s) => document.querySelector(s);
+  function uid(n = 8) {
+    const a = "abcdefghijklmnopqrstuvwxyz0123456789";
+    return Array.from(crypto.getRandomValues(new Uint8Array(n)), (x) => a[x % 36]).join("");
   }
-  function load() {
-    try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && s.people) return s; } catch (e) {}
-    return null;
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
+
+  function emptyBill() {
+    return { meta: Object.assign({}, DEFAULT_META), people: { [uid()]: { name: "Me", order: 1 } }, items: {}, payments: {} };
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function normalize(v) {
+    v = v || {};
+    return { meta: Object.assign({}, DEFAULT_META, v.meta), people: v.people || {}, items: v.items || {}, payments: v.payments || {} };
+  }
+  function sorted(map) {
+    return Object.keys(map).map((id) => Object.assign({ id }, map[id])).sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+  function setPath(obj, parts, v) {
+    const last = parts.pop();
+    for (const k of parts) { if (typeof obj[k] !== "object" || obj[k] === null) obj[k] = {}; obj = obj[k]; }
+    if (v === null) delete obj[last]; else obj[last] = v;
+  }
 
-  var state = load() || fresh();
+  // Every edit goes through here as {"path/to/field": value}; null deletes.
+  function write(paths) {
+    if (remote) { remote.write(paths); return; }
+    Object.keys(paths).forEach((p) => setPath(state, p.split("/"), paths[p]));
+    lsSet(LOCAL, JSON.stringify(state));
+    render();
+  }
 
+  function meId() {
+    const id = billId && lsGet(ME + billId);
+    return id && state.people[id] ? id : null;
+  }
+
+  // ---------- Firebase ----------
+  let backendP = null;
+  function backend() {
+    if (!backendP) {
+      backendP = Promise.all([import(SDK + "firebase-app.js"), import(SDK + "firebase-database.js")]).then(([A, D]) => {
+        const db = D.getDatabase(A.initializeApp(window.FIREBASE_CONFIG));
+        return {
+          open(id, onData, onStatus) {
+            const r = D.ref(db, "bills/" + id);
+            const offs = [
+              D.onValue(r, (s) => onData(s.val()), (err) => toast("Can't read bill: " + err.message)),
+              D.onValue(D.ref(db, ".info/connected"), (s) => onStatus(!!s.val())),
+            ];
+            return {
+              write: (p) => D.update(r, p).catch((e) => toast("Not saved: " + e.message)),
+              seed: (d) => D.set(r, d).catch((e) => toast("Not saved: " + e.message)),
+              close: () => offs.forEach((off) => off()),
+            };
+          },
+        };
+      });
+      backendP.catch(() => { backendP = null; });
+    }
+    return backendP;
+  }
+
+  async function openShared(id, seed) {
+    const be = await backend();
+    billId = id;
+    lsSet(SHARED, id);
+    if (location.hash !== "#b=" + id) history.replaceState(null, "", "#b=" + id);
+    if (!seed) { state = normalize(null); loaded = false; }
+    remote = be.open(id, (v) => { state = normalize(v); loaded = true; render(); }, (s) => { online = s; renderBar(); });
+    if (seed) remote.seed(seed);
+    render();
+  }
+
+  function leaveShared() {
+    if (remote) remote.close();
+    remote = null; billId = null; loaded = true;
+    lsSet(SHARED, null);
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  function shareUrl() { return location.origin + location.pathname + "#b=" + billId; }
+
+  async function shareLink() {
+    if (!window.FIREBASE_CONFIG) { alert("Sharing isn't set up yet: add your Firebase settings to firebase-config.js (see README)."); return; }
+    if (!billId) {
+      try { await openShared(uid(20), JSON.parse(JSON.stringify(state))); }
+      catch (e) { alert("Couldn't connect to the sharing service. Are you online?"); return; }
+    }
+    const url = shareUrl();
+    if (navigator.share) {
+      navigator.share({ title: "Bill", text: "Add what you had to the bill:", url }).catch((e) => {
+        if (e.name !== "AbortError") copy(url);
+      });
+    } else copy(url);
+  }
+  function copy(text) {
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Link copied"), () => prompt("Copy this link:", text));
+    else prompt("Copy this link:", text);
+  }
+
+  // ---------- maths ----------
   function num(v) {
-    var n = parseFloat(String(v == null ? "" : v).replace(",", ".").replace(/[^0-9.\-]/g, ""));
+    const n = parseFloat(String(v == null ? "" : v).replace(",", ".").replace(/[^0-9.\-]/g, ""));
     return isFinite(n) ? n : 0;
   }
   function qty(v) { return String(v == null ? "" : v).trim() === "" ? 1 : num(v); }
-  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
-  function money(cents) {
-    var neg = cents < 0;
-    return (neg ? "-" : "") + state.currency + (Math.abs(cents) / 100).toFixed(2);
-  }
-  function personName(id) {
-    var p = state.people.find(function (p) { return p.id === id; });
-    return p ? (p.name.trim() || "Unnamed") : "?";
-  }
-  var $ = function (s) { return document.querySelector(s); };
+  function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function money(cents) { return (cents < 0 ? "-" : "") + state.meta.currency + (Math.abs(cents) / 100).toFixed(2); }
+  function personName(id) { const p = state.people[id]; return p ? (String(p.name || "").trim() || "Unnamed") : "?"; }
 
-  // Round a set of fractional cent amounts so they sum exactly to `target` (largest remainder).
+  // Round fractional cent amounts so they sum exactly to `target` (largest remainder).
   function allocate(rawById, target) {
-    var ids = Object.keys(rawById);
-    var out = {}, sum = 0;
-    var rems = ids.map(function (id) {
-      var f = Math.floor(rawById[id] + 1e-9);
+    const out = {}; let sum = 0;
+    const rems = Object.keys(rawById).map((id) => {
+      const f = Math.floor(rawById[id] + 1e-9);
       out[id] = f; sum += f;
-      return { id: id, r: rawById[id] - f };
+      return { id, r: rawById[id] - f };
     });
-    var diff = target - sum;
-    rems.sort(function (a, b) { return diff > 0 ? b.r - a.r : a.r - b.r; });
-    for (var i = 0; diff !== 0 && rems.length; i = (i + 1) % rems.length) {
+    let diff = target - sum;
+    rems.sort((a, b) => (diff > 0 ? b.r - a.r : a.r - b.r));
+    for (let i = 0; diff !== 0 && rems.length; i = (i + 1) % rems.length) {
       out[rems[i].id] += diff > 0 ? 1 : -1;
       diff += diff > 0 ? -1 : 1;
     }
@@ -210,293 +324,333 @@
   }
 
   function compute() {
-    var rate = num(state.service) / 100;
-    var base = {}, lines = {};
-    state.people.forEach(function (p) { base[p.id] = 0; lines[p.id] = []; });
-    var subtotal = 0, unassigned = 0;
+    const people = sorted(state.people);
+    const rate = num(state.meta.service) / 100;
+    const base = {}, lines = {};
+    people.forEach((p) => { base[p.id] = 0; lines[p.id] = []; });
+    let subtotal = 0, unassigned = 0;
 
-    state.items.forEach(function (it) {
-      var c = num(it.price) * qty(it.qty) * 100;
+    sorted(state.items).forEach((it) => {
+      const c = num(it.price) * qty(it.qty) * 100;
       subtotal += c;
-      var who = it.people.filter(function (id) { return id in base; });
+      const who = Object.keys(it.people || {}).filter((id) => id in base);
       if (!who.length) { unassigned += c; return; }
-      who.forEach(function (id) {
+      who.forEach((id) => {
         base[id] += c / who.length;
-        lines[id].push({ name: it.name.trim() || "Item", amt: c / who.length, n: who.length, q: qty(it.qty) });
+        lines[id].push({ name: String(it.name || "").trim() || "Item", amt: c / who.length, n: who.length, q: qty(it.qty) });
       });
     });
 
-    var totalC = Math.round(subtotal * (1 + rate));
-    var subtotalC = Math.round(subtotal);
-    var assignedC = Math.round((subtotal - unassigned) * (1 + rate));
-    var raw = {};
-    Object.keys(base).forEach(function (id) { raw[id] = base[id] * (1 + rate); });
-    var share = allocate(raw, assignedC);
+    const totalC = Math.round(subtotal * (1 + rate));
+    const subtotalC = Math.round(subtotal);
+    const assignedC = Math.round((subtotal - unassigned) * (1 + rate));
+    const raw = {};
+    Object.keys(base).forEach((id) => { raw[id] = base[id] * (1 + rate); });
+    const share = allocate(raw, assignedC);
 
-    var paid = {}; state.people.forEach(function (p) { paid[p.id] = 0; });
-    var paidTotal = 0;
-    state.payments.forEach(function (pm) {
-      var c = Math.round(num(pm.amount) * 100);
+    const paid = {}; people.forEach((p) => { paid[p.id] = 0; });
+    let paidTotal = 0;
+    sorted(state.payments).forEach((pm) => {
+      const c = Math.round(num(pm.amount) * 100);
       if (pm.personId in paid) { paid[pm.personId] += c; paidTotal += c; }
     });
 
-    var net = {};
-    state.people.forEach(function (p) { net[p.id] = share[p.id] - paid[p.id]; });
+    const net = {};
+    people.forEach((p) => { net[p.id] = share[p.id] - paid[p.id]; });
 
-    var transfers = [];
+    const transfers = [];
     if (paidTotal === assignedC && unassigned === 0) {
-      var debt = [], cred = [];
-      state.people.forEach(function (p) {
+      const debt = [], cred = [];
+      people.forEach((p) => {
         if (net[p.id] > 0) debt.push({ id: p.id, v: net[p.id] });
         else if (net[p.id] < 0) cred.push({ id: p.id, v: -net[p.id] });
       });
-      debt.sort(function (a, b) { return b.v - a.v; });
-      cred.sort(function (a, b) { return b.v - a.v; });
-      var i = 0, j = 0;
+      debt.sort((a, b) => b.v - a.v);
+      cred.sort((a, b) => b.v - a.v);
+      let i = 0, j = 0;
       while (i < debt.length && j < cred.length) {
-        var amt = Math.min(debt[i].v, cred[j].v);
-        transfers.push({ from: debt[i].id, to: cred[j].id, amt: amt });
+        const amt = Math.min(debt[i].v, cred[j].v);
+        transfers.push({ from: debt[i].id, to: cred[j].id, amt });
         debt[i].v -= amt; cred[j].v -= amt;
         if (!debt[i].v) i++;
         if (!cred[j].v) j++;
       }
     }
 
-    var billC = String(state.billTotal).trim() === "" ? null : Math.round(num(state.billTotal) * 100);
+    const billC = String(state.meta.billTotal).trim() === "" ? null : Math.round(num(state.meta.billTotal) * 100);
     return {
-      rate: rate, subtotalC: subtotalC, serviceC: totalC - subtotalC, totalC: totalC,
-      unassignedC: Math.round(unassigned * (1 + rate)), share: share, paid: paid, paidTotal: paidTotal,
-      net: net, transfers: transfers, lines: lines, billC: billC, assignedC: assignedC
+      people, subtotalC, serviceC: totalC - subtotalC, totalC, unassignedC: Math.round(unassigned * (1 + rate)),
+      share, paid, paidTotal, net, transfers, lines, billC, assignedC,
     };
   }
 
   // ---------- rendering ----------
-  function renderSettings() {
-    $("#service").value = state.service;
-    $("#billTotal").value = state.billTotal;
-    $("#currency").value = state.currency;
+  // Lists are updated in place (keyed by id) so the field someone is typing in
+  // is never replaced, even when a friend's edit arrives.
+  function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
+  function setVal(input, v) { v = v == null ? "" : String(v); if (document.activeElement !== input && input.value !== v) input.value = v; }
+  function setHTML(node, html) { if (node._html !== html) { node.innerHTML = html; node._html = html; } }
+  function syncList(box, list, make, update) {
+    const existing = new Map(Array.from(box.children, (c) => [c.dataset.id, c]));
+    let prev = null;
+    list.forEach((obj) => {
+      let row = existing.get(obj.id);
+      if (!row) { row = make(obj); row.dataset.id = obj.id; }
+      existing.delete(obj.id);
+      update(row, obj);
+      const want = prev ? prev.nextSibling : box.firstChild;
+      if (row !== want) box.insertBefore(row, want);
+      prev = row;
+    });
+    existing.forEach((row) => row.remove());
+  }
+  function personOptions(people, first) {
+    return (first || "") + people.map((p) => '<option value="' + p.id + '">' + esc(String(p.name || "").trim() || "Unnamed") + "</option>").join("");
   }
 
-  function renderPeople() {
-    $("#people").innerHTML = state.people.map(function (p) {
-      return '<div class="row" data-id="' + p.id + '">' +
-        '<input class="grow" data-f="name" value="' + esc(p.name) + '" placeholder="Name" autocomplete="off">' +
-        (state.people.length > 1 ? '<button class="x" data-act="delPerson" aria-label="Remove">×</button>' : "") +
-        "</div>";
-    }).join("");
+  function renderBar() {
+    const bar = $("#sharedBar");
+    bar.hidden = !billId;
+    if (!billId) return;
+    $("#dot").classList.toggle("on", online && loaded);
+    $("#statusText").textContent = !loaded ? "Connecting…" : online ? "Live · shared bill" : "Offline · will sync";
+    const sel = $("#meSel");
+    setHTML(sel, personOptions(sorted(state.people), '<option value="">Choose…</option>'));
+    if (document.activeElement !== sel) sel.value = meId() || "";
+    bar.classList.toggle("needme", loaded && !meId());
   }
 
-  function chipsFor(it) {
-    var all = state.people.length > 1 && state.people.every(function (p) { return it.people.indexOf(p.id) >= 0; });
-    var html = state.people.map(function (p) {
-      var on = it.people.indexOf(p.id) >= 0;
-      return '<button class="chip' + (on ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '">' + esc(p.name.trim() || "Unnamed") + "</button>";
-    }).join("");
-    if (state.people.length > 1) html += '<button class="chip all" data-act="all">' + (all ? "None" : "Everyone") + "</button>";
-    return html;
+  function render() {
+    const people = sorted(state.people);
+    const items = sorted(state.items);
+    const payments = sorted(state.payments);
+
+    document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => setVal(i, state.meta[i.dataset.f]));
+    renderBar();
+
+    syncList($("#people"), people,
+      () => el('<div class="row"><input class="grow" data-f="name" placeholder="Name" autocomplete="off"><button class="x" data-act="delPerson" aria-label="Remove">×</button></div>'),
+      (row, p) => { setVal(row.firstChild, p.name); row.lastChild.hidden = people.length < 2; });
+
+    const chipsFor = (it) => {
+      const on = it.people || {};
+      const all = people.length > 1 && people.every((p) => on[p.id]);
+      return people.map((p) => '<button class="chip' + (on[p.id] ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '">' +
+        esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
+        (people.length > 1 ? '<button class="chip all" data-act="all">' + (all ? "None" : "Everyone") + "</button>" : "");
+    };
+    $("#itemsEmpty").hidden = items.length > 0;
+    syncList($("#items"), items,
+      () => el('<div class="item"><div class="row">' +
+        '<input class="grow" data-f="name" placeholder="Item (optional)" autocomplete="off">' +
+        '<input class="w-qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity">' +
+        '<input class="w-price" data-f="price" placeholder="Price" inputmode="decimal" aria-label="Price each">' +
+        '<button class="x" data-act="delItem" aria-label="Remove">×</button></div><div class="chips"></div></div>'),
+      (row, it) => {
+        row.querySelectorAll("[data-f]").forEach((i) => setVal(i, it[i.dataset.f]));
+        row.classList.toggle("unassigned", !Object.keys(it.people || {}).some((id) => state.people[id]));
+        setHTML(row.querySelector(".chips"), chipsFor(it));
+      });
+
+    const opts = personOptions(people);
+    $("#paymentsEmpty").hidden = payments.length > 0;
+    syncList($("#payments"), payments,
+      () => el('<div class="row"><select class="grow" data-f="personId"></select>' +
+        '<input class="w-small" data-f="note" placeholder="Note">' +
+        '<input class="w-price" data-f="amount" placeholder="Amount" inputmode="decimal">' +
+        '<button class="x" data-act="delPayment" aria-label="Remove">×</button></div>'),
+      (row, pm) => {
+        const sel = row.firstChild;
+        setHTML(sel, opts);
+        if (document.activeElement !== sel) sel.value = pm.personId;
+        row.querySelectorAll("input[data-f]").forEach((i) => setVal(i, pm[i.dataset.f]));
+      });
+
+    renderResults();
   }
 
-  function renderItems() {
-    if (!state.items.length) { $("#items").innerHTML = '<p class="empty">No items yet.</p>'; return; }
-    $("#items").innerHTML = state.items.map(function (it) {
-      return '<div class="item' + (it.people.length ? "" : " unassigned") + '" data-id="' + it.id + '">' +
-        '<div class="row">' +
-          '<input class="grow" data-f="name" value="' + esc(it.name) + '" placeholder="Item (optional)" autocomplete="off">' +
-          '<input class="w-qty" data-f="qty" value="' + esc(it.qty) + '" placeholder="×1" inputmode="numeric" aria-label="Quantity">' +
-          '<input class="w-price" data-f="price" value="' + esc(it.price) + '" placeholder="Price" inputmode="decimal" aria-label="Price each">' +
-          '<button class="x" data-act="delItem" aria-label="Remove">×</button>' +
-        "</div>" +
-        '<div class="chips">' + chipsFor(it) + "</div>" +
-      "</div>";
-    }).join("");
-  }
-
-  function personOptions(selected) {
-    return state.people.map(function (p) {
-      return '<option value="' + p.id + '"' + (p.id === selected ? " selected" : "") + ">" + esc(p.name.trim() || "Unnamed") + "</option>";
-    }).join("");
-  }
-
-  function renderPayments() {
-    if (!state.payments.length) { $("#payments").innerHTML = '<p class="empty">None yet. Add deposits and what was paid at the table.</p>'; return; }
-    $("#payments").innerHTML = state.payments.map(function (pm) {
-      return '<div class="row" data-id="' + pm.id + '">' +
-        '<select class="grow" data-f="personId">' + personOptions(pm.personId) + "</select>" +
-        '<input class="w-small" data-f="note" value="' + esc(pm.note) + '" placeholder="Note">' +
-        '<input class="w-price" data-f="amount" value="' + esc(pm.amount) + '" placeholder="Amount" inputmode="decimal">' +
-        '<button class="x" data-act="delPayment" aria-label="Remove">×</button>' +
-      "</div>";
-    }).join("");
-  }
-
-  var last = null;
+  let last = null;
   function renderResults() {
-    var r = compute(); last = r;
-    var h = "<h2>Split</h2>";
+    const box = $("#results");
+    if (!loaded) { box.innerHTML = '<h2>Split</h2><p class="empty">Loading bill…</p>'; return; }
+    const r = compute(); last = r;
+    const open = new Set(Array.from(box.querySelectorAll("details[open]"), (d) => d.dataset.p));
+    const restSel = $("#restWho");
+    const restWho = (restSel && restSel.value) || meId() || (r.people[0] && r.people[0].id);
 
+    let h = "<h2>Split</h2>";
     h += '<div class="totals">' +
       "<span>Food &amp; drinks</span><span>" + money(r.subtotalC) + "</span>" +
-      "<span>Service (" + esc(String(num(state.service))) + "%)</span><span>" + money(r.serviceC) + "</span>" +
+      "<span>Service (" + esc(String(num(state.meta.service))) + "%)</span><span>" + money(r.serviceC) + "</span>" +
       '<span class="big">Total</span><span class="big">' + money(r.totalC) + "</span>" +
       "<span>Paid so far</span><span>" + money(r.paidTotal) + "</span>" +
     "</div>";
 
     if (r.billC !== null && r.billC !== r.totalC) {
-      var d = r.billC - r.totalC;
+      const d = r.billC - r.totalC;
       h += '<div class="warn">The bill says <b>' + money(r.billC) + "</b> but your items + service come to <b>" + money(r.totalC) + "</b> (" +
         (d > 0 ? money(d) + " missing, maybe an item?" : money(-d) + " too much") + ").</div>";
     }
-    if (r.unassignedC > 0) {
-      h += '<div class="warn">' + money(r.unassignedC) + " of items aren't assigned to anyone yet.</div>";
-    }
-    var remaining = r.assignedC - r.paidTotal;
+    if (r.unassignedC > 0) h += '<div class="warn">' + money(r.unassignedC) + " of items aren't assigned to anyone yet.</div>";
+    const remaining = r.assignedC - r.paidTotal;
     if (r.unassignedC === 0 && remaining > 0 && r.totalC > 0) {
       h += '<div class="warn">' + money(remaining) + " of the total hasn't been paid by anyone yet." +
-        '<div class="row"><select id="restWho">' + personOptions(state.people[0].id) + '</select>' +
+        '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
         '<button class="primary" data-act="payRest">paid the rest</button></div></div>';
     } else if (remaining < 0) {
       h += '<div class="warn">Payments are ' + money(-remaining) + " more than the total. Check the amounts.</div>";
     }
 
-    state.people.forEach(function (p) {
-      var id = p.id, net = r.net[id];
-      var status = net > 0 ? '<span class="owe">owes ' + money(net) + "</span>"
-                 : net < 0 ? '<span class="owed">is owed ' + money(-net) + "</span>"
-                 : '<span class="settled">all square</span>';
-      var bd = r.lines[id].map(function (l) {
-        var label = esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " (1/" + l.n + ")" : "");
+    r.people.forEach((p) => {
+      const id = p.id, net = r.net[id];
+      const status = net > 0 ? '<span class="owe">owes ' + money(net) + "</span>"
+                   : net < 0 ? '<span class="owed">is owed ' + money(-net) + "</span>"
+                   : '<span class="settled">all square</span>';
+      let bd = r.lines[id].map((l) => {
+        const label = esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " (1/" + l.n + ")" : "");
         return "<span>" + label + "</span><span>" + money(Math.round(l.amt)) + "</span>";
       }).join("");
-      var food = r.lines[id].reduce(function (s, l) { return s + l.amt; }, 0);
+      const food = Math.round(r.lines[id].reduce((s, l) => s + l.amt, 0));
       bd += '<span class="sep"></span>' +
-        "<span>Food &amp; drinks</span><span>" + money(Math.round(food)) + "</span>" +
-        "<span>+ service</span><span>" + money(r.share[id] - Math.round(food)) + "</span>" +
+        "<span>Food &amp; drinks</span><span>" + money(food) + "</span>" +
+        "<span>+ service</span><span>" + money(r.share[id] - food) + "</span>" +
         "<span>Share</span><span>" + money(r.share[id]) + "</span>" +
         "<span>− already paid</span><span>" + money(r.paid[id]) + "</span>";
-      h += '<details class="person"><summary><div><div class="pname">' + esc(p.name.trim() || "Unnamed") + '</div><div class="pnet">' + status + "</div></div>" +
+      h += '<details class="person" data-p="' + id + '"' + (open.has(id) ? " open" : "") + '><summary><div><div class="pname">' +
+        esc(personName(id)) + '</div><div class="pnet">' + status + "</div></div>" +
         '<div class="pshare">' + money(r.share[id]) + "</div></summary>" +
         '<div class="breakdown">' + bd + "</div></details>";
     });
 
     if (r.transfers.length) {
-      h += '<h2 style="margin-top:16px">Who pays whom</h2>';
-      h += r.transfers.map(function (t) {
-        return '<div class="transfer"><span>' + esc(personName(t.from)) + " → " + esc(personName(t.to)) + "</span><b>" + money(t.amt) + "</b></div>";
-      }).join("");
+      h += '<h2 style="margin-top:16px">Who pays whom</h2>' + r.transfers.map((t) =>
+        '<div class="transfer"><span>' + esc(personName(t.from)) + " → " + esc(personName(t.to)) + "</span><b>" + money(t.amt) + "</b></div>").join("");
     }
-
     h += '<div class="actions"><button class="primary" data-act="share">Share summary</button></div>';
-    $("#results").innerHTML = h;
+    box.innerHTML = h;
+    const rs = $("#restWho"); if (rs && restWho) rs.value = restWho;
   }
 
-  function renderAll() { renderSettings(); renderPeople(); renderItems(); renderPayments(); renderResults(); }
-
   function summaryText() {
-    var r = last || compute();
-    var t = "Bill split: total " + money(r.totalC) + " (incl. " + num(state.service) + "% service)\n\n";
-    state.people.forEach(function (p) {
-      t += personName(p.id) + ": " + money(r.share[p.id]) + (r.paid[p.id] ? " (paid " + money(r.paid[p.id]) + ")" : "") + "\n";
-    });
+    const r = last || compute();
+    let t = "Bill split: total " + money(r.totalC) + " (incl. " + num(state.meta.service) + "% service)\n\n";
+    r.people.forEach((p) => { t += personName(p.id) + ": " + money(r.share[p.id]) + (r.paid[p.id] ? " (paid " + money(r.paid[p.id]) + ")" : "") + "\n"; });
     if (r.transfers.length) {
       t += "\n";
-      r.transfers.forEach(function (x) { t += personName(x.from) + " → " + personName(x.to) + ": " + money(x.amt) + "\n"; });
+      r.transfers.forEach((x) => { t += personName(x.from) + " → " + personName(x.to) + ": " + money(x.amt) + "\n"; });
     }
     return t.trim();
   }
 
   function toast(msg) {
-    var el = $("#toast"); el.textContent = msg; el.classList.add("show");
-    clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove("show"); }, 1800);
+    const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2200);
   }
+  function focusLast(box, sel) { const rows = box.children; if (rows.length) { const i = rows[rows.length - 1].querySelector(sel); if (i) i.focus(); } }
 
   // ---------- events ----------
-  function find(list, id) { return list.find(function (x) { return x.id === id; }); }
-  function changed(structural) { save(); if (structural) { renderItems(); renderPayments(); } renderResults(); }
-
-  ["service", "billTotal", "currency"].forEach(function (k) {
-    $("#" + k).addEventListener("input", function (e) { state[k] = e.target.value; changed(false); });
+  document.addEventListener("input", (e) => {
+    const t = e.target, f = t.dataset.f;
+    if (!f) return;
+    const sec = t.closest("[data-sec]").dataset.sec;
+    if (sec === "meta") write({ ["meta/" + f]: t.value });
+    else write({ [sec + "/" + t.closest("[data-id]").dataset.id + "/" + f]: t.value });
   });
 
-  $("#people").addEventListener("input", function (e) {
-    var p = find(state.people, e.target.closest("[data-id]").dataset.id);
-    p.name = e.target.value; changed(true);
-  });
-  $("#items").addEventListener("input", function (e) {
-    var it = find(state.items, e.target.closest("[data-id]").dataset.id);
-    it[e.target.dataset.f] = e.target.value; changed(false);
-  });
-  $("#payments").addEventListener("input", function (e) {
-    var pm = find(state.payments, e.target.closest("[data-id]").dataset.id);
-    pm[e.target.dataset.f] = e.target.value; changed(false);
-  });
-  $("#payments").addEventListener("change", function (e) {
-    if (e.target.tagName !== "SELECT") return;
-    var pm = find(state.payments, e.target.closest("[data-id]").dataset.id);
-    pm.personId = e.target.value; changed(false);
-  });
+  $("#meSel").addEventListener("change", (e) => { lsSet(ME + billId, e.target.value || null); render(); });
 
-  document.addEventListener("click", function (e) {
-    var b = e.target.closest("[data-act]"); if (!b) return;
-    var row = b.closest("[data-id]"), id = row && row.dataset.id;
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const row = b.closest("[data-id]"), id = row && row.dataset.id;
+    const paths = {};
     switch (b.dataset.act) {
-      case "delPerson":
-        var hasPay = state.payments.some(function (pm) { return pm.personId === id; });
+      case "delPerson": {
+        const hasPay = Object.values(state.payments).some((pm) => pm.personId === id);
         if (hasPay && !confirm("Remove " + personName(id) + " and their payments?")) return;
-        state.people = state.people.filter(function (p) { return p.id !== id; });
-        state.items.forEach(function (it) { it.people = it.people.filter(function (x) { return x !== id; }); });
-        state.payments = state.payments.filter(function (pm) { return pm.personId !== id; });
-        save(); renderPeople(); changed(true); break;
-      case "toggle":
-        var it = find(state.items, id), pid = b.dataset.p, k = it.people.indexOf(pid);
-        if (k >= 0) it.people.splice(k, 1); else it.people.push(pid);
-        changed(true); break;
-      case "all":
-        var it2 = find(state.items, id);
-        var all = state.people.every(function (p) { return it2.people.indexOf(p.id) >= 0; });
-        it2.people = all ? [] : state.people.map(function (p) { return p.id; });
-        changed(true); break;
-      case "delItem":
-        state.items = state.items.filter(function (x) { return x.id !== id; }); changed(true); break;
-      case "delPayment":
-        state.payments = state.payments.filter(function (x) { return x.id !== id; }); changed(true); break;
-      case "payRest":
-        var rem = last.assignedC - last.paidTotal;
-        state.payments.push({ id: uid(), personId: $("#restWho").value, amount: (rem / 100).toFixed(2), note: "At table" });
-        changed(true); break;
-      case "share":
-        var text = summaryText();
-        if (navigator.share) navigator.share({ text: text }).catch(function () {});
-        else if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast("Copied to clipboard"); });
-        break;
+        paths["people/" + id] = null;
+        Object.keys(state.items).forEach((iid) => { if ((state.items[iid].people || {})[id]) paths["items/" + iid + "/people/" + id] = null; });
+        Object.keys(state.payments).forEach((pid) => { if (state.payments[pid].personId === id) paths["payments/" + pid] = null; });
+        return write(paths);
+      }
+      case "toggle": {
+        const pid = b.dataset.p, on = (state.items[id].people || {})[pid];
+        return write({ ["items/" + id + "/people/" + pid]: on ? null : true });
+      }
+      case "all": {
+        const on = state.items[id].people || {};
+        const all = Object.keys(state.people).every((p) => on[p]);
+        const map = {}; Object.keys(state.people).forEach((p) => { map[p] = true; });
+        return write({ ["items/" + id + "/people"]: all ? null : map });
+      }
+      case "delItem": return write({ ["items/" + id]: null });
+      case "delPayment": return write({ ["payments/" + id]: null });
+      case "payRest": {
+        const rem = last.assignedC - last.paidTotal;
+        return write({ ["payments/" + uid()]: { personId: $("#restWho").value, amount: (rem / 100).toFixed(2), note: "At table", order: Date.now() } });
+      }
+      case "share": {
+        const text = summaryText();
+        if (navigator.share) navigator.share({ text }).catch(() => {});
+        else copy(text);
+      }
     }
   });
 
-  $("#addPerson").addEventListener("click", function () {
-    state.people.push({ id: uid(), name: "" });
-    save(); renderPeople(); changed(true);
-    var inputs = document.querySelectorAll("#people input"); inputs[inputs.length - 1].focus();
+  $("#addPerson").addEventListener("click", () => {
+    write({ ["people/" + uid()]: { name: "", order: Date.now() } });
+    focusLast($("#people"), "input");
   });
-  $("#addItem").addEventListener("click", function () {
-    var prev = state.items[state.items.length - 1];
-    state.items.push({ id: uid(), name: "", price: "", qty: "", people: prev && prev.people.length === 1 ? prev.people.slice() : [] });
-    changed(true);
-    var rows = document.querySelectorAll("#items .item"); rows[rows.length - 1].querySelector('[data-f="price"]').focus();
+  $("#addItem").addEventListener("click", () => {
+    const items = sorted(state.items), prev = items[items.length - 1];
+    const me = meId(), prevWho = prev ? Object.keys(prev.people || {}) : [];
+    const item = { name: "", price: "", qty: "", order: Date.now() };
+    if (me) item.people = { [me]: true };
+    else if (prevWho.length === 1) item.people = { [prevWho[0]]: true };
+    write({ ["items/" + uid()]: item });
+    focusLast($("#items"), '[data-f="price"]');
   });
-  $("#addPayment").addEventListener("click", function () {
-    state.payments.push({ id: uid(), personId: state.people[0].id, amount: "", note: "Deposit" });
-    changed(true);
-    var rows = document.querySelectorAll("#payments .row"); rows[rows.length - 1].querySelector('[data-f="amount"]').focus();
+  $("#addPayment").addEventListener("click", () => {
+    const first = sorted(state.people)[0];
+    write({ ["payments/" + uid()]: { personId: meId() || (first ? first.id : ""), amount: "", note: "Deposit", order: Date.now() } });
+    focusLast($("#payments"), '[data-f="amount"]');
   });
-  $("#newBill").addEventListener("click", function () {
-    if (!confirm("Start a new bill? Items and payments are cleared; people and service % are kept.")) return;
-    state.items = []; state.payments = []; state.billTotal = "";
-    save(); renderAll();
+  $("#shareLink").addEventListener("click", shareLink);
+  $("#newBill").addEventListener("click", () => {
+    if (billId) {
+      if (!confirm("Start a new bill? The shared bill stays available to everyone through its link.")) return;
+      const people = {};
+      sorted(state.people).forEach((p, i) => { people[uid()] = { name: p.name || "", order: i + 1 }; });
+      const meta = Object.assign({}, state.meta, { billTotal: "" });
+      leaveShared();
+      state = { meta, people: Object.keys(people).length ? people : emptyBill().people, items: {}, payments: {} };
+    } else {
+      if (!confirm("Start a new bill? Items and payments are cleared; people and service % are kept.")) return;
+      state.items = {}; state.payments = {}; state.meta.billTotal = "";
+    }
+    lsSet(LOCAL, JSON.stringify(state));
+    render();
   });
+  window.addEventListener("hashchange", () => location.reload());
 
-  renderAll();
+  // ---------- start ----------
+  function startLocal() {
+    let s = null;
+    try { s = JSON.parse(lsGet(LOCAL)); } catch (e) {}
+    state = s && s.people ? normalize(s) : emptyBill();
+    render();
+  }
+  const m = location.hash.match(/^#b=([a-z0-9]{16,})$/);
+  const sharedId = m ? m[1] : lsGet(SHARED);
+  if (sharedId && window.FIREBASE_CONFIG) {
+    state = normalize(null); loaded = false; billId = sharedId; render();
+    openShared(sharedId).catch(() => { billId = null; loaded = true; toast("Couldn't open the shared bill. Are you online?"); startLocal(); });
+  } else {
+    startLocal();
+    if (window.FIREBASE_CONFIG) backend().catch(() => {});  // preload so "Share link" is instant
+  }
 
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-    navigator.serviceWorker.register("sw.js").catch(function () {});
+    navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 })();
 </script>
