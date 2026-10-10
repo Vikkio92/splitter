@@ -449,6 +449,7 @@
   const KEYS = "bill-splitter-key:";       // + bill id -> admin key, if this device is an admin
   const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/10.12.2/";
   const DEFAULT_META = { currency: "£", service: "", billTotal: "" };
+  const LIFETIME = 3 * 24 * 60 * 60 * 1000;   // every bill deletes itself 3 days after it's created
   const COLORS = ["#ff9f6b", "#8fa8ff", "#5fdcb3", "#ffd25e", "#e693ff", "#6fd3ff", "#ff8fab", "#b4e86a"];
 
   const ICON = {
@@ -639,13 +640,14 @@
     const id = currentId(), e = id && bills().find((b) => b.id === id);
     if (!e || !loaded) return;
     const want = { name: String(state.meta.name || ""), locked: !!state.meta.locked, role: billId && !isAdmin ? "guest" : "admin" };
-    if (e.name !== want.name || e.locked !== want.locked || e.role !== want.role) upsertBill(Object.assign({ id }, want));
+    if (billId && state.meta.expires) want.expires = state.meta.expires;
+    if (Object.keys(want).some((k) => e[k] !== want[k])) upsertBill(Object.assign({ id }, want));
   }
 
   function createLocalBill() {
     const id = uid();
     lsSet(LOCAL_PREFIX + id, JSON.stringify(emptyBill()));
-    upsertBill({ id, kind: "local", name: "" });
+    upsertBill({ id, kind: "local", name: "", expires: Date.now() + LIFETIME });
     return id;
   }
   function startLocal(id) {
@@ -685,13 +687,19 @@
     render();
   }
 
+  function expiresAt(b) { return b.expires || (b.at || Date.now()) + LIFETIME; }
+  function expiresIn(b) {
+    const left = expiresAt(b) - Date.now(), h = Math.max(1, Math.round(left / 3600000));
+    return "deletes in " + (h >= 36 ? Math.round(h / 24) + " days" : h + (h === 1 ? " hour" : " hours"));
+  }
+
   function billRows(cur) {
     const when = (t) => new Date(t || Date.now()).toLocaleDateString(undefined, { day: "numeric", month: "short" });
     return bills().map((b) => {
       const sub = b.kind === "local" ? "Only on this phone" : (b.role === "guest" ? "Guest" : "Admin") + " · " + (b.locked ? "Locked" : "Open");
       return '<div class="bill-row' + (b.id === cur ? " on" : "") + '" data-pick="' + b.id + '" role="button" tabindex="0">' +
         '<span class="bill-ico">' + (b.kind === "local" ? ICON.phone : ICON.users) + "</span>" +
-        '<span class="bill-txt"><b>' + esc(billName(b)) + "</b><small>" + sub + " · " + when(b.at) + "</small></span>" +
+        '<span class="bill-txt"><b>' + esc(billName(b)) + "</b><small>" + sub + " · " + expiresIn(b) + "</small></span>" +
         '<button class="icon-btn" data-pick="rm:' + b.id + '" aria-label="Remove">' + ICON.trash + "</button></div>";
     }).join("");
   }
@@ -732,20 +740,36 @@
     if (wasOpen) { localId = null; goHome(); } else render();
   }
 
-  // The admin settled and deleted it (or the link was wrong): drop it from this phone too.
-  function billGone(id) {
+  // The admin deleted it, it expired, or the link was wrong: drop it from this phone too.
+  function billGone(id, expired) {
     const e = bills().find((b) => b.id === id);
     if (billId === id) leaveShared();
     dropBill(id);
-    toast(e && e.name ? "“" + billName(e) + "” was settled and deleted" : "That bill no longer exists");
+    const name = e && e.name ? "“" + billName(e) + "”" : "That bill";
+    toast(expired ? name + " expired and was deleted" : e && e.name ? name + " was settled and deleted" : "That bill no longer exists");
+    if (expired) backend().then((be) => be.purgeExpired(id)).catch(() => {});
     goHome();
+  }
+  // Is this shared bill still there? "gone", "expired" or "ok" (or "unknown" when offline).
+  async function billStatus(be, id) {
+    try {
+      const meta = await be.meta(id);
+      if (!meta) return "gone";
+      return meta.expires && meta.expires < Date.now() ? "expired" : "ok";
+    } catch (e) { return "unknown"; }
+  }
+  // Bills only on this phone expire too.
+  function pruneLocalBills() {
+    bills().filter((b) => b.kind === "local" && expiresAt(b) < Date.now()).forEach((b) => dropBill(b.id));
   }
   // Bills deleted while this phone wasn't looking are tidied away on launch.
   async function pruneGoneBills() {
     let be;
     try { be = await backend(); } catch (e) { return; }
     for (const b of bills().filter((x) => x.kind === "shared" && x.id !== billId)) {
-      if ((await be.exists(b.id).catch(() => true)) === false) dropBill(b.id);
+      const st = await billStatus(be, b.id);
+      if (st === "expired") await be.purgeExpired(b.id).catch(() => {});
+      if (st === "gone" || st === "expired") dropBill(b.id);
     }
     if (home) render();
   }
@@ -775,7 +799,7 @@
             open(id, onData, onStatus) {
               const r = D.ref(db, "bills/" + id);
               const offs = [
-                D.onValue(r, (s) => onData(s.val()), (err) => toast("Can't read bill: " + err.message)),
+                D.onValue(r, (s) => onData(s.val()), (err) => onData(undefined, err)),
                 D.onValue(D.ref(db, ".info/connected"), (s) => onStatus(!!s.val())),
               ];
               return {
@@ -795,7 +819,7 @@
             createWith(id, key, bill, mePerson, code) {
               const p = {
                 ["secrets/" + id]: key, ["owners/" + id + "/" + me]: key, ["codes/" + code]: id,
-                ["bills/" + id + "/meta"]: Object.assign({}, bill.meta, { code }),
+                ["bills/" + id + "/meta"]: Object.assign({}, bill.meta, { code, expires: Date.now() + LIFETIME }),
               };
               if (Object.keys(bill.people).length) p["bills/" + id + "/people"] = bill.people;
               if (Object.keys(bill.payments).length) p["bills/" + id + "/payments"] = bill.payments;
@@ -803,24 +827,19 @@
               if (mePerson) { p["bills/" + id + "/claims/" + mePerson] = me; p["bills/" + id + "/devices/" + me] = mePerson; }
               return D.update(D.ref(db), p);
             },
-            exists: (id) => D.get(D.ref(db, "bills/" + id + "/meta")).then((s) => s.exists()),
+            meta: (id) => D.get(D.ref(db, "bills/" + id + "/meta")).then((s) => s.val()),
             lookup: (code) => D.get(D.ref(db, "codes/" + code)).then((s) => s.val()),
             claim: (id, key) => D.set(D.ref(db, "owners/" + id + "/" + me), key),
             adminKey: (id) => D.get(D.ref(db, "owners/" + id + "/" + me)).then((s) => s.val()),
-            // Delete the bill's contents while still an admin, then the admin records themselves.
+            // Everything about a bill goes in one write, so it's either all deleted or none of it.
+            // Admins can do this any time; anyone can once the bill has expired.
             async deleteBill(id) {
-              const v = (await D.get(D.ref(db, "bills/" + id))).val() || {};
-              const p = { meta: null, people: null, payments: null };
-              ["items", "claims", "devices"].forEach((c) => Object.keys(v[c] || {}).forEach((k) => { p[c + "/" + k] = null; }));
-              await D.update(D.ref(db, "bills/" + id), p);
-              try {
-                const owners = (await D.get(D.ref(db, "owners/" + id))).val() || {};
-                const q = { ["secrets/" + id]: null };
-                if (v.meta && v.meta.code) q["codes/" + v.meta.code] = null;
-                Object.keys(owners).forEach((u) => { q["owners/" + id + "/" + u] = null; });
-                await D.update(D.ref(db), q);
-              } catch (e) { /* the bill itself is gone; leftover admin records are harmless */ }
+              const meta = (await D.get(D.ref(db, "bills/" + id + "/meta"))).val() || {};
+              const p = { ["bills/" + id]: null, ["owners/" + id]: null, ["secrets/" + id]: null };
+              if (meta.code) p["codes/" + meta.code] = null;
+              await D.update(D.ref(db), p);
             },
+            purgeExpired(id) { return this.deleteBill(id); },
           };
         });
       backendP.catch(() => { backendP = null; });
@@ -850,8 +869,14 @@
       if (opts.key) be.claim(id, opts.key).then(() => { toast("You're now an admin of this bill"); check(); }, () => { toast("That admin link isn't valid"); check(); });
       else check();
     }
-    remote = be.open(id, (v) => {
+    remote = be.open(id, async (v, err) => {
+      if (err) {
+        const st = await billStatus(be, id);
+        if (st === "gone" || st === "expired") return billGone(id, st === "expired");
+        return toast("Can't read bill: " + err.message);
+      }
       if (v === null) return billGone(id);
+      if (v.meta && v.meta.expires && v.meta.expires < Date.now()) return billGone(id, true);
       state = normalize(v); loaded = true; render();
     }, (s) => { online = s; renderBar(); });
     render();
@@ -899,7 +924,7 @@
       }
       const others = people.filter((p) => p.id !== me).map((p) => String(p.name).trim());
       const list = others.length > 1 ? others.slice(0, -1).join(", ") + " and " + others[others.length - 1] : others[0];
-      if (!(await ask("Share with " + list + "?", "Only you can add people, so check everyone is listed. You can still add people later.", "Share bill"))) return;
+      if (!(await ask("Share with " + list + "?", "Only you can add people, so check everyone is listed. The bill deletes itself 3 days after sharing.", "Share bill"))) return;
       const id = uid(20), draft = localId;
       const copy = JSON.parse(JSON.stringify(state));
       delete copy.meta.me;   // on a shared bill, who you are is the phone's claim
@@ -1536,6 +1561,8 @@
   } else {
     goHome();
   }
+  pruneLocalBills();
+  if (home) render();
   if (window.FIREBASE_CONFIG) pruneGoneBills();   // also preloads Firebase so "Share" is instant
 
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
