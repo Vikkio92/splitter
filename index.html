@@ -167,7 +167,9 @@
   #home { display: none; }
   body.home #home { display: block; }
   body.home main > section:not(#home), body.home #sharedBar, body.home #billSwitch,
-  body.home #shareLink, body.home #newBill { display: none !important; }
+  body.home #shareLink, body.home #newBill, body.home #joinBill { display: none !important; }
+  /* Inside a bill its name is shown below, so on phones the logo drops its text to make room for the buttons. */
+  @media (max-width: 479px) { body:not(.home) .brand-name { display: none; } }
   main { position: relative; }
   body.home .title-row { position: absolute; top: 18px; right: 16px; }
   .home-hero { padding: 36px 4px 8px; }
@@ -385,9 +387,10 @@
 <body>
 <main>
   <header>
-    <div class="brand" id="homeBtn" role="button" tabindex="0" aria-label="Home"><span class="mark">÷</span><span>Splitter<span class="dot-ino">.ino</span></span></div>
+    <div class="brand" id="homeBtn" role="button" tabindex="0" aria-label="Home"><span class="mark">÷</span><span class="brand-name">Splitter<span class="dot-ino">.ino</span></span></div>
     <div class="head-actions">
       <button class="btn small pill" id="shareLink"><svg class="i" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>Share</button>
+      <button class="btn small pill" id="joinBill"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Join</button>
       <button class="btn small pill" id="newBill"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New</button>
     </div>
   </header>
@@ -1639,13 +1642,9 @@
     "Opening this link makes that device an admin of this bill, able to change everything. Use it for your own other devices, or to make someone co-admin. Don't post it in the group chat.",
     shareUrl(true)));
   $("#newBill").addEventListener("click", async () => {
-    const pick = await sheet({
-      title: "Start or join a bill?", text: "This one stays in your bills, so you can come back to it.",
-      buttons: [{ label: "Cancel", value: null }, { label: "Join with a code", value: "join" }, { label: "New bill", value: "new", kind: "primary" }],
-    });
-    if (pick === "new") newBill();
-    if (pick === "join") joinBill();
+    if (await ask("Start a new bill?", "This one stays in your bills, so you can come back to it.", "New bill")) newBill();
   });
+  $("#joinBill").addEventListener("click", joinBill);
 
   // Light/dark: follows the phone until you pick one here.
   function isDark() {
