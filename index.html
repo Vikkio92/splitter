@@ -333,6 +333,12 @@
   .item-foot { display: flex; align-items: flex-end; gap: 8px; margin-top: 8px; }
   .item-foot .chips { flex: 1; margin-top: 0; }
   .item-foot .confirm { flex: none; }
+  .item-foot { flex-wrap: wrap; }
+  .btn.split { flex: none; min-height: 34px; padding: 6px 12px; border-radius: 999px; font-size: 13px; background: var(--surface); color: var(--muted); }
+  .item-foot .split + .chips:empty { display: none; }
+  .item.solo .chips { display: none; }
+  .item.solo .item-foot, .item.splitting .item-foot { justify-content: space-between; }
+  .item.splitting .chips { order: -1; flex: 1 1 100%; }
   .item.locked .item-foot { margin-top: 2px; }
   .item.locked .confirm { display: none; }
   .btn.confirm { min-height: 36px; padding: 6px 14px; border-radius: 11px; font-size: 14px; background: var(--key); color: var(--on-key); }
@@ -499,6 +505,9 @@
   // Items added or changed here that the user hasn't tapped "Confirm" on yet. Purely a visual cue:
   // edits save as you type either way.
   const unconfirmed = new Set();
+  // Guests' items are theirs alone unless they choose to split; this remembers "Split with others"
+  // being open on an item before anyone else has been ticked.
+  const splitOpen = new Set();
 
   // In a shared bill you have to pick who you are before you can edit anything.
   function picked() { return !billId || !!meId(); }
@@ -1179,7 +1188,10 @@
     $("#addItem").hidden = !picked();
     $("#peopleEmpty").hidden = people.length > 0;
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") : "";
-    const shown = guest ? items.filter((it) => it.createdBy && it.createdBy === authUid) : items;
+    const myPerson = meId();
+    const shown = guest
+      ? items.filter((it) => (it.createdBy && it.createdBy === authUid) || (myPerson && (it.people || {})[myPerson]))
+      : items;
     $("#itemsHead").textContent = guest ? "Your food & drinks" : "Food & drinks";
     $("#itemsCount").textContent = shown.length ? shown.length + (shown.length === 1 ? " item" : " items") : "";
     renderBar();
@@ -1219,7 +1231,8 @@
         '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity" maxlength="6">' +
         '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"></label>' +
         '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button></div>' +
-        '<div class="item-foot"><div class="chips"></div><button class="btn confirm" data-act="confirmItem"></button></div></div>'),
+        '<div class="item-foot"><button class="btn split" data-act="split"></button><div class="chips"></div>' +
+        '<button class="btn confirm" data-act="confirmItem"></button></div></div>'),
       (row, it) => {
         const mine = canEditItem(it);
         row.querySelector(".cur").textContent = state.meta.currency;
@@ -1231,6 +1244,15 @@
         row.classList.toggle("locked", !mine);
         row.classList.toggle("unassigned", !Object.keys(it.people || {}).some((id) => state.people[id]));
         setHTML(row.querySelector(".chips"), chipsFor(it));
+        // Guests: an item is just theirs unless they open "Split with others".
+        const others = Object.keys(it.people || {}).filter((p) => p !== myPerson && state.people[p]);
+        const splitting = others.length > 0 || splitOpen.has(it.id);
+        const simple = guest && mine && !!myPerson;
+        const splitBtn = row.querySelector('[data-act="split"]');
+        splitBtn.hidden = !simple;
+        splitBtn.textContent = splitting ? "Just me" : "Split with others";
+        row.classList.toggle("solo", simple && !splitting);
+        row.classList.toggle("splitting", simple && splitting);
       });
 
     const opts = personOptions(people);
@@ -1485,6 +1507,16 @@
       case "unlink":
         if (!(await ask("Unlink " + personName(id) + "?", "The phone that picked this name is released, so the right person can pick it.", "Unlink"))) return;
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
+      case "split": {
+        const me = meId(), others = Object.keys(state.items[id].people || {}).filter((p) => p !== me);
+        unconfirmed.add(id);
+        if (others.length || splitOpen.has(id)) {
+          splitOpen.delete(id);
+          return write({ ["items/" + id + "/people"]: me ? { [me]: true } : null });
+        }
+        splitOpen.add(id);
+        return render();
+      }
       case "confirmItem":
         unconfirmed.delete(id);
         if (document.activeElement) document.activeElement.blur();
