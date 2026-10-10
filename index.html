@@ -214,7 +214,6 @@
   "use strict";
   const LOCAL = "bill-splitter-v2";        // the bill kept on this device only
   const SHARED = "bill-splitter-shared";   // id of the shared bill this device has open
-  const ME = "bill-splitter-me:";          // + bill id -> which person this device is
   const KEYS = "bill-splitter-key:";       // + bill id -> admin key, if this device is an admin
   const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/10.12.2/";
   const DEFAULT_META = { currency: "£", service: "12.5", billTotal: "" };
@@ -225,11 +224,15 @@
   //   people:   { id: {name, order} },
   //   items:    { id: {name, price, qty, order, people: {personId: true}} },
   //   payments: { id: {personId, amount, note, order} } }
-  //   items also carry createdBy (device uid) once the bill is shared.
+  //   items also carry createdBy (device uid) once the bill is shared,
+  //   claims: { personId: uid } and devices: { uid: personId } link each phone to exactly one person.
   let state, billId = null, remote = null, loaded = true, online = false;
   let authUid = null, isAdmin = true, adminKey = null;   // a bill on this device only: you're the admin
 
-  function canEditItem(it) { return isAdmin || (!!it.createdBy && it.createdBy === authUid); }
+  // In a shared bill you have to pick who you are before you can edit anything.
+  function picked() { return !billId || !!meId(); }
+  function canAdmin() { return isAdmin && picked(); }
+  function canEditItem(it) { return picked() && (isAdmin || (!!it.createdBy && it.createdBy === authUid)); }
 
   const $ = (s) => document.querySelector(s);
   function uid(n = 8) {
@@ -240,11 +243,14 @@
   function lsSet(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
 
   function emptyBill() {
-    return { meta: Object.assign({}, DEFAULT_META), people: { [uid()]: { name: "Me", order: 1 } }, items: {}, payments: {} };
+    return normalize({ people: { [uid()]: { name: "Me", order: 1 } } });
   }
   function normalize(v) {
     v = v || {};
-    return { meta: Object.assign({}, DEFAULT_META, v.meta), people: v.people || {}, items: v.items || {}, payments: v.payments || {} };
+    return {
+      meta: Object.assign({}, DEFAULT_META, v.meta), people: v.people || {}, items: v.items || {}, payments: v.payments || {},
+      claims: v.claims || {}, devices: v.devices || {},
+    };
   }
   function sorted(map) {
     return Object.keys(map).map((id) => Object.assign({ id }, map[id])).sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -256,16 +262,28 @@
   }
 
   // Every edit goes through here as {"path/to/field": value}; null deletes.
-  function write(paths) {
-    if (remote) { remote.write(paths); return; }
+  function write(paths, deniedMsg) {
+    if (remote) { remote.write(paths, deniedMsg); return; }
     Object.keys(paths).forEach((p) => setPath(state, p.split("/"), paths[p]));
     lsSet(LOCAL, JSON.stringify(state));
     render();
   }
 
   function meId() {
-    const id = billId && lsGet(ME + billId);
-    return id && state.people[id] ? id : null;
+    if (!billId) return null;
+    const id = state.devices[authUid];
+    return id && state.people[id] && state.claims[id] === authUid ? id : null;
+  }
+  function claimedBy(pid) { return state.claims[pid] || null; }
+
+  // Link this phone to a person (or to nobody), releasing any previous pick in the same write.
+  function pickPerson(pid) {
+    const old = state.devices[authUid], paths = {};
+    if (old === pid && meId()) return;
+    if (old && state.claims[old] === authUid) paths["claims/" + old] = null;
+    if (pid) { paths["claims/" + pid] = authUid; paths["devices/" + authUid] = pid; }
+    else paths["devices/" + authUid] = null;
+    write(paths, "Someone else has already picked that name");
   }
 
   // ---------- Firebase ----------
@@ -291,14 +309,18 @@
                 D.onValue(r, (s) => onData(s.val()), (err) => toast("Can't read bill: " + err.message)),
                 D.onValue(D.ref(db, ".info/connected"), (s) => onStatus(!!s.val())),
               ];
-              return { write: (p) => D.update(r, p).catch(failed), close: () => offs.forEach((off) => off()) };
+              return {
+                write: (p, deniedMsg) => D.update(r, p).catch((e) => (deniedMsg && /permission/i.test(e.message) ? toast(deniedMsg) : failed(e))),
+                close: () => offs.forEach((off) => off()),
+              };
             },
             // Creates the bill with this device as admin. Each path is checked by its own rule.
-            create(id, key, bill) {
+            create(id, key, bill, mePerson) {
               const p = { ["secrets/" + id]: key, ["owners/" + id + "/" + me]: key, ["bills/" + id + "/meta"]: bill.meta };
               if (Object.keys(bill.people).length) p["bills/" + id + "/people"] = bill.people;
               if (Object.keys(bill.payments).length) p["bills/" + id + "/payments"] = bill.payments;
               Object.keys(bill.items).forEach((iid) => { p["bills/" + id + "/items/" + iid] = Object.assign({}, bill.items[iid], { createdBy: me }); });
+              if (mePerson) { p["bills/" + id + "/claims/" + mePerson] = me; p["bills/" + id + "/devices/" + me] = mePerson; }
               return D.update(D.ref(db), p);
             },
             claim: (id, key) => D.set(D.ref(db, "owners/" + id + "/" + me), key),
@@ -322,7 +344,7 @@
 
     if (opts.create) {
       setAdmin(uid(24));
-      be.create(id, adminKey, opts.create).catch((e) => toast("Couldn't create shared bill: " + e.message));
+      be.create(id, adminKey, opts.create, opts.me).catch((e) => toast("Couldn't create shared bill: " + e.message));
     } else {
       loaded = false; state = normalize(null);
       const check = () => be.adminKey(id).then(setAdmin, () => {});
@@ -350,9 +372,14 @@
         const name = prompt("What's your name? Your friends will see it on the bill.", "");
         if (name && name.trim()) write({ ["people/" + meRow.id + "/name"]: name.trim() });
       }
+      const people = sorted(state.people), names = people.map((p) => String(p.name || "").trim());
+      if (people.length < 2) return alert("Add everyone at the table under People before sharing. Only you can add people.");
+      if (names.some((n) => !n)) return alert("Give every person a name before sharing, so everyone can find themselves.");
+      const dupe = names.find((n, i) => names.findIndex((m) => m.toLowerCase() === n.toLowerCase()) !== i);
+      if (dupe) return alert("Two people are called " + dupe + ". Use different names so everyone can find themselves.");
+      if (!confirm("Share this bill with " + names.join(", ") + "?\n\nOnly you can add people, so check everyone is listed (you can still add people later).")) return;
       const id = uid(20);
-      if (meRow) lsSet(ME + id, meRow.id);
-      try { await openShared(id, { create: JSON.parse(JSON.stringify(state)) }); }
+      try { await openShared(id, { create: JSON.parse(JSON.stringify(state)), me: meRow && meRow.id }); }
       catch (e) { alert("Couldn't connect to the sharing service. Are you online?"); return; }
     }
     const url = shareUrl(false);
@@ -479,6 +506,14 @@
     return (first || "") + people.map((p) => '<option value="' + p.id + '">' + esc(String(p.name || "").trim() || "Unnamed") + "</option>").join("");
   }
 
+  // Names already picked on another phone can't be chosen again.
+  function pickerOptions(first) {
+    return (first || "") + sorted(state.people).map((p) => {
+      const by = claimedBy(p.id), taken = !!by && by !== authUid;
+      return '<option value="' + p.id + '"' + (taken ? " disabled" : "") + ">" + esc(String(p.name || "").trim() || "Unnamed") + (taken ? " (taken)" : "") + "</option>";
+    }).join("");
+  }
+
   function renderBar() {
     const bar = $("#sharedBar");
     bar.hidden = !billId;
@@ -486,12 +521,15 @@
     $("#dot").classList.toggle("on", online && loaded);
     $("#statusText").textContent = !loaded ? "Connecting…" : online ? "Live · shared bill" : "Offline · will sync";
     const sel = $("#meSel");
-    setHTML(sel, personOptions(sorted(state.people), '<option value="">Choose…</option>'));
+    setHTML(sel, pickerOptions('<option value="">Choose…</option>'));
     if (document.activeElement !== sel) sel.value = meId() || "";
     bar.classList.toggle("needme", loaded && !meId());
     $("#role").textContent = isAdmin ? "Admin" : "Guest";
     $("#adminLink").hidden = !isAdmin || !adminKey;
-    $("#guestHint").hidden = isAdmin || !loaded;
+    const hint = $("#guestHint");
+    hint.hidden = !loaded || (isAdmin && meId());
+    hint.textContent = !meId() ? "Pick your name under “You are” to start adding what you had."
+      : "You can add food & drinks and change the ones you added. The rest is managed by the bill's admin.";
   }
 
   function render() {
@@ -499,13 +537,23 @@
     const items = sorted(state.items);
     const payments = sorted(state.payments);
 
-    document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !isAdmin; });
-    document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !isAdmin; });
+    const admin = canAdmin();
+    document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !admin; });
+    document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !admin; });
+    $("#addItem").hidden = !picked();
     renderBar();
 
     syncList($("#people"), people,
-      () => el('<div class="row"><input class="grow" data-f="name" placeholder="Name" autocomplete="off"><button class="x" data-act="delPerson" aria-label="Remove">×</button></div>'),
-      (row, p) => { setVal(row.firstChild, p.name); row.firstChild.disabled = !isAdmin; row.lastChild.hidden = !isAdmin || people.length < 2; });
+      () => el('<div class="row"><input class="grow" data-f="name" placeholder="Name" autocomplete="off">' +
+        '<button class="ghost small" data-act="unlink" title="Let this person pick their name again">Unlink phone</button>' +
+        '<button class="x" data-act="delPerson" aria-label="Remove">×</button></div>'),
+      (row, p) => {
+        setVal(row.firstChild, p.name);
+        row.firstChild.disabled = !admin;
+        const by = claimedBy(p.id);
+        row.querySelector('[data-act="unlink"]').hidden = !admin || !by || by === authUid;
+        row.lastChild.hidden = !admin || people.length < 2;
+      });
 
     const chipsFor = (it) => {
       const on = it.people || {}, dis = canEditItem(it) ? "" : " disabled";
@@ -542,8 +590,8 @@
         setHTML(sel, opts);
         if (document.activeElement !== sel) sel.value = pm.personId;
         row.querySelectorAll("input[data-f]").forEach((i) => setVal(i, pm[i.dataset.f]));
-        row.querySelectorAll("[data-f]").forEach((i) => { i.disabled = !isAdmin; });
-        row.lastChild.hidden = !isAdmin;
+        row.querySelectorAll("[data-f]").forEach((i) => { i.disabled = !admin; });
+        row.lastChild.hidden = !admin;
       });
 
     renderResults();
@@ -566,8 +614,9 @@
     box.hidden = !locked;
     if (!locked) return;
     const r = last, who = receiptPerson();
+    const first = who ? "" : '<option value="">Who are you?</option>';
     let h = '<div class="receipt-head"><h2>Your receipt</h2><select id="receiptWho">' +
-      personOptions(r.people, who ? "" : '<option value="">Who are you?</option>') + "</select></div>";
+      (billId ? pickerOptions(first) : personOptions(r.people, first)) + "</select></div>";
 
     if (!who) h += '<p class="empty">Pick your name to see what you owe.</p>';
     else {
@@ -599,7 +648,7 @@
         '</span><span class="total">' + money(Math.abs(net)) + "</span></div>";
       h += '<div class="actions"><button class="primary" data-act="shareReceipt">Share receipt</button></div>';
     }
-    if (isAdmin) h += '<div class="actions"><button data-act="unlock">Unlock to edit</button></div>';
+    if (canAdmin()) h += '<div class="actions"><button data-act="unlock">Unlock to edit</button></div>';
     box.innerHTML = h;
     $("#receiptWho").value = who || "";
   }
@@ -645,7 +694,7 @@
     const remaining = r.assignedC - r.paidTotal;
     if (r.unassignedC === 0 && remaining > 0 && r.totalC > 0) {
       h += '<div class="warn">' + money(remaining) + " of the total hasn't been paid by anyone yet." +
-        (isAdmin ? '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
+        (canAdmin() ? '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
         '<button class="primary" data-act="payRest">paid the rest</button></div>' : "") + "</div>";
     } else if (remaining < 0) {
       h += '<div class="warn">Payments are ' + money(-remaining) + " more than the total. Check the amounts.</div>";
@@ -676,7 +725,7 @@
       h += '<h2 style="margin-top:16px">Who pays whom</h2>' + r.transfers.map((t) =>
         '<div class="transfer"><span>' + esc(personName(t.from)) + " → " + esc(personName(t.to)) + "</span><b>" + money(t.amt) + "</b></div>").join("");
     }
-    const canLock = isAdmin && !state.meta.locked;
+    const canLock = canAdmin() && !state.meta.locked;
     h += '<div class="actions"><button' + (canLock ? "" : ' class="primary"') + ' data-act="share">Share summary</button>' +
       (canLock ? '<button class="primary" data-act="lock">Lock &amp; show receipts</button>' : "") + "</div>";
     box.innerHTML = h;
@@ -709,11 +758,11 @@
     else write({ [sec + "/" + t.closest("[data-id]").dataset.id + "/" + f]: t.value });
   });
 
-  $("#meSel").addEventListener("change", (e) => { lsSet(ME + billId, e.target.value || null); render(); });
+  $("#meSel").addEventListener("change", (e) => pickPerson(e.target.value));
   $("#receipt").addEventListener("change", (e) => {
     if (e.target.id !== "receiptWho") return;
-    if (billId) lsSet(ME + billId, e.target.value || null); else receiptWho = e.target.value;
-    render();
+    if (billId) pickPerson(e.target.value);
+    else { receiptWho = e.target.value; render(); }
   });
 
   document.addEventListener("click", (e) => {
@@ -725,10 +774,14 @@
         const hasPay = Object.values(state.payments).some((pm) => pm.personId === id);
         if (hasPay && !confirm("Remove " + personName(id) + " and their payments?")) return;
         paths["people/" + id] = null;
+        if (claimedBy(id)) { paths["claims/" + id] = null; paths["devices/" + claimedBy(id)] = null; }
         Object.keys(state.items).forEach((iid) => { if ((state.items[iid].people || {})[id]) paths["items/" + iid + "/people/" + id] = null; });
         Object.keys(state.payments).forEach((pid) => { if (state.payments[pid].personId === id) paths["payments/" + pid] = null; });
         return write(paths);
       }
+      case "unlink":
+        if (!confirm("Unlink " + personName(id) + " from the phone that picked it? They'll be able to pick their name again.")) return;
+        return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
       case "toggle": {
         const pid = b.dataset.p, on = (state.items[id].people || {})[pid];
         return write({ ["items/" + id + "/people/" + pid]: on ? null : true });
@@ -754,11 +807,19 @@
       case "lock": {
         const r = last, rem = r.assignedC - r.paidTotal;
         if (!r.totalC) return alert("Add some items first.");
+        const noPrice = sorted(state.items).filter((it) => num(it.price) <= 0).map((it) => String(it.name || "").trim() || "an unnamed item");
+        if (noPrice.length) return alert("These items have no price: " + noPrice.join(", ") + ". Add a price or remove them before locking.");
         if (r.unassignedC) return alert("Some items aren't assigned to anyone yet. Tick who had them before locking.");
+        if (r.billC === null) return alert("Enter the total printed on the bill (under Bill) before locking, so it can be checked against the items.");
+        if (r.billC !== r.totalC) {
+          const d = r.billC - r.totalC;
+          return alert("The bill says " + money(r.billC) + " but the items + service come to " + money(r.totalC) + " (" +
+            (d > 0 ? money(d) + " missing" : money(-d) + " too much") + "). Fix the items or service % so they match before locking.");
+        }
         if (rem > 0) return alert(money(rem) + " hasn't been paid by anyone yet. Record who paid the bill (the \"paid the rest\" button) before locking.");
         if (rem < 0) return alert("Payments come to " + money(-rem) + " more than the total. Fix the payments before locking.");
-        const mismatch = r.billC !== null && r.billC !== r.totalC;
-        const msg = (mismatch ? "Heads up: the bill says " + money(r.billC) + " but the items + service come to " + money(r.totalC) + ".\n\n" : "") +
+        const idle = r.people.filter((p) => !r.share[p.id] && !r.paid[p.id]).map((p) => personName(p.id));
+        const msg = (idle.length ? idle.join(", ") + (idle.length > 1 ? " have" : " has") + " nothing on the bill.\n\n" : "") +
           "Lock the bill? Everyone will see their own receipt, and nobody else can change items until you unlock it.";
         if (!confirm(msg)) return;
         return write({ "meta/locked": true });
@@ -800,7 +861,7 @@
       sorted(state.people).forEach((p, i) => { people[uid()] = { name: p.name || "", order: i + 1 }; });
       const meta = Object.assign({}, state.meta, { billTotal: "" });
       leaveShared();
-      state = { meta, people: Object.keys(people).length ? people : emptyBill().people, items: {}, payments: {} };
+      state = normalize({ meta, people: Object.keys(people).length ? people : emptyBill().people });
     } else {
       if (!confirm("Start a new bill? Items and payments are cleared; people and service % are kept.")) return;
       state.items = {}; state.payments = {}; state.meta.billTotal = "";

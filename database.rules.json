@@ -29,7 +29,17 @@
         },
         "items": {
           "$itemId": {
-            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (data.parent().parent().child('meta').child('locked').val() !== true && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))"
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (data.parent().parent().child('meta').child('locked').val() !== true && newData.parent().parent().child('devices').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))"
+          }
+        },
+        "claims": {
+          "$personId": {
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (!data.exists() && newData.val() === auth.uid && newData.parent().parent().child('devices').child(auth.uid).val() === $personId) || (data.val() === auth.uid && !newData.exists()))"
+          }
+        },
+        "devices": {
+          "$uid": {
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || (auth.uid === $uid && (!newData.exists() || newData.parent().parent().child('claims').child(newData.val()).val() === auth.uid) && (!data.exists() || data.val() === newData.val() || newData.parent().parent().child('claims').child(data.val()).val() !== auth.uid)))"
           }
         },
         "$other": {
