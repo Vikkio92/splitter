@@ -328,6 +328,14 @@
   .item.locked input { padding-top: 2px; padding-bottom: 2px; }
   .item.locked .name { text-overflow: ellipsis; }
   .item.locked .chips { margin-top: 2px; }
+  .item-foot { display: flex; align-items: flex-end; gap: 8px; margin-top: 8px; }
+  .item-foot .chips { flex: 1; margin-top: 0; }
+  .item-foot .confirm { flex: none; }
+  .item.locked .item-foot { margin-top: 2px; }
+  .item.locked .confirm { display: none; }
+  .btn.confirm { min-height: 36px; padding: 6px 14px; border-radius: 11px; font-size: 14px; background: var(--key); color: var(--on-key); }
+  .btn.confirm.done { background: var(--owed-bg); color: var(--owed); }
+  #addItem { margin-top: 20px; }
   .item.locked .chip { background: none; padding: 2px 6px 2px 0; font-size: 13px; }
 
   /* ---------- sheet (in-app dialogs) ---------- */
@@ -419,7 +427,7 @@
     <div class="card-head"><h2 id="itemsHead">Food &amp; drinks</h2><span class="count" id="itemsCount"></span></div>
     <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
     <div id="items" data-sec="items"></div>
-    <button class="btn add primary" id="addItem"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add item</button>
+    <button class="btn add primary" id="addItem"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add new item</button>
   </section>
 
   <section class="card edit admin-card">
@@ -486,6 +494,9 @@
   let state, billId = null, remote = null, loaded = true, online = false;
   let authUid = null, isAdmin = true, adminKey = null;   // a bill on this device only: you're the admin
   let localId = null;    // id of the open bill when it lives only on this phone
+  // Items added or changed here that the user hasn't tapped "Confirm" on yet. Purely a visual cue:
+  // edits save as you type either way.
+  const unconfirmed = new Set();
 
   // In a shared bill you have to pick who you are before you can edit anything.
   function picked() { return !billId || !!meId(); }
@@ -1189,12 +1200,15 @@
         '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity" maxlength="6">' +
         '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"></label>' +
         '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button></div>' +
-        '<div class="chips"></div></div>'),
+        '<div class="item-foot"><div class="chips"></div><button class="btn confirm" data-act="confirmItem"></button></div></div>'),
       (row, it) => {
         const mine = canEditItem(it);
         row.querySelector(".cur").textContent = state.meta.currency;
         row.querySelectorAll("[data-f]").forEach((i) => { setVal(i, it[i.dataset.f]); i.disabled = !mine; });
         row.querySelector('[data-act="delItem"]').hidden = !mine;
+        const btn = row.querySelector('[data-act="confirmItem"]'), done = !unconfirmed.has(it.id);
+        btn.classList.toggle("done", done);
+        setHTML(btn, done ? ICON.check + "Added" : "Confirm");
         row.classList.toggle("locked", !mine);
         row.classList.toggle("unassigned", !Object.keys(it.people || {}).some((id) => state.people[id]));
         setHTML(row.querySelector(".chips"), chipsFor(it));
@@ -1402,7 +1416,11 @@
     if (!f) return;
     const sec = t.closest("[data-sec]").dataset.sec;
     if (sec === "meta") write({ ["meta/" + f]: t.value });
-    else write({ [sec + "/" + t.closest("[data-id]").dataset.id + "/" + f]: t.value });
+    else {
+      const rowId = t.closest("[data-id]").dataset.id;
+      if (sec === "items") unconfirmed.add(rowId);
+      write({ [sec + "/" + rowId + "/" + f]: t.value });
+    }
   });
 
   $("#meSel").addEventListener("change", (e) => pickPerson(e.target.value));
@@ -1429,11 +1447,18 @@
       case "unlink":
         if (!(await ask("Unlink " + personName(id) + "?", "The phone that picked this name is released, so the right person can pick it.", "Unlink"))) return;
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
+      case "confirmItem":
+        unconfirmed.delete(id);
+        if (document.activeElement) document.activeElement.blur();
+        toast("Added to the bill");
+        return render();
       case "toggle": {
+        unconfirmed.add(id);
         const pid = b.dataset.p, on = (state.items[id].people || {})[pid];
         return write({ ["items/" + id + "/people/" + pid]: on ? null : true });
       }
       case "all": {
+        unconfirmed.add(id);
         const on = state.items[id].people || {};
         const all = Object.keys(state.people).every((p) => on[p]);
         const map = {}; Object.keys(state.people).forEach((p) => { map[p] = true; });
@@ -1505,7 +1530,9 @@
     if (authUid) item.createdBy = authUid;
     if (me) item.people = { [me]: true };
     else if (prevWho.length === 1) item.people = { [prevWho[0]]: true };
-    write({ ["items/" + uid()]: item });
+    const newId = uid();
+    unconfirmed.add(newId);
+    write({ ["items/" + newId]: item });
     focusLast($("#items"), ".name");
   });
   $("#addPayment").addEventListener("click", () => {
