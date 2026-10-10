@@ -66,6 +66,9 @@
             "order": {
               ".validate": "newData.isNumber()"
             },
+            "monzo": {
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9._-]{1,40}$/)"
+            },
             "$other": {
               ".validate": false
             }

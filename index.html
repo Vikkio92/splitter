@@ -315,6 +315,8 @@
   .banner .to { display: flex; align-items: center; gap: 8px; font-size: 15px; padding: 6px 0; border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
   .banner .to b { margin-left: auto; font-family: var(--display-font); font-variant-numeric: tabular-nums; }
   .banner.owe { background: var(--owe-bg); color: var(--owe); }
+  .btn.pay { width: 100%; margin: 8px 0 4px; background: var(--owe); color: #fff; text-decoration: none; }
+  .btn.small.on { color: var(--owed); }
   .banner.owed { background: var(--owed-bg); color: var(--owed); }
   .banner.settled { background: var(--surface-2); color: var(--text); }
   body.is-locked .edit { display: none !important; }
@@ -515,6 +517,14 @@
   // Data can come from other people's phones, so anything that ends up in the page's HTML is
   // checked here: ids must be plain letters/digits and the currency/code can't carry markup.
   const SAFE_ID = /^[A-Za-z0-9]{1,128}$/;
+  const MONZO = /^[A-Za-z0-9._-]{1,40}$/;   // a Monzo.me username
+  // monzo.me/<user>/<amount>?d=<description> opens Monzo's payment page with everything filled in.
+  function monzoLink(pid, cents) {
+    const user = (state.people[pid] || {}).monzo;
+    if (!user) return null;
+    const desc = String(state.meta.name || "").trim().slice(0, 40) || "Splitter.ino";
+    return "https://monzo.me/" + encodeURIComponent(user) + "/" + (cents / 100).toFixed(2) + "?d=" + encodeURIComponent(desc);
+  }
   function cleanMap(m, each) {
     const out = {};
     if (m && typeof m === "object") Object.keys(m).forEach((k) => { if (SAFE_ID.test(k)) out[k] = each ? each(m[k]) : m[k]; });
@@ -526,7 +536,11 @@
     meta.currency = String(meta.currency || "£").replace(/[<>&"'`]/g, "").slice(0, 4) || "£";
     if (meta.code) meta.code = String(meta.code).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
     return {
-      meta, people: cleanMap(v.people), payments: cleanMap(v.payments),
+      meta, people: cleanMap(v.people, (p) => {
+        const q = Object.assign({}, p);
+        if (q.monzo && !MONZO.test(q.monzo)) delete q.monzo;
+        return q;
+      }), payments: cleanMap(v.payments),
       items: cleanMap(v.items, (it) => Object.assign({}, it, { people: cleanMap(it && it.people) })),
       claims: cleanMap(v.claims), devices: cleanMap(v.devices),
     };
@@ -1172,6 +1186,7 @@
 
     syncList($("#people"), people,
       () => el('<div class="prow"><span class="av"></span><input data-f="name" placeholder="Name" autocomplete="off" maxlength="40">' +
+        '<button class="btn small" data-act="monzo" title="Monzo.me username, so people can pay them from their receipt"></button>' +
         '<button class="btn small" data-act="unlink" title="Let this person pick their name again">Unlink</button>' +
         '<button class="icon-btn" data-act="delPerson" aria-label="Remove">' + ICON.x + "</button></div>"),
       (row, p) => {
@@ -1183,6 +1198,10 @@
         input.disabled = !admin;
         const by = claimedBy(p.id);
         row.querySelector('[data-act="unlink"]').hidden = !admin || !by || by === authUid;
+        const mz = row.querySelector('[data-act="monzo"]');
+        mz.hidden = !admin;
+        mz.classList.toggle("on", !!p.monzo);
+        mz.textContent = p.monzo ? "✓ Monzo" : "Monzo";
         row.lastChild.hidden = !admin;
       });
 
@@ -1282,7 +1301,11 @@
       const name = esc(personName(who)), net = r.net[who];
       if (net > 0) {
         h += '<div class="banner owe"><div class="lead">' + (you ? "You need" : name + " needs") + ' to pay</div><div class="amt">' + money(net) + "</div>" +
-          r.transfers.filter((t) => t.from === who).map((t) => '<div class="to">' + avatar(t.to, true) + "to " + esc(personName(t.to)) + "<b>" + money(t.amt) + "</b></div>").join("") + "</div>";
+          r.transfers.filter((t) => t.from === who).map((t) => {
+            const link = monzoLink(t.to, t.amt);
+            return '<div class="to">' + avatar(t.to, true) + "to " + esc(personName(t.to)) + "<b>" + money(t.amt) + "</b></div>" +
+              (link ? '<a class="btn pay" href="' + esc(link) + '" target="_blank" rel="noopener">Pay ' + money(t.amt) + " with Monzo</a>" : "");
+          }).join("") + "</div>";
       } else if (net < 0) {
         h += '<div class="banner owed"><div class="lead">' + (you ? "You're" : name + " is") + ' owed</div><div class="amt">' + money(-net) + "</div>" +
           r.transfers.filter((t) => t.to === who).map((t) => '<div class="to">' + avatar(t.from, true) + "from " + esc(personName(t.from)) + "<b>" + money(t.amt) + "</b></div>").join("") + "</div>";
@@ -1324,7 +1347,10 @@
     t += "Share incl. " + num(state.meta.service) + "% service: " + money(r.share[who]) + "\n";
     if (r.paid[who]) t += "Already paid: " + money(r.paid[who]) + "\n";
     t += "\n";
-    if (net > 0) r.transfers.filter((x) => x.from === who).forEach((x) => { t += "Pay " + personName(x.to) + " " + money(x.amt) + "\n"; });
+    if (net > 0) r.transfers.filter((x) => x.from === who).forEach((x) => {
+      const link = monzoLink(x.to, x.amt);
+      t += "Pay " + personName(x.to) + " " + money(x.amt) + (link ? ": " + link : "") + "\n";
+    });
     else if (net < 0) r.transfers.filter((x) => x.to === who).forEach((x) => { t += personName(x.from) + " pays you " + money(x.amt) + "\n"; });
     else t += "All square.";
     return t.trim();
@@ -1443,6 +1469,18 @@
         Object.keys(state.items).forEach((iid) => { if ((state.items[iid].people || {})[id]) paths["items/" + iid + "/people/" + id] = null; });
         Object.keys(state.payments).forEach((pid) => { if (state.payments[pid].personId === id) paths["payments/" + pid] = null; });
         return write(paths);
+      }
+      case "monzo": {
+        const cur = (state.people[id] || {}).monzo || "";
+        const raw = await sheet({
+          title: "Monzo for " + personName(id), text: "Their Monzo.me username. People who owe them get a button to pay with the amount filled in.",
+          input: { placeholder: "e.g. vittorio or monzo.me/vittorio", value: cur, max: 80 },
+          buttons: [{ label: "Cancel", value: null }, { label: "Save", value: true, kind: "primary" }],
+        });
+        if (raw === null) return;
+        const user = raw.trim().replace(/^https?:\/\//i, "").replace(/^(www\.)?monzo\.me\//i, "").split(/[/?#]/)[0];
+        if (user && !MONZO.test(user)) return info("That doesn't look like a Monzo username", "Use just the name from their monzo.me link, e.g. monzo.me/vittorio → vittorio.");
+        return write({ ["people/" + id + "/monzo"]: user || null });
       }
       case "unlink":
         if (!(await ask("Unlink " + personName(id) + "?", "The phone that picked this name is released, so the right person can pick it.", "Unlink"))) return;
