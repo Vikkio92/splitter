@@ -349,9 +349,9 @@
   .item.solo .item-foot, .item.splitting .item-foot { justify-content: space-between; }
   .item.splitting .chips { order: -1; flex: 1 1 100%; }
   .item.locked .item-foot { margin-top: 2px; }
-  .item.locked .confirm { display: none; }
+  .btn.edit { min-height: 34px; padding: 6px 14px; border-radius: 11px; font-size: 14px; }
+  .item.locked .item-foot { justify-content: space-between; }
   .btn.confirm { min-height: 36px; padding: 6px 14px; border-radius: 11px; font-size: 14px; background: var(--key); color: var(--on-key); }
-  .btn.confirm.done { background: var(--owed-bg); color: var(--owed); }
   #addItem { margin-top: 20px; }
   .item.locked .chip { background: none; padding: 2px 6px 2px 0; font-size: 13px; }
 
@@ -495,6 +495,7 @@
     share: '<svg class="i" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
     alert: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>',
     check: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10"/></svg>',
+    edit: '<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
     plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
     users: '<svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>',
     phone: '<svg class="i" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M11 18h2"/></svg>',
@@ -516,7 +517,7 @@
   let localId = null;    // id of the open bill when it lives only on this phone
   // Items added or changed here that the user hasn't tapped "Confirm" on yet. Purely a visual cue:
   // edits save as you type either way.
-  const unconfirmed = new Set();
+  const editing = new Set();   // items open for editing on this phone; everything else is shown read-only
   // Guests' items are theirs alone unless they choose to split; this remembers "Split with others"
   // being open on an item before anyone else has been ticked.
   const splitOpen = new Set();
@@ -1320,7 +1321,7 @@
       });
 
     const chipsFor = (it) => {
-      const on = it.people || {}, dis = canEditItem(it) ? "" : " disabled";
+      const on = it.people || {}, dis = canEditItem(it) && editing.has(it.id) ? "" : " disabled";
       const all = people.length > 1 && people.every((p) => on[p.id]);
       return people.map((p) => '<button class="chip' + (on[p.id] ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '"' + dis + ">" +
         avatar(p.id, true) + esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
@@ -1334,22 +1335,22 @@
         '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"></label>' +
         '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button></div>' +
         '<div class="item-foot"><button class="btn split" data-act="split"></button><div class="chips"></div>' +
-        '<button class="btn confirm" data-act="confirmItem"></button></div></div>'),
+        '<button class="btn confirm" data-act="confirmItem">Confirm</button>' +
+        '<button class="btn edit" data-act="editItem">' + ICON.edit + "Edit</button></div></div>"),
       (row, it) => {
-        const mine = canEditItem(it);
+        const mine = canEditItem(it), open = mine && editing.has(it.id);
         row.querySelector(".cur").textContent = state.meta.currency;
-        row.querySelectorAll("[data-f]").forEach((i) => { setVal(i, it[i.dataset.f]); i.disabled = !mine; });
-        row.querySelector('[data-act="delItem"]').hidden = !mine;
-        const btn = row.querySelector('[data-act="confirmItem"]'), done = !unconfirmed.has(it.id);
-        btn.classList.toggle("done", done);
-        setHTML(btn, done ? ICON.check + "Added" : "Confirm");
-        row.classList.toggle("locked", !mine);
+        row.querySelectorAll("[data-f]").forEach((i) => { setVal(i, it[i.dataset.f]); i.disabled = !open; });
+        row.querySelector('[data-act="delItem"]').hidden = !open;
+        row.querySelector('[data-act="confirmItem"]').hidden = !open;
+        row.querySelector('[data-act="editItem"]').hidden = !mine || open;
+        row.classList.toggle("locked", !open);
         row.classList.toggle("unassigned", !Object.keys(it.people || {}).some((id) => state.people[id]));
         setHTML(row.querySelector(".chips"), chipsFor(it));
         // Guests: an item is just theirs unless they open "Split with others".
         const others = Object.keys(it.people || {}).filter((p) => p !== myPerson && state.people[p]);
         const splitting = others.length > 0 || splitOpen.has(it.id);
-        const simple = guest && mine && !!myPerson;
+        const simple = guest && open && !!myPerson;
         const splitBtn = row.querySelector('[data-act="split"]');
         splitBtn.hidden = !simple;
         splitBtn.textContent = splitting ? "Just me" : "Split with others";
@@ -1577,7 +1578,6 @@
     if (sec === "meta") write({ ["meta/" + f]: t.value });
     else {
       const rowId = t.closest("[data-id]").dataset.id;
-      if (sec === "items") unconfirmed.add(rowId);
       write({ [sec + "/" + rowId + "/" + f]: t.value });
     }
   });
@@ -1610,7 +1610,6 @@
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
       case "split": {
         const me = meId(), others = Object.keys(state.items[id].people || {}).filter((p) => p !== me);
-        unconfirmed.add(id);
         if (others.length || splitOpen.has(id)) {
           splitOpen.delete(id);
           return write({ ["items/" + id + "/people"]: me ? { [me]: true } : null });
@@ -1618,18 +1617,20 @@
         splitOpen.add(id);
         return render();
       }
+      case "editItem":
+        editing.add(id);
+        render();
+        return row.querySelector(".name").focus();
       case "confirmItem":
-        unconfirmed.delete(id);
+        editing.delete(id);
         if (document.activeElement) document.activeElement.blur();
-        toast("Added to the bill");
+        toast("Saved to the bill");
         return render();
       case "toggle": {
-        unconfirmed.add(id);
         const pid = b.dataset.p, on = (state.items[id].people || {})[pid];
         return write({ ["items/" + id + "/people/" + pid]: on ? null : true });
       }
       case "all": {
-        unconfirmed.add(id);
         const on = state.items[id].people || {};
         const all = Object.keys(state.people).every((p) => on[p]);
         const map = {}; Object.keys(state.people).forEach((p) => { map[p] = true; });
@@ -1702,7 +1703,7 @@
     if (me) item.people = { [me]: true };
     else if (prevWho.length === 1) item.people = { [prevWho[0]]: true };
     const newId = uid();
-    unconfirmed.add(newId);
+    editing.add(newId);
     write({ ["items/" + newId]: item });
     focusLast($("#items"), ".name");
   });
