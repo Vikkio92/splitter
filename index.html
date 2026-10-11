@@ -1357,12 +1357,16 @@
         // Guests: an item is just theirs unless they open "Split with others".
         // Everyone: an item is just yours unless you open "Split with others" (that's also how you
         // give an item to someone else entirely: split, tick them, untick yourself).
-        const others = Object.keys(it.people || {}).filter((p) => p !== myRow && state.people[p]);
-        const splitting = others.length > 0 || splitOpen.has(it.id);
-        const simple = open && !!myRow;
+        // If the app doesn't know who you are yet, the names stay behind a "Who had it?" button instead.
+        const assigned = Object.keys(it.people || {}).filter((p) => state.people[p]);
+        const others = assigned.filter((p) => p !== myRow);
+        const splitting = (myRow ? others.length > 0 : false) || splitOpen.has(it.id);
+        const simple = open;
         const splitBtn = row.querySelector('[data-act="split"]');
         splitBtn.hidden = !simple;
-        splitBtn.textContent = splitting ? "Just me" : "Split with others";
+        splitBtn.textContent = myRow
+          ? (splitting ? "Just me" : "Split with others")
+          : (splitting ? "Done" : assigned.length ? "Who had it: " + assigned.map(personName).join(", ") : "Who had it?");
         row.classList.toggle("solo", simple && !splitting);
         row.classList.toggle("splitting", simple && splitting);
       });
@@ -1619,6 +1623,10 @@
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
       case "split": {
         const me = myself(), others = Object.keys(state.items[id].people || {}).filter((p) => p !== me);
+        if (!me) {   // just show or hide the names
+          if (splitOpen.has(id)) splitOpen.delete(id); else splitOpen.add(id);
+          return render();
+        }
         if (others.length || splitOpen.has(id)) {
           splitOpen.delete(id);
           return write({ ["items/" + id + "/people"]: me ? { [me]: true } : null });
