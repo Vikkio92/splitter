@@ -641,6 +641,7 @@
       const done = (v) => {
         modal.hidden = true; closeSheet = null;
         document.removeEventListener("keydown", onKey);
+        stopFitting();
         resolve(v);
       };
       const onKey = (e) => {
@@ -661,8 +662,31 @@
       document.addEventListener("keydown", onKey);
       closeSheet = done;
       modal.hidden = false;
-      if (input) inp.focus();
+      startFitting();
+      if (input) inp.focus({ preventScroll: true });
     });
+  }
+  // On phones the keyboard covers the bottom of the screen, where sheets sit. Size the sheet's layer to the
+  // part of the screen that's actually visible, so the field being typed in stays in view.
+  function fitSheet() {
+    const vv = window.visualViewport, modal = $("#modal");
+    if (!vv) return;
+    modal.style.top = vv.offsetTop + "px";
+    modal.style.height = vv.height + "px";
+    modal.style.bottom = "auto";
+  }
+  function startFitting() {
+    if (!window.visualViewport) return;
+    fitSheet();
+    visualViewport.addEventListener("resize", fitSheet);
+    visualViewport.addEventListener("scroll", fitSheet);
+  }
+  function stopFitting() {
+    if (!window.visualViewport) return;
+    visualViewport.removeEventListener("resize", fitSheet);
+    visualViewport.removeEventListener("scroll", fitSheet);
+    const modal = $("#modal");
+    modal.style.top = modal.style.height = modal.style.bottom = "";
   }
   const info = (title, text) => sheet({ title, text, buttons: [{ label: "Got it", value: true, kind: "primary" }] });
   const ask = (title, text, ok, kind = "primary") =>
@@ -830,30 +854,44 @@
   }
 
   // Set a person's Monzo.me username: admins for anyone, everyone else for themselves.
-  async function editMonzo(pid) {
+  async function editMonzo(pid, typed) {
     if (!pid) return;
     const self = pid === myself(), cur = (state.people[pid] || {}).monzo || "";
     const raw = await sheet({
       title: self ? "Your Monzo" : "Monzo for " + personName(pid),
-      text: (self ? "Your" : "Their") + " Monzo.me username. Anyone who owes " + (self ? "you" : "them") + " gets a button to pay with the amount filled in. Leave it empty to remove it.",
-      input: { placeholder: "e.g. vittorio or monzo.me/vittorio", value: cur, max: 80 },
+      text: self
+        ? "Safest way: in the Monzo app, find the option to share your monzo.me link, copy it, and paste it here. " +
+          "Anyone who owes you then gets a button to pay you with the amount filled in. Leave it empty to remove it."
+        : "Their Monzo.me username, or paste their monzo.me link. Anyone who owes them gets a button to pay with the amount filled in. Leave it empty to remove it.",
+      input: { placeholder: self ? "Paste your monzo.me link" : "e.g. vittorio or monzo.me/vittorio", value: typed != null ? typed : cur, max: 80 },
       buttons: [{ label: "Cancel", value: null }, { label: "Save", value: true, kind: "primary" }],
     });
     if (raw === null) return;
     const user = raw.trim().replace(/^https?:\/\//i, "").replace(/^(www\.)?monzo\.me\//i, "").split(/[/?#]/)[0];
     if (user && !MONZO.test(user)) return info("That doesn't look like a Monzo username", "Use just the name from the monzo.me link, e.g. monzo.me/vittorio → vittorio.");
-    // The app can't look usernames up, but monzo.me shows the account holder's name and photo: check it there.
-    if (user && user !== cur) {
+    const pasted = /monzo\.me\//i.test(raw);   // a link copied from Monzo can't contain a typo
+    // Your own link opens your own Monzo app, which can't pay yourself, so for you the check is a careful look.
+    if (user && user !== cur && self && !pasted) {
+      const ok = await sheet({
+        title: "Is this exactly right?", text: "Compare it letter by letter with your monzo.me link in the Monzo app. " +
+          "If it's wrong, payments meant for you could go to someone else.",
+        link: "monzo.me/" + user,
+        buttons: [{ label: "Fix it", value: false }, { label: "Yes, it's exactly right", value: true, kind: "primary" }],
+      });
+      if (ok !== true) return editMonzo(pid, raw);
+    }
+    // Someone else's: monzo.me shows the account holder's name and photo, so check it there.
+    if (user && user !== cur && !self) {
       const url = "https://monzo.me/" + encodeURIComponent(user);
       const ok = await sheet({
-        title: "Check it's " + (self ? "you" : personName(pid)),
-        text: "Open this link and make sure Monzo shows " + (self ? "your" : personName(pid) + "'s") + " name and photo. " +
+        title: "Check it's " + personName(pid),
+        text: "Open this link and make sure Monzo shows " + personName(pid) + "'s name and photo. " +
           "If it shows someone else, or \"not found\", the username is wrong and payments could go to the wrong person.",
         link: url,
         buttons: [
           { label: "Open to check", value: null, stay: true, run: () => window.open(url, "_blank", "noopener") },
           { label: "Cancel", value: false },
-          { label: self ? "Yes, that's me" : "Yes, that's them", value: true, kind: "primary" },
+          { label: "Yes, that's them", value: true, kind: "primary" },
         ],
       });
       if (ok !== true) return;
