@@ -351,6 +351,11 @@
   .item.locked .item-foot { margin-top: 2px; }
   .btn.edit { min-height: 34px; padding: 6px 14px; border-radius: 11px; font-size: 14px; }
   .item.locked .item-foot { justify-content: space-between; }
+  .item.locked.ok { box-shadow: inset 3px 0 0 var(--owed); padding-left: 12px; }
+  .item.locked.ok .name:disabled {
+    padding-left: 22px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322a35a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5 10 17l9-10'/%3E%3C/svg%3E") no-repeat 0 50% / 15px;
+  }
   .btn.confirm { min-height: 36px; padding: 6px 14px; border-radius: 11px; font-size: 14px; background: var(--key); color: var(--on-key); }
   #addItem { margin-top: 20px; }
   .item.locked .chip { background: none; padding: 2px 6px 2px 0; font-size: 13px; }
@@ -598,7 +603,7 @@
   // "Which one is you?" — used before sharing or locking a bill that doesn't know yet.
   function askWhoYouAre() {
     return sheet({
-      title: "Which one is you?", text: "So the app knows which receipt is yours.",
+      title: "Which one is you?", text: "So your items are ticked to you and the app knows which receipt is yours.",
       buttons: sorted(state.people).map((p) => ({ label: String(p.name || "").trim() || "Unnamed", value: p.id })).concat([{ label: "Cancel", value: null }]),
     });
   }
@@ -1291,7 +1296,7 @@
     $("#addItem").hidden = !picked();
     $("#peopleEmpty").hidden = people.length > 0;
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") : "";
-    const myPerson = meId();
+    const myPerson = meId(), myRow = myself();
     const shown = guest
       ? items.filter((it) => (it.createdBy && it.createdBy === authUid) || (myPerson && (it.people || {})[myPerson]))
       : items;
@@ -1345,12 +1350,16 @@
         row.querySelector('[data-act="confirmItem"]').hidden = !open;
         row.querySelector('[data-act="editItem"]').hidden = !mine || open;
         row.classList.toggle("locked", !open);
+        // confirmed = read-only, priced and assigned to someone
+        row.classList.toggle("ok", !open && price(it.price) > 0 && qty(it.qty) > 0 && Object.keys(it.people || {}).some((id) => state.people[id]));
         row.classList.toggle("unassigned", !Object.keys(it.people || {}).some((id) => state.people[id]));
         setHTML(row.querySelector(".chips"), chipsFor(it));
         // Guests: an item is just theirs unless they open "Split with others".
-        const others = Object.keys(it.people || {}).filter((p) => p !== myPerson && state.people[p]);
+        // Everyone: an item is just yours unless you open "Split with others" (that's also how you
+        // give an item to someone else entirely: split, tick them, untick yourself).
+        const others = Object.keys(it.people || {}).filter((p) => p !== myRow && state.people[p]);
         const splitting = others.length > 0 || splitOpen.has(it.id);
-        const simple = guest && open && !!myPerson;
+        const simple = open && !!myRow;
         const splitBtn = row.querySelector('[data-act="split"]');
         splitBtn.hidden = !simple;
         splitBtn.textContent = splitting ? "Just me" : "Split with others";
@@ -1609,7 +1618,7 @@
         if (!(await ask("Unlink " + personName(id) + "?", "The phone that picked this name is released, so the right person can pick it.", "Unlink"))) return;
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
       case "split": {
-        const me = meId(), others = Object.keys(state.items[id].people || {}).filter((p) => p !== me);
+        const me = myself(), others = Object.keys(state.items[id].people || {}).filter((p) => p !== me);
         if (others.length || splitOpen.has(id)) {
           splitOpen.delete(id);
           return write({ ["items/" + id + "/people"]: me ? { [me]: true } : null });
@@ -1695,9 +1704,14 @@
     write({ ["people/" + uid()]: { name: "", order: Date.now() } });
     focusLast($("#people"), "input");
   });
-  $("#addItem").addEventListener("click", () => {
+  $("#addItem").addEventListener("click", async () => {
     const items = sorted(state.items), prev = items[items.length - 1];
-    const me = meId(), prevWho = prev ? Object.keys(prev.people || {}) : [];
+    // A bill that's only on this phone doesn't know who you are yet: ask once, so items default to you.
+    if (!billId && !myself() && Object.keys(state.people).length) {
+      const me = await askWhoYouAre();
+      if (me) write({ "meta/me": me });
+    }
+    const me = myself(), prevWho = prev ? Object.keys(prev.people || {}) : [];
     const item = { name: "", price: "", qty: "", order: Date.now() };
     if (authUid) item.createdBy = authUid;
     if (me) item.people = { [me]: true };
