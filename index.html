@@ -1968,7 +1968,15 @@
         const map = {}; Object.keys(state.people).forEach((p) => { map[p] = true; });
         return write({ ["items/" + id + "/people"]: all ? null : map });
       }
-      case "delItem": return write({ ["items/" + id]: null });
+      case "delItem": {
+        const it = state.items[id];
+        if (!it) return;
+        const name = String(it.name || "").trim(), claimed = scanMode() && claimedOf(it) > 0;
+        if (!(await ask(name ? "Delete “" + name + "”?" : "Delete this item?",
+          claimed ? "People have already claimed it. Their claims are removed too." : "It's removed from the bill.", "Delete", "danger"))) return;
+        editing.delete(id); splitOpen.delete(id);
+        return write({ ["items/" + id]: null });
+      }
       case "delPayment": return write({ ["payments/" + id]: null });
       case "payRest": {
         const rem = last.assignedC - last.paidTotal;
