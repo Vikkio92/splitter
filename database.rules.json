@@ -73,6 +73,10 @@
               ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/)",
               ".write": "auth != null && (root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && root.child('bills').child($billId).child('claims').child($personId).val() === auth.uid"
             },
+            "revolut": {
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/)",
+              ".write": "auth != null && (root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && root.child('bills').child($billId).child('claims').child($personId).val() === auth.uid"
+            },
             "$other": {
               ".validate": false
             }

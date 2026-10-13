@@ -325,6 +325,7 @@
   .banner.owe { background: var(--owe-bg); color: var(--owe); }
   .btn.pay { width: 100%; margin: 8px 0 4px; background: var(--owe); color: #fff; text-decoration: none; }
   .banner.owed .btn.pay { background: var(--owed); }
+  .btn.pay.revolut { background: var(--key); color: var(--on-key); }
   .pay-note { font-size: 12px; opacity: .8; margin: 0 2px 6px; }
   .bar #myMonzo { min-height: 30px; padding: 4px 10px; font-size: 13px; }
   .bar #myMonzo.on { color: var(--owed); }
@@ -586,7 +587,14 @@
   // Data can come from other people's phones, so anything that ends up in the page's HTML is
   // checked here: ids must be plain letters/digits and the currency/code can't carry markup.
   const SAFE_ID = /^[A-Za-z0-9]{1,128}$/;
-  const MONZO = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/;   // a Monzo.me username
+  const MONZO = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/;   // a Monzo.me or Revolut.me username
+  // Apps people can be paid through, each with a link that opens the payment with the amount filled in.
+  const PAY_APPS = { monzo: { name: "Monzo", host: "monzo.me" }, revolut: { name: "Revolut", host: "revolut.me" } };
+  // revolut.me/<user>?amount=<pence> opens Revolut's payment page with the amount filled in.
+  function revolutLink(pid, cents) {
+    const user = (state.people[pid] || {}).revolut;
+    return user ? "https://revolut.me/" + encodeURIComponent(user) + "?amount=" + Math.round(cents) : null;
+  }
   // monzo.me/<user>/<amount>?d=<description> opens Monzo's payment page with everything filled in.
   function monzoLink(pid, cents) {
     const user = (state.people[pid] || {}).monzo;
@@ -609,6 +617,7 @@
       meta, people: cleanMap(v.people, (p) => {
         const q = Object.assign({}, p);
         if (q.monzo && !MONZO.test(q.monzo)) delete q.monzo;
+        if (q.revolut && !MONZO.test(q.revolut)) delete q.revolut;
         return q;
       }), payments: cleanMap(v.payments),
       items: cleanMap(v.items, (it) => Object.assign({}, it, {
@@ -904,41 +913,56 @@
     if (home) render();
   }
 
-  // Set a person's Monzo.me username: admins for anyone, everyone else for themselves.
-  async function editMonzo(pid, typed) {
+  // Which app to set up: Monzo or Revolut (either or both).
+  async function editPayLinks(pid) {
     if (!pid) return;
-    const self = pid === myself(), cur = (state.people[pid] || {}).monzo || "";
+    const self = pid === myself(), p = state.people[pid] || {};
+    const label = (k) => PAY_APPS[k].name + (p[k] ? " · @" + p[k] : "");
+    const kind = await sheet({
+      title: self ? "Get paid" : "Payment links for " + personName(pid),
+      text: "Anyone who owes " + (self ? "you" : "them") + " gets a button to pay in that app, with the amount filled in.",
+      buttons: [{ label: label("monzo"), value: "monzo" }, { label: label("revolut"), value: "revolut" }, { label: "Close", value: null }],
+    });
+    if (kind) return editPay(pid, kind);
+  }
+
+  // Set a person's Monzo.me or Revolut.me username: admins for anyone, everyone else for themselves.
+  async function editPay(pid, kind, typed) {
+    if (!pid) return;
+    const app = PAY_APPS[kind], host = app.host, name = app.name;
+    const self = pid === myself(), cur = (state.people[pid] || {})[kind] || "";
     const raw = await sheet({
-      title: self ? "Your Monzo" : "Monzo for " + personName(pid),
+      title: self ? "Your " + name : name + " for " + personName(pid),
       text: self
-        ? "Safest way: in the Monzo app, find the option to share your monzo.me link, copy it, and paste it here. " +
+        ? "Safest way: in the " + name + " app, find the option to share your " + host + " link, copy it, and paste it here. " +
           "Anyone who owes you then gets a button to pay you with the amount filled in. Leave it empty to remove it."
-        : "Their Monzo.me username, or paste their monzo.me link. Anyone who owes them gets a button to pay with the amount filled in. Leave it empty to remove it.",
-      input: { placeholder: self ? "Paste your monzo.me link" : "e.g. vittorio or monzo.me/vittorio", value: typed != null ? typed : cur, max: 80 },
+        : "Their " + host + " username, or paste their " + host + " link. Anyone who owes them gets a button to pay with the amount filled in. Leave it empty to remove it.",
+      input: { placeholder: self ? "Paste your " + host + " link" : "e.g. vittorio or " + host + "/vittorio", value: typed != null ? typed : cur, max: 80 },
       buttons: [{ label: "Cancel", value: null }, { label: "Save", value: true, kind: "primary" }],
     });
     if (raw === null) return;
-    if (!raw.trim() && cur && !(await ask("Remove " + (self ? "your" : personName(pid) + "'s") + " Monzo?",
-      "Nobody will get a button to pay " + (self ? "you" : "them") + " on Monzo.", "Remove", "danger"))) return;
-    const user = raw.trim().replace(/^https?:\/\//i, "").replace(/^(www\.)?monzo\.me\//i, "").split(/[/?#]/)[0];
-    if (user && !MONZO.test(user)) return info("That doesn't look like a Monzo username", "Use just the name from the monzo.me link, e.g. monzo.me/vittorio → vittorio.");
-    const pasted = /monzo\.me\//i.test(raw);   // a link copied from Monzo can't contain a typo
-    // Your own link opens your own Monzo app, which can't pay yourself, so for you the check is a careful look.
+    if (!raw.trim() && cur && !(await ask("Remove " + (self ? "your" : personName(pid) + "'s") + " " + name + "?",
+      "Nobody will get a button to pay " + (self ? "you" : "them") + " on " + name + ".", "Remove", "danger"))) return;
+    const hostRe = new RegExp("^(www\\.)?" + host.replace(".", "\\.") + "/", "i");
+    const user = raw.trim().replace(/^https?:\/\//i, "").replace(hostRe, "").replace(/^@/, "").split(/[/?#]/)[0];
+    if (user && !MONZO.test(user)) return info("That doesn't look like a " + name + " username", "Use just the name from the " + host + " link, e.g. " + host + "/vittorio → vittorio.");
+    const pasted = new RegExp(host.replace(".", "\\.") + "/", "i").test(raw);   // a link copied from the app can't contain a typo
+    // Your own link opens your own app, which can't pay yourself, so for you the check is a careful look.
     if (user && user !== cur && self && !pasted) {
       const ok = await sheet({
-        title: "Is this exactly right?", text: "Compare it letter by letter with your monzo.me link in the Monzo app. " +
+        title: "Is this exactly right?", text: "Compare it letter by letter with your " + host + " link in the " + name + " app. " +
           "If it's wrong, payments meant for you could go to someone else.",
-        link: "monzo.me/" + user,
+        link: host + "/" + user,
         buttons: [{ label: "Fix it", value: false }, { label: "Yes, it's exactly right", value: true, kind: "primary" }],
       });
-      if (ok !== true) return editMonzo(pid, raw);
+      if (ok !== true) return editPay(pid, kind, raw);
     }
-    // Someone else's: monzo.me shows the account holder's name and photo, so check it there.
+    // Someone else's: the link shows the account holder's name and photo, so check it there.
     if (user && user !== cur && !self) {
-      const url = "https://monzo.me/" + encodeURIComponent(user);
+      const url = "https://" + host + "/" + encodeURIComponent(user);
       const ok = await sheet({
         title: "Check it's " + personName(pid),
-        text: "Open this link and make sure Monzo shows " + personName(pid) + "'s name and photo. " +
+        text: "Open this link and make sure " + name + " shows " + personName(pid) + "'s name and photo. " +
           "If it shows someone else, or \"not found\", the username is wrong and payments could go to the wrong person.",
         link: url,
         buttons: [
@@ -949,8 +973,8 @@
       });
       if (ok !== true) return;
     }
-    write({ ["people/" + pid + "/monzo"]: user || null });
-    toast(user ? "Monzo saved" : "Monzo removed");
+    write({ ["people/" + pid + "/" + kind]: user || null });
+    toast(name + (user ? " saved" : " removed"));
   }
 
   // ---------- scan mode ----------
@@ -1506,6 +1530,12 @@
     return (cents < 0 ? "-" : "") + '<span class="cur">' + esc(state.meta.currency) + "</span>" + s[0] + '<span class="dec">.' + s[1] + "</span>";
   }
 
+  // "Monzo", "Revolut", "Monzo & Revolut" or "" for the apps someone can be paid through.
+  function payApps(pid) {
+    const p = state.people[pid] || {};
+    return Object.keys(PAY_APPS).filter((k) => p[k]).map((k) => PAY_APPS[k].name).join(" & ");
+  }
+
   function renderBar() {
     const bar = $("#sharedBar");
     bar.hidden = !billId;
@@ -1522,11 +1552,11 @@
     $("#adminLink").hidden = !isAdmin || !adminKey;
     const code = state.meta.code;
     $("#codePill").hidden = !isAdmin || !code;
-    // Once you've confirmed who you are, you can add your own Monzo username.
-    const mine = meId(), myMonzo = mine && (state.people[mine] || {}).monzo;
+    // Once you've confirmed who you are, you can add your own Monzo / Revolut username.
+    const mine = meId(), apps = mine ? payApps(mine) : "";
     $("#myMonzo").hidden = !mine;
-    $("#myMonzo").classList.toggle("on", !!myMonzo);
-    $("#myMonzo").textContent = myMonzo ? "✓ @" + myMonzo : "+ Monzo";
+    $("#myMonzo").classList.toggle("on", !!apps);
+    $("#myMonzo").textContent = apps ? "✓ " + apps : "+ Monzo / Revolut";
     if (code) $("#codePill").textContent = formatCode(code);
   }
 
@@ -1578,8 +1608,9 @@
         row.querySelector('[data-act="unlink"]').hidden = !admin || !by || by === authUid;
         const mz = row.querySelector('[data-act="monzo"]');
         mz.hidden = !admin;
-        mz.classList.toggle("on", !!p.monzo);
-        mz.textContent = p.monzo ? "✓ Monzo" : "Monzo";
+        const apps = payApps(p.id);
+        mz.classList.toggle("on", !!apps);
+        mz.textContent = apps ? "✓ " + (apps.includes("&") ? "Both" : apps) : "Pay links";
         row.lastChild.hidden = !admin;
       });
 
@@ -1755,16 +1786,18 @@
       if (net > 0) {
         h += '<div class="banner owe"><div class="lead">' + (you ? "You need" : name + " needs") + ' to pay</div><div class="amt">' + money(net) + "</div>" +
           r.transfers.filter((t) => t.from === who).map((t) => {
-            const link = monzoLink(t.to, t.amt);
+            const to = state.people[t.to] || {}, links = [["monzo", monzoLink(t.to, t.amt)], ["revolut", revolutLink(t.to, t.amt)]].filter((l) => l[1]);
             return '<div class="to">' + avatar(t.to, true) + "to " + esc(personName(t.to)) + "<b>" + money(t.amt) + "</b></div>" +
-              (link ? '<a class="btn pay" href="' + esc(link) + '" target="_blank" rel="noopener">Pay ' + money(t.amt) + " to @" + esc((state.people[t.to] || {}).monzo || "") + " on Monzo</a>" +
-                '<div class="pay-note">Monzo will show who you’re paying: check it’s ' + esc(personName(t.to)) + ".</div>" : "");
+              links.map(([k, link]) => '<a class="btn pay ' + k + '" href="' + esc(link) + '" target="_blank" rel="noopener">Pay on ' + PAY_APPS[k].name +
+                " · @" + esc(to[k]) + "</a>").join("") +
+              (links.length ? '<div class="pay-note">' + (links.length > 1 ? "Your app" : PAY_APPS[links[0][0]].name) +
+                " will show who you’re paying: check it’s " + esc(personName(t.to)) + ".</div>" : "");
           }).join("") + "</div>";
       } else if (net < 0) {
-        const canAdd = you && !(state.people[who] || {}).monzo && (billId ? !!meId() : true);
+        const canAdd = you && !payApps(who) && (billId ? !!meId() : true);
         h += '<div class="banner owed"><div class="lead">' + (you ? "You're" : name + " is") + ' owed</div><div class="amt">' + money(-net) + "</div>" +
           r.transfers.filter((t) => t.to === who).map((t) => '<div class="to">' + avatar(t.from, true) + "from " + esc(personName(t.from)) + "<b>" + money(t.amt) + "</b></div>").join("") +
-          (canAdd ? '<button class="btn pay" data-act="addMyMonzo">Add your Monzo so they can pay you in one tap</button>' : "") + "</div>";
+          (canAdd ? '<button class="btn pay" data-act="addMyMonzo">Add your Monzo or Revolut so they can pay you in one tap</button>' : "") + "</div>";
       } else {
         h += '<div class="banner settled"><div class="lead">' + (you ? "You're" : name + " is") + ' all square</div><div class="amt">' + money(0) + "</div>Nothing to pay or collect.</div>";
       }
@@ -1805,8 +1838,10 @@
     if (r.paid[who]) t += "Already paid: " + money(r.paid[who]) + "\n";
     t += "\n";
     if (net > 0) r.transfers.filter((x) => x.from === who).forEach((x) => {
-      const link = monzoLink(x.to, x.amt);
-      t += "Pay " + personName(x.to) + " " + money(x.amt) + (link ? ": " + link : "") + "\n";
+      t += "Pay " + personName(x.to) + " " + money(x.amt) + "\n";
+      const m = monzoLink(x.to, x.amt), rv = revolutLink(x.to, x.amt);
+      if (m) t += "Monzo: " + m + "\n";
+      if (rv) t += "Revolut: " + rv + "\n";
     });
     else if (net < 0) r.transfers.filter((x) => x.to === who).forEach((x) => { t += personName(x.from) + " pays you " + money(x.amt) + "\n"; });
     else t += "All square.";
@@ -1943,8 +1978,8 @@
         Object.keys(state.payments).forEach((pid) => { if (state.payments[pid].personId === id) paths["payments/" + pid] = null; });
         return write(paths);
       }
-      case "monzo": return editMonzo(id);
-      case "addMyMonzo": return editMonzo(myself());
+      case "monzo": return editPayLinks(id);
+      case "addMyMonzo": return editPayLinks(myself());
       case "unlink":
         if (!(await ask("Unlink " + personName(id) + "?", "The phone that picked this name is released, so the right person can pick it.", "Unlink"))) return;
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
@@ -2130,7 +2165,7 @@
     splitOpen.clear();
     write(p);
   });
-  $("#myMonzo").addEventListener("click", () => editMonzo(meId()));
+  $("#myMonzo").addEventListener("click", () => editPayLinks(meId()));
 
   // Light/dark: follows the phone until you pick one here.
   function isDark() {
