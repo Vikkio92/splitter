@@ -15,9 +15,13 @@ Open the link in **Safari**, then tap **Share → Add to Home Screen**.
    These rules mean a bill can only be opened by someone who has its link, and nobody can list all bills.
    The person who shares a bill is its admin: only they can change the bill details, people and payments, or lock the bill.
    Guests can add food & drinks and edit or delete only the items they added, and only while the bill is unlocked.
+   In **Scan receipt** mode guests can't add items; they claim units of the admin's items, and only for the name they picked.
    The admin's **Admin link** gives admin rights on another device (or to a co-admin).
 4. Open **Project settings** (gear icon), go to **Your apps**, click the web icon `</>`, register an app (no Hosting needed), and copy the `firebaseConfig = { ... }` object.
 5. Paste it into `firebase-config.js` in place of `null`, so it reads `window.FIREBASE_CONFIG = { apiKey: "...", ... };`
+
+6. For **Scan receipt**, open **AI Services → AI Logic → Get started** and choose the **Gemini Developer API**.
+   Receipt photos are sent to Gemini to be read, and aren't stored by the app.
 
 The free "Spark" plan is far more than a group of friends will ever use. The config values aren't secret; access is controlled by the rules.
 

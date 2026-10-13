@@ -52,6 +52,9 @@
           "locked": {
             ".validate": "newData.isBoolean()"
           },
+          "mode": {
+            ".validate": "newData.isString() && newData.val() === 'scan'"
+          },
           "$other": {
             ".validate": false
           }
@@ -98,7 +101,7 @@
         },
         "items": {
           "$itemId": {
-            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || ((root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && data.parent().parent().child('meta').child('locked').val() !== true && newData.parent().parent().child('devices').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))",
+            ".write": "auth != null && (newData.parent().parent().parent().parent().child('owners').child($billId).child(auth.uid).exists() || ((root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && data.parent().parent().child('meta').child('locked').val() !== true && newData.parent().parent().child('devices').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid && root.child('bills').child($billId).child('meta').child('mode').val() !== 'scan') || (data.child('createdBy').val() === auth.uid && (!newData.exists() || newData.child('createdBy').val() === auth.uid)))))",
             ".validate": "$itemId.matches(/^[a-z0-9]{1,32}$/) && newData.hasChildren(['createdBy', 'order'])",
             "name": {
               ".validate": "newData.isString() && newData.val().length <= 60"
@@ -118,6 +121,27 @@
             "people": {
               "$personId": {
                 ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/) && newData.val() === true && newData.parent().parent().parent().parent().parent().parent().child('bills').child($billId).child('people').child($personId).exists()"
+              }
+            },
+            "rev": {
+              ".write": "auth != null && (root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && root.child('bills').child($billId).child('meta').child('locked').val() !== true && root.child('bills').child($billId).child('devices').child(auth.uid).exists() && newData.parent().child('createdBy').exists() && newData.val() === (data.exists() ? data.val() : 0) + 1",
+              ".validate": "newData.isNumber()"
+            },
+            "units": {
+              "$personId": {
+                ".write": "auth != null && (root.child('bills').child($billId).child('meta').child('expires').isNumber() && root.child('bills').child($billId).child('meta').child('expires').val() > now) && root.child('bills').child($billId).child('meta').child('locked').val() !== true && root.child('bills').child($billId).child('claims').child($personId).val() === auth.uid && newData.parent().parent().child('createdBy').exists() && newData.parent().parent().child('rev').val() === (data.parent().parent().child('rev').exists() ? data.parent().parent().child('rev').val() : 0) + 1",
+                ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/) && newData.hasChild('n') && newData.parent().parent().parent().parent().parent().parent().child('bills').child($billId).child('people').child($personId).exists()",
+                "n": {
+                  ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 999 && newData.val() % 1 === 0"
+                },
+                "with": {
+                  "$p": {
+                    ".validate": "$p.matches(/^[a-z0-9]{1,32}$/) && $p !== $personId && newData.val() === true && newData.parent().parent().parent().parent().parent().parent().parent().parent().child('bills').child($billId).child('people').child($p).exists()"
+                  }
+                },
+                "$other": {
+                  ".validate": false
+                }
               }
             },
             "$other": {
