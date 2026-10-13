@@ -384,6 +384,9 @@
   body.scan .item-foot .chips:empty + .units-left { flex-basis: 100%; }
   body.scan .item-foot .edit { margin-left: auto; }
   body.scan .item.locked.ok .name:disabled { padding-left: 0; background: none; }   /* the green bar says it all */
+  .btn.nosvc { min-height: 30px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: none; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .btn.nosvc.on { color: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
+  .ns-tag { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
   #scanBtn { margin-top: 20px; }
   #scanBtn + #addItem { margin-top: 8px; }
 
@@ -990,6 +993,7 @@
     "service charge, tips, totals, payments, card details and change.",
     "If a discount or promotion applies to particular lines, put the amount taken off each line in that item's discount, as a positive number.",
     "discount: the total of any other discounts, on the whole bill, as a positive amount, 0 if none.",
+    "noService: true for lines the service charge isn't applied to, such as optional donations or charity contributions.",
     "service: the service charge amount, 0 if none. servicePercent: the service percentage if printed.",
     "total: the final amount due, including service. venue: the name of the restaurant or bar, if printed.",
     "If the photo is not a receipt, return an empty items list.",
@@ -1005,7 +1009,7 @@
             responseMimeType: "application/json",
             responseSchema: S.object({
               properties: {
-                items: S.array({ items: S.object({ properties: { name: S.string(), qty: S.integer(), lineTotal: S.number(), discount: S.number() }, optionalProperties: ["discount"] }) }),
+                items: S.array({ items: S.object({ properties: { name: S.string(), qty: S.integer(), lineTotal: S.number(), discount: S.number(), noService: S.boolean() }, optionalProperties: ["discount", "noService"] }) }),
                 discount: S.number(), service: S.number(), servicePercent: S.number(), total: S.number(), venue: S.string(),
               },
               optionalProperties: ["servicePercent", "venue"],
@@ -1075,9 +1079,10 @@
       const name = String(x && x.name || "").replace(/\s+/g, " ").trim().slice(0, 60) || "Item";
       const q = Math.max(1, Math.min(999, Math.round(Number(x && x.qty) || 1)));
       const off = Math.round(Math.abs(Number(x && x.discount) || 0) * 100);   // taken off this line
+      const ns = !!(x && x.noService) || /\b(donation|charity)\b/i.test(name);
       const line = Math.round(Math.abs(Number(x && x.lineTotal) || 0) * 100) - off;
-      if (line % q) return { name: (name + " ×" + q).slice(0, 60), qty: "", price: cents(line), c: line, off };
-      return { name, qty: q > 1 ? String(q) : "", price: cents(line / q), c: line, off };
+      if (line % q) return { name: (name + " ×" + q).slice(0, 60), qty: "", price: cents(line), c: line, off, ns };
+      return { name, qty: q > 1 ? String(q) : "", price: cents(line / q), c: line, off, ns };
     }).filter((x) => x.c > 0 && x.c < 1e9);
     if (!found.length) return info("No items found", "Make sure the whole receipt is in the photo, flat and in focus, then try again.");
 
@@ -1090,7 +1095,7 @@
       });
       if (!how) return;
     }
-    const sub = found.reduce((t, x) => t + x.c, 0);
+    const sub = found.reduce((t, x) => t + (x.ns ? 0 : x.c), 0);   // what the service charge is a percentage of
     let pct = Number(data.servicePercent) || 0;
     const svc = Math.round((Number(data.service) || 0) * 100);
     if (!(pct > 0 && pct < 100) && svc > 0 && sub > 0) pct = Math.round((svc / sub) * 10000) / 100;
@@ -1101,6 +1106,7 @@
     let order = Date.now();
     found.forEach((x) => {
       const it = { name: x.name, qty: x.qty, price: x.price, order: order++ };
+      if (x.ns) it.noService = true;
       if (authUid) it.createdBy = authUid;
       p["items/" + uid()] = it;
     });
@@ -1117,6 +1123,8 @@
     else text += "Couldn't find the total on the receipt: type it in under Bill so it can be checked.";
     const offItems = found.filter((x) => x.off > 0).map((x) => x.name);
     if (offItems.length) text += "\n\nDiscounts were taken off " + offItems.join(", ") + ".";
+    const nsItems = found.filter((x) => x.ns).map((x) => x.name);
+    if (nsItems.length && pct) text += "\n\nNo service charge on " + nsItems.join(", ") + ".";
     if (discount > 0) text += "\n\nThe receipt also has " + money(discount) + " off the whole bill, which isn't included. Lower some prices to match.";
     info("Check it against the receipt", text);
   }
@@ -1371,12 +1379,15 @@
     const rate = num(state.meta.service) / 100;
     const base = {}, lines = {};
     people.forEach((p) => { base[p.id] = 0; lines[p.id] = []; });
-    let subtotal = 0, unassigned = 0;
-    const scan = scanMode(), over = [], unclaimed = [];
+    let subtotal = 0, unassigned = 0, total = 0, unassignedWithService = 0;
+    const scan = scanMode(), over = [], unclaimed = [], raw = {};
+    people.forEach((p) => { raw[p.id] = 0; });
 
     sorted(state.items).forEach((it) => {
       const c = price(it.price) * qty(it.qty) * 100;
-      subtotal += c;
+      // Items marked "No service" (e.g. an optional donation) don't get the service charge on top.
+      const f = it.noService ? 1 : 1 + rate, ns = !!it.noService;
+      subtotal += c; total += c * f;
       if (scan) {
         // Each claim is n units, split equally between the claimer and anyone they shared it with.
         const unit = price(it.price) * 100, name = String(it.name || "").trim() || "Item";
@@ -1388,27 +1399,30 @@
           const who = [pid].concat(Object.keys(u.with || {}).filter((w) => w !== pid && own(base, w)));
           who.forEach((id) => {
             base[id] += (unit * u.n) / who.length;
-            lines[id].push({ name, amt: (unit * u.n) / who.length, n: who.length, q: u.n });
+            raw[id] += ((unit * u.n) / who.length) * f;
+            lines[id].push({ name, amt: (unit * u.n) / who.length, n: who.length, q: u.n, ns });
           });
         });
-        if (claimed < qty(it.qty)) { unassigned += (qty(it.qty) - claimed) * unit; unclaimed.push(name + (qty(it.qty) > 1 ? " (" + (qty(it.qty) - claimed) + " left)" : "")); }
+        if (claimed < qty(it.qty)) {
+          unassigned += (qty(it.qty) - claimed) * unit; unassignedWithService += (qty(it.qty) - claimed) * unit * f;
+          unclaimed.push(name + (qty(it.qty) > 1 ? " (" + (qty(it.qty) - claimed) + " left)" : ""));
+        }
         if (claimed > qty(it.qty)) over.push(name + " (" + claimed + " claimed, " + qty(it.qty) + " on the bill)");
         return;
       }
       const who = Object.keys(it.people || {}).filter((id) => own(base, id));
-      if (!who.length) { unassigned += c; return; }
+      if (!who.length) { unassigned += c; unassignedWithService += c * f; return; }
       who.forEach((id) => {
         base[id] += c / who.length;
-        lines[id].push({ name: String(it.name || "").trim() || "Item", amt: c / who.length, n: who.length, q: qty(it.qty) });
+        raw[id] += (c / who.length) * f;
+        lines[id].push({ name: String(it.name || "").trim() || "Item", amt: c / who.length, n: who.length, q: qty(it.qty), ns });
       });
     });
 
-    const totalC = Math.round(subtotal * (1 + rate));
+    const totalC = Math.round(total);
     const subtotalC = Math.round(subtotal);
-    const raw = {};
-    Object.keys(base).forEach((id) => { raw[id] = base[id] * (1 + rate); });
     // Over-claimed items mean people's shares add up to more than the items; count what was claimed.
-    const assignedC = scan ? Math.round(Object.values(raw).reduce((t, v) => t + v, 0)) : Math.round((subtotal - unassigned) * (1 + rate));
+    const assignedC = scan ? Math.round(Object.values(raw).reduce((t, v) => t + v, 0)) : Math.round(total - unassignedWithService);
     const share = allocate(raw, assignedC);
 
     const paid = {}, payLines = {}; people.forEach((p) => { paid[p.id] = 0; payLines[p.id] = []; });
@@ -1442,7 +1456,7 @@
 
     const billC = String(state.meta.billTotal).trim() === "" ? null : Math.round(num(state.meta.billTotal) * 100);
     return {
-      people, subtotalC, serviceC: totalC - subtotalC, totalC, unassignedC: Math.round(unassigned * (1 + rate)),
+      people, subtotalC, serviceC: totalC - subtotalC, totalC, unassignedC: Math.round(unassignedWithService),
       share, paid, payLines, paidTotal, net, transfers, lines, billC, assignedC, over, unclaimed,
     };
   }
@@ -1582,6 +1596,7 @@
         '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"></label>' +
         '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button></div>' +
         '<div class="item-foot"><button class="btn split" data-act="split"></button><div class="chips"></div><span class="units-left"></span>' +
+        '<span class="ns-tag">No service</span><button class="btn nosvc" data-act="noService">No service</button>' +
         '<button class="btn confirm" data-act="confirmItem">Confirm</button>' +
         '<button class="btn edit" data-act="editItem">' + ICON.edit + "Edit</button></div></div>"),
       (row, it) => {
@@ -1596,6 +1611,12 @@
         row.querySelector('[data-act="confirmItem"]').hidden = !open;
         row.querySelector('[data-act="editItem"]').hidden = !mine || open;
         row.classList.toggle("locked", !open);
+        // Only worth showing when there is a service charge (or the item is already marked).
+        const svcSwitch = row.querySelector('[data-act="noService"]');
+        svcSwitch.hidden = !open || (!it.noService && !(num(state.meta.service) > 0));
+        svcSwitch.classList.toggle("on", !!it.noService);
+        svcSwitch.textContent = it.noService ? "✓ No service" : "No service";
+        row.querySelector(".ns-tag").hidden = open || !it.noService;
         row.querySelector('[data-act="claim"]').hidden = !scan;
         if (scan) return updateScanItem(row, it, open);
         row.querySelector(".units-left").textContent = "";
@@ -1748,6 +1769,7 @@
       const food = Math.round(r.lines[who].reduce((s, l) => s + l.amt, 0));
       h += '<div class="lines">' + r.lines[who].map((l) =>
         "<span>" + esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? ' <span class="muted">· split ' + l.n + " ways</span>" : "") +
+        (l.ns ? ' <span class="muted">· no service</span>' : "") +
         "</span><span>" + money(Math.round(l.amt)) + "</span>").join("");
       if (!r.lines[who].length) h += '<span class="muted">No items</span><span></span>';
       h += '<span class="sep"></span>' +
@@ -1774,7 +1796,7 @@
     const r = last, net = r.net[who];
     let t = "Receipt for " + personName(who) + "\n\n";
     r.lines[who].forEach((l) => {
-      t += l.name + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " (split " + l.n + " ways)" : "") + ": " + money(Math.round(l.amt)) + "\n";
+      t += l.name + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " (split " + l.n + " ways)" : "") + (l.ns ? " (no service)" : "") + ": " + money(Math.round(l.amt)) + "\n";
     });
     t += "Share incl. " + num(state.meta.service) + "% service: " + money(r.share[who]) + "\n";
     if (r.paid[who]) t += "Already paid: " + money(r.paid[who]) + "\n";
@@ -1954,6 +1976,10 @@
         }
         splitOpen.add(id);
         return render();
+      }
+      case "noService": {
+        const on = !!(state.items[id] || {}).noService;
+        return write({ ["items/" + id + "/noService"]: on ? null : true });
       }
       case "editItem":
         editing.add(id);
