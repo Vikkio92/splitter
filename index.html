@@ -912,6 +912,8 @@
       buttons: [{ label: "Cancel", value: null }, { label: "Save", value: true, kind: "primary" }],
     });
     if (raw === null) return;
+    if (!raw.trim() && cur && !(await ask("Remove " + (self ? "your" : personName(pid) + "'s") + " Monzo?",
+      "Nobody will get a button to pay " + (self ? "you" : "them") + " on Monzo.", "Remove", "danger"))) return;
     const user = raw.trim().replace(/^https?:\/\//i, "").replace(/^(www\.)?monzo\.me\//i, "").split(/[/?#]/)[0];
     if (user && !MONZO.test(user)) return info("That doesn't look like a Monzo username", "Use just the name from the monzo.me link, e.g. monzo.me/vittorio → vittorio.");
     const pasted = /monzo\.me\//i.test(raw);   // a link copied from Monzo can't contain a typo
@@ -1900,7 +1902,11 @@
     switch (b.dataset.act) {
       case "delPerson": {
         const hasPay = Object.values(state.payments).some((pm) => pm.personId === id);
-        if (hasPay && !(await ask("Remove " + personName(id) + "?", "Their payments will be removed too.", "Remove", "danger"))) return;
+        const hasItems = Object.values(state.items).some((it) => (it.people || {})[id] || (it.units || {})[id]);
+        const gone = [hasItems && "what they had", hasPay && "their payments"].filter(Boolean);
+        const name = String((state.people[id] || {}).name || "").trim();
+        if (!(await ask(name ? "Remove " + name + "?" : "Remove this person?",
+          gone.length ? "They're taken off the bill, along with " + gone.join(" and ") + "." : "They're taken off the bill.", "Remove", "danger"))) return;
         paths["people/" + id] = null;
         if (claimedBy(id)) { paths["claims/" + id] = null; paths["devices/" + claimedBy(id)] = null; }
         Object.keys(state.items).forEach((iid) => {
@@ -1977,7 +1983,14 @@
         editing.delete(id); splitOpen.delete(id);
         return write({ ["items/" + id]: null });
       }
-      case "delPayment": return write({ ["payments/" + id]: null });
+      case "delPayment": {
+        const pm = state.payments[id];
+        if (!pm) return;
+        const amt = num(pm.amount) > 0 ? money(Math.round(num(pm.amount) * 100)) + " " : "";
+        const who = state.people[pm.personId] ? " by " + personName(pm.personId) : "";
+        if (!(await ask("Delete this payment?", "The " + amt + "payment" + who + " is removed from the bill.", "Delete", "danger"))) return;
+        return write({ ["payments/" + id]: null });
+      }
       case "payRest": {
         const rem = last.assignedC - last.paidTotal;
         return write({ ["payments/" + uid()]: { personId: $("#restWho").value, amount: (rem / 100).toFixed(2), note: "At table", order: Date.now() } });
