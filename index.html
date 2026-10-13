@@ -926,6 +926,7 @@
     if (kind) return editPay(pid, kind);
   }
 
+  const DELETE = {};   // the sheet's Delete button (can't be confused with anything typed)
   // Set a person's Monzo.me or Revolut.me username: admins for anyone, everyone else for themselves.
   async function editPay(pid, kind, typed) {
     if (!pid) return;
@@ -938,11 +939,16 @@
           "Anyone who owes you then gets a button to pay you with the amount filled in. Leave it empty to remove it."
         : "Their " + host + " username, or paste their " + host + " link. Anyone who owes them gets a button to pay with the amount filled in. Leave it empty to remove it.",
       input: { placeholder: self ? "Paste your " + host + " link" : "e.g. vittorio or " + host + "/vittorio", value: typed != null ? typed : cur, max: 80 },
-      buttons: [{ label: "Cancel", value: null }, { label: "Save", value: true, kind: "primary" }],
+      buttons: [{ label: "Cancel", value: null }].concat(cur ? [{ label: "Delete", value: DELETE, kind: "danger" }] : [],
+        [{ label: "Save", value: true, kind: "primary" }]),
     });
     if (raw === null) return;
-    if (!raw.trim() && cur && !(await ask("Remove " + (self ? "your" : personName(pid) + "'s") + " " + name + "?",
-      "Nobody will get a button to pay " + (self ? "you" : "them") + " on " + name + ".", "Remove", "danger"))) return;
+    if ((raw === DELETE || !raw.trim()) && cur && !(await ask("Delete " + (self ? "your" : personName(pid) + "'s") + " " + name + "?",
+      "@" + cur + " is removed, and nobody will get a button to pay " + (self ? "you" : "them") + " on " + name + ".", "Delete", "danger"))) return;
+    if (raw === DELETE) {
+      write({ ["people/" + pid + "/" + kind]: null });
+      return toast(name + " deleted");
+    }
     const hostRe = new RegExp("^(www\\.)?" + host.replace(".", "\\.") + "/", "i");
     const user = raw.trim().replace(/^https?:\/\//i, "").replace(hostRe, "").replace(/^@/, "").split(/[/?#]/)[0];
     if (user && !MONZO.test(user)) return info("That doesn't look like a " + name + " username", "Use just the name from the " + host + " link, e.g. " + host + "/vittorio → vittorio.");
