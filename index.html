@@ -165,7 +165,10 @@
   .title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
   .brand { cursor: pointer; }
   #home { display: none; }
-  body.home #home { display: block; }
+  /* Home fills the screen so the reCAPTCHA notice sits at the very bottom. */
+  body.home { padding-bottom: calc(env(safe-area-inset-bottom) + 14px); }
+  body.home main { display: flex; flex-direction: column; min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 14px); }
+  body.home #home { display: flex; flex-direction: column; flex: 1; }
   body.home main > section:not(#home), body.home #sharedBar, body.home #billSwitch,
   body.home #shareLink, body.home #newBill, body.home #joinBill { display: none !important; }
   /* Inside a bill its name is shown below, so on phones the logo drops its text to make room for the buttons. */
@@ -178,7 +181,7 @@
   .home-list { margin-top: 28px; }
   #homeJoin { margin-top: 8px; }
   .grecaptcha-badge { visibility: hidden !important; }
-  .legal { margin: 28px 4px 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
+  .legal { margin: auto 4px 0; padding-top: 28px; font-size: 10px; line-height: 1.5; color: var(--muted); text-align: center; text-wrap: balance; }
   .legal a { color: inherit; }
   .code-big { font: 700 44px/1 var(--display-font); letter-spacing: 0.08em; text-align: center; padding: 18px 0; background: var(--surface-2); border-radius: 18px; font-variant-numeric: tabular-nums; }
   .code-label { text-align: center; color: var(--muted); font-size: 13px; margin: 0 0 8px; }
