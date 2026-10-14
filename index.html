@@ -364,11 +364,13 @@
   .item.locked { background: none; border-radius: 0; padding: 10px 2px; border-bottom: 1px solid var(--line); }
   .item.locked, .item + .item.locked { margin-top: 0; }
   .item.locked + .item:not(.locked) { margin-top: 10px; }
-  .item.locked .item-row { grid-template-columns: minmax(0, 1fr) auto 28px 84px 24px; }
+  .item.locked .item-row { grid-template-columns: minmax(0, 1fr) 52px 84px 24px; }
+  .item.locked .qty { display: none; }   /* shown as "×2" under the name instead */
   /* who had it: small initial bubbles (up to 3, then +N), plus short notes */
   .item .who { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
-  .item .who .stack { display: flex; padding-left: 5px; }
-  .item .who .av { margin-left: -5px; box-shadow: 0 0 0 2px var(--surface); }
+  .item .who .stack { display: flex; padding-left: 7px; }
+  .item .who .av { margin-left: -7px; box-shadow: 0 0 0 2px var(--surface); }
+  .item .who { gap: 3px; }
   .item.locked .item-foot:not([hidden]) { margin-top: 4px; }
   .item.locked input { padding-top: 2px; padding-bottom: 2px; }
   .item.locked .name { text-overflow: ellipsis; }
@@ -390,7 +392,7 @@
   .item .name-text { display: none; }
   .item.locked .name { display: none; }
   .item.locked .name-text { display: block; font-weight: 600; line-height: 1.25; min-width: 0; }
-  .item.locked .name-text .nt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .item.locked .name-text .nt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
   .item.locked .name-text small { display: block; font-size: 12px; font-weight: 600; color: var(--muted); }
   .item.locked.ok .name-text { padding-left: 22px; background: var(--tick) no-repeat 0 .2em / 15px; }
   .item.locked.unassigned { padding-left: 12px; }
@@ -416,7 +418,7 @@
   .claim.on { background: var(--accent); border-color: var(--accent); }
   .claim:disabled { opacity: .3; cursor: default; }
   body.scan .item-row { grid-template-columns: 34px 1fr 38px 90px 24px; }
-  body.scan .item.locked .item-row { grid-template-columns: 34px minmax(0, 1fr) auto 28px 84px 24px; }
+  body.scan .item.locked .item-row { grid-template-columns: 34px minmax(0, 1fr) 52px 84px 24px; }
   .units-left { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
   .item.unassigned .units-left { color: var(--warn); }
   .item.locked .chips.pick .chip { display: inline-flex; background: var(--surface); padding: 4px 11px 4px 4px; font-size: 14px; border: 1.5px solid transparent; }
@@ -1723,7 +1725,7 @@
         pencil.hidden = open;
         pencil.style.visibility = mine ? "" : "hidden";
         row.querySelector(".who").hidden = open;
-        setHTML(row.querySelector(".name-text"), '<span class="nt">' + esc(String(it.name || "").trim() || "Item") + "</span>" + (it.noService ? "<small>No service</small>" : ""));
+        setNameText(row, it, "");
         row.classList.toggle("locked", !open);
         // Only worth showing when there is a service charge (or the item is already marked).
         const svcSwitch = row.querySelector('[data-act="noService"]');
@@ -1757,13 +1759,17 @@
         row.querySelector(".item-foot").hidden = !open;
       });
 
-    // Who had it, as initial bubbles: up to 3, then "+2". Then short notes like "1 left" or "No service".
-    function whoHTML(ids, it, extra) {
+    // A confirmed item's name, with short notes underneath ("2 left", "No service").
+    function setNameText(row, it, extra) {
+      const notes = [qty(it.qty) > 1 ? "×" + qty(it.qty) : "", extra, it.noService ? "No service" : ""].filter(Boolean).join(" · ");
+      setHTML(row.querySelector(".name-text"), '<span class="nt">' + esc(String(it.name || "").trim() || "Item") + "</span>" + (notes ? "<small>" + esc(notes) + "</small>" : ""));
+    }
+    // Who had it, as initial bubbles: up to 3, then "+2".
+    function whoHTML(ids) {
       const shown = ids.length > 3 ? ids.slice(0, 2) : ids;
       const stack = ids.length ? '<span class="stack">' + shown.map((p) => avatar(p, true)).join("") + "</span>" +
         (ids.length > shown.length ? "<span>+" + (ids.length - shown.length) + "</span>" : "") : "";
-      const notes = extra ? "<span>" + esc(extra) + "</span>" : "";
-      return stack + notes;
+      return stack;
     }
 
     // Scan mode: the box claims units of the item; the foot shows who has claimed what and what's left.
@@ -1784,7 +1790,8 @@
       Object.keys(units).filter((pid) => state.people[pid] && units[pid].n > 0).forEach((pid) => {
         [pid].concat(Object.keys(units[pid].with || {})).forEach((x) => { if (state.people[x] && !sharing.includes(x)) sharing.push(x); });
       });
-      setHTML(row.querySelector(".who"), whoHTML(sharing, it, leftText));
+      setHTML(row.querySelector(".who"), whoHTML(sharing, it));
+      setNameText(row, it, leftText);
       const sharedWith = mineN ? Object.keys(units[me].with || {}).filter((p) => state.people[p] && p !== me) : [];
       const splitting = !open && mineN > 0 && (sharedWith.length > 0 || splitOpen.has(it.id));
       const splitBtn = row.querySelector('[data-act="split"]');
