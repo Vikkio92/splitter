@@ -515,7 +515,7 @@
     <div class="home-hero">
       <h1>Split the bill.<br><span>Accountant style.</span></h1>
       <button class="btn add primary" id="homeNew"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New bill</button>
-      <button class="btn add" id="homeJoin"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Join bill</button>
+      <button class="btn add dark" id="homeJoin"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Join bill</button>
     </div>
     <div class="home-list" id="homeList"></div>
     <p class="legal">Protected by reCAPTCHA. Google's <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Terms of Service</a> apply.</p>
@@ -546,13 +546,13 @@
 
   <section class="card edit" id="itemsCard">
     <div class="card-head"><h2 id="itemsHead">Food &amp; drinks</h2><span class="count" id="itemsCount"></span></div>
-    <div class="btn-row" id="modeSeg" data-admin><button class="btn add" data-mode="manual">Manual</button><button class="btn add" data-mode="scan">Scan receipt</button></div>
+    <div class="btn-row" id="modeSeg" data-admin><button class="btn add dark" data-mode="manual">Manual</button><button class="btn add dark" data-mode="scan">Scan receipt</button></div>
     <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
     <div id="items" data-sec="items"></div>
     <button class="btn add primary" id="scanBtn" hidden><svg class="i" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 9h8M8 12h8M8 15h5"/></svg>Scan receipt</button>
     <input type="file" id="scanFile" accept="image/*" hidden>
     <button class="btn add primary" id="addItem"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add new item</button>
-    <button class="btn add" id="previewReceipt" hidden>See my receipt</button>
+    <button class="btn add dark" id="previewReceipt" hidden>See my receipt</button>
   </section>
 
   <section class="card edit admin-card" id="paymentsCard">
@@ -560,8 +560,8 @@
     <p class="empty" id="paymentsEmpty">No payments yet.</p>
     <div id="payments" data-sec="payments"></div>
     <div class="btn-row" data-admin>
-      <button class="btn add" id="addPayment"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add payment</button>
-      <button class="btn add" id="paidAll"></button>
+      <button class="btn add primary" id="addPayment"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add payment</button>
+      <button class="btn add dark" id="paidAll"></button>
     </div>
   </section>
 
@@ -780,7 +780,8 @@
       };
       buttons.forEach((b) => {
         const btn = document.createElement("button");
-        btn.className = "btn " + (b.kind || "");
+        const kind = b.kind === "primary" && !/^(Add|New)\b/.test(b.label) ? "dark" : b.kind;   // green only for adding
+        btn.className = "btn " + (kind || "");
         btn.innerHTML = (b.icon || "") + esc(b.label);
         btn.addEventListener("click", () => {
           if (b.run) b.run();
@@ -1677,7 +1678,6 @@
     $("#modeSeg").hidden = !admin || chosen;
     document.querySelectorAll("#modeSeg [data-mode]").forEach((b) => { b.disabled = !admin; });
     $("#addItem").hidden = !picked() || (scan && !admin) || !chosen;
-    $("#addItem").classList.toggle("primary", !scan);
     $("#scanBtn").hidden = !scan || !admin;
     // People are confirmed once by the admin; after that nobody can be added, removed or renamed,
     // and only then does Food & drinks appear for the admin.
@@ -1954,10 +1954,10 @@
       });
       h += '<span class="sep"></span><span class="big">' + (net > 0 ? "To pay" : net < 0 ? "To receive" : "Balance") +
         '</span><span class="big">' + money(Math.abs(net)) + "</span></div>";
-      h += '<div class="actions"><button class="btn primary" data-act="shareReceipt">' + ICON.share + "Share receipt</button></div>";
+      h += '<div class="actions"><button class="btn dark" data-act="shareReceipt">' + ICON.share + "Share receipt</button></div>";
     }
     if (canAdmin()) {
-      h += '<div class="actions"><button class="btn" data-act="unlock">' + ICON.unlock + "Unlock</button>" +
+      h += '<div class="actions"><button class="btn dark" data-act="unlock">' + ICON.unlock + "Unlock</button>" +
         '<button class="btn danger" data-act="settle">' + (billId ? "Settle &amp; delete" : "Delete bill") + "</button></div>";
     }
     box.innerHTML = h;
@@ -2069,7 +2069,7 @@
         "<b>" + money(t.amt) + "</b></div>").join("");
     }
     const canLock = canAdmin() && !state.meta.locked, toFix = checks(r).filter((c) => c.ok === false).length;
-    h += '<div class="actions"><button class="btn' + (canLock ? "" : " primary") + '" data-act="share">' + ICON.share + "Summary</button>" +
+    h += '<div class="actions"><button class="btn dark" data-act="share">' + ICON.share + "Summary</button>" +
       (canLock ? '<button class="btn dark" data-act="lock">' + ICON.lock + "Lock bill" + (toFix ? " (" + toFix + " to fix)" : "") + "</button>" : "") + "</div>";
     box.innerHTML = h;
   }
