@@ -369,6 +369,8 @@
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322a35a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5 10 17l9-10'/%3E%3C/svg%3E") no-repeat 0 50% / 15px;
   }
   .btn.confirm { min-height: 36px; padding: 6px 14px; border-radius: 11px; font-size: 14px; background: var(--key); color: var(--on-key); }
+  /* while editing, Confirm sits right under the price box, the same size (the 24px × column + 5px gap to its right) */
+  .item:not(.locked) .btn.confirm { width: 90px; min-height: 44px; padding: 6px 4px; border-radius: 12px; margin: 0 29px 0 auto; }
   #addItem { margin-top: 20px; }
   .item.locked .chip { background: none; padding: 2px 6px 2px 0; font-size: 13px; }
 
@@ -430,6 +432,7 @@
 
   @media (max-width: 380px) {
     .item-row { grid-template-columns: 1fr 36px 84px 24px; }
+    .item:not(.locked) .btn.confirm { width: 84px; }
     body.scan .item-row { grid-template-columns: 32px 1fr 36px 84px 24px; }
     .payrow { grid-template-columns: 1fr 1fr 92px 28px; }
     .d-total { font-size: 48px; }
@@ -1815,6 +1818,8 @@
     const preview = loaded && !locked && receiptPreview && !canAdmin() && !!meId();
     document.body.classList.toggle("is-locked", locked);
     box.hidden = !locked && !preview;
+    if (preview) { if (box.previousElementSibling !== $("#itemsCard")) $("#itemsCard").after(box); }
+    else if (box.previousElementSibling !== $("#display")) $("#display").after(box);
     if (!locked && !preview) return;
     const r = last, who = receiptPerson();
     const admin = canAdmin(), me = myself();
