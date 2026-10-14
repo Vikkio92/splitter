@@ -1457,6 +1457,10 @@
     // Over-claimed items mean people's shares add up to more than the items; count what was claimed.
     const assignedC = scan ? Math.round(Object.values(raw).reduce((t, v) => t + v, 0)) : Math.round(total - unassignedWithService);
     const share = allocate(raw, assignedC);
+    // Each person's service charge; the odd penny from rounding their share stays with the food, so it
+    // never shows up as a "-£0.01 service" on a bill without service.
+    const svc = {};
+    Object.keys(raw).forEach((id) => { svc[id] = Math.round(raw[id] - base[id]); });
 
     const paid = {}, payLines = {}; people.forEach((p) => { paid[p.id] = 0; payLines[p.id] = []; });
     let paidTotal = 0;
@@ -1490,7 +1494,7 @@
     const billC = String(state.meta.billTotal).trim() === "" ? null : Math.round(num(state.meta.billTotal) * 100);
     return {
       people, subtotalC, serviceC: totalC - subtotalC, totalC, unassignedC: Math.round(unassignedWithService),
-      share, paid, payLines, paidTotal, net, transfers, lines, billC, assignedC, over, unclaimed,
+      share, svc, paid, payLines, paidTotal, net, transfers, lines, billC, assignedC, over, unclaimed,
     };
   }
 
@@ -1808,7 +1812,7 @@
         h += '<div class="banner settled"><div class="lead">' + (you ? "You're" : name + " is") + ' all square</div><div class="amt">' + money(0) + "</div>Nothing to pay or collect.</div>";
       }
 
-      const food = Math.round(r.lines[who].reduce((s, l) => s + l.amt, 0));
+      const food = r.share[who] - r.svc[who];
       h += '<div class="lines">' + r.lines[who].map((l) =>
         "<span>" + esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? ' <span class="muted">· split ' + l.n + " ways</span>" : "") +
         (l.ns ? ' <span class="muted">· no service</span>' : "") +
@@ -1816,7 +1820,7 @@
       if (!r.lines[who].length) h += '<span class="muted">No items</span><span></span>';
       h += '<span class="sep"></span>' +
         '<span class="muted">Food &amp; drinks</span><span>' + money(food) + "</span>" +
-        '<span class="muted">Service (' + esc(String(num(state.meta.service))) + "%)</span><span>" + money(r.share[who] - food) + "</span>" +
+        '<span class="muted">Service (' + esc(String(num(state.meta.service))) + "%)</span><span>" + money(r.svc[who]) + "</span>" +
         '<span class="strong">' + (you ? "Your share" : "Share") + '</span><span class="strong">' + money(r.share[who]) + "</span>";
       r.payLines[who].forEach((p) => {
         h += '<span class="muted">Already paid' + (p.note ? " · " + esc(p.note) : "") + "</span><span>−" + money(p.c) + "</span>";
@@ -1892,10 +1896,10 @@
         const label = esc(l.name) + (l.q !== 1 ? " ×" + l.q : "") + (l.n > 1 ? " · 1/" + l.n : "");
         return "<span>" + label + "</span><span>" + money(Math.round(l.amt)) + "</span>";
       }).join("");
-      const food = Math.round(r.lines[id].reduce((s, l) => s + l.amt, 0));
+      const food = r.share[id] - r.svc[id];
       bd += '<span class="sep"></span>' +
         "<span>Food &amp; drinks</span><span>" + money(food) + "</span>" +
-        "<span>+ service</span><span>" + money(r.share[id] - food) + "</span>" +
+        "<span>+ service</span><span>" + money(r.svc[id]) + "</span>" +
         "<span>− already paid</span><span>" + money(r.paid[id]) + "</span>";
       h += '<details class="person" data-p="' + id + '"' + (open.has(id) ? " open" : "") + "><summary>" + avatar(id) +
         '<div class="pinfo"><div class="pname">' + esc(personName(id)) + '</div><div class="pnet">' + status + "</div></div>" +
