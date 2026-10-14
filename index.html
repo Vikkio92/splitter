@@ -2314,7 +2314,18 @@
     if (dupe) return info("Two people are called " + dupe, "Use different names so everyone can find themselves.");
     const list = names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0];
     if (!(await ask("Confirm " + names.length + " people?", list + ".\n\nThis can't be changed later: nobody can be added, removed or renamed.", "Confirm"))) return;
-    write({ "meta/peopleLocked": true });
+    const p = { "meta/peopleLocked": true };
+    // A bill on this phone also needs to know which person you are, so items start as yours.
+    // (On a shared bill you've already picked your name at the top.)
+    if (!billId && !myself()) {
+      const me = await sheet({
+        title: "Which one is you?", text: "So your items are ticked to you and the app knows which receipt is yours.",
+        buttons: people.map((x) => ({ label: String(x.name || "").trim(), value: x.id })).concat([{ label: "Cancel", value: null }]),
+      });
+      if (!me) return;
+      p["meta/me"] = me;
+    }
+    write(p);
   });
   // The admin paid: one payment for whatever hasn't been paid yet.
   $("#paidAll").addEventListener("click", () => paidTheRest());
