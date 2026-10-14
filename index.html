@@ -364,7 +364,12 @@
   .item.locked { background: none; border-radius: 0; padding: 10px 2px; border-bottom: 1px solid var(--line); }
   .item.locked, .item + .item.locked { margin-top: 0; }
   .item.locked + .item:not(.locked) { margin-top: 10px; }
-  .item.locked .item-row { grid-template-columns: 1fr 40px 96px; }
+  .item.locked .item-row { grid-template-columns: minmax(0, 1fr) auto 28px 84px 24px; }
+  /* who had it: small initial bubbles (up to 3, then +N), plus short notes */
+  .item .who { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  .item .who .stack { display: flex; padding-left: 5px; }
+  .item .who .av { margin-left: -5px; box-shadow: 0 0 0 2px var(--surface); }
+  .item.locked .item-foot:not([hidden]) { margin-top: 4px; }
   .item.locked input { padding-top: 2px; padding-bottom: 2px; }
   .item.locked .name { text-overflow: ellipsis; }
   .item.locked .chips { margin-top: 2px; }
@@ -381,7 +386,13 @@
   .btn.edit { min-height: 34px; padding: 6px 14px; border-radius: 11px; font-size: 14px; }
   .item.locked .item-foot { justify-content: space-between; }
   .item.locked.ok { box-shadow: inset 3px 0 0 var(--owed); padding-left: 12px; }
-  .item.locked.ok .name:disabled { padding-left: 22px; background: var(--tick) no-repeat 0 50% / 15px; }
+  /* a confirmed item shows its name as text, which can wrap onto a second line instead of being cut off */
+  .item .name-text { display: none; }
+  .item.locked .name { display: none; }
+  .item.locked .name-text { display: block; font-weight: 600; line-height: 1.25; min-width: 0; }
+  .item.locked .name-text .nt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .item.locked .name-text small { display: block; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .item.locked.ok .name-text { padding-left: 22px; background: var(--tick) no-repeat 0 .2em / 15px; }
   .item.locked.unassigned { padding-left: 12px; }
   /* confirmed people: same bar and tick as a confirmed item */
   .prow.ok { box-shadow: inset 3px 0 0 var(--owed); padding: 6px 0 6px 12px; }
@@ -405,7 +416,7 @@
   .claim.on { background: var(--accent); border-color: var(--accent); }
   .claim:disabled { opacity: .3; cursor: default; }
   body.scan .item-row { grid-template-columns: 34px 1fr 38px 90px 24px; }
-  body.scan .item.locked .item-row { grid-template-columns: 34px 1fr 40px 96px; }
+  body.scan .item.locked .item-row { grid-template-columns: 34px minmax(0, 1fr) auto 28px 84px 24px; }
   .units-left { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
   .item.unassigned .units-left { color: var(--warn); }
   .item.locked .chips.pick .chip { display: inline-flex; background: var(--surface); padding: 4px 11px 4px 4px; font-size: 14px; border: 1.5px solid transparent; }
@@ -1689,13 +1700,14 @@
       () => el('<div class="item"><div class="item-row">' +
         '<button class="claim" data-act="claim"></button>' +
         '<input class="name" data-f="name" placeholder="What was it?" autocomplete="off" maxlength="60">' +
+        '<span class="name-text"></span><span class="who"></span>' +
         '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity" maxlength="6">' +
         '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"></label>' +
-        '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button></div>' +
+        '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button>' +
+        '<button class="icon-btn" data-act="editItem" aria-label="Edit">' + ICON.edit + "</button></div>" +
         '<div class="item-foot"><button class="btn split" data-act="split"></button><div class="chips"></div><span class="units-left"></span>' +
-        '<span class="ns-tag">No service</span><button class="btn nosvc" data-act="noService">No service</button>' +
-        '<button class="btn confirm" data-act="confirmItem">Confirm</button>' +
-        '<button class="btn edit" data-act="editItem">' + ICON.edit + "Edit</button></div></div>"),
+        '<button class="btn nosvc" data-act="noService">No service</button>' +
+        '<button class="btn confirm" data-act="confirmItem">Confirm</button></div></div>'),
       (row, it) => {
         const mine = canEditItem(it), open = mine && editing.has(it.id);
         row.querySelector(".cur").textContent = state.meta.currency;
@@ -1706,14 +1718,18 @@
         });
         row.querySelector('[data-act="delItem"]').hidden = !open;
         row.querySelector('[data-act="confirmItem"]').hidden = !open;
-        row.querySelector('[data-act="editItem"]').hidden = !mine || open;
+        // The pencil keeps its column on everyone's rows so prices line up, even where you can't edit.
+        const pencil = row.querySelector('[data-act="editItem"]');
+        pencil.hidden = open;
+        pencil.style.visibility = mine ? "" : "hidden";
+        row.querySelector(".who").hidden = open;
+        setHTML(row.querySelector(".name-text"), '<span class="nt">' + esc(String(it.name || "").trim() || "Item") + "</span>" + (it.noService ? "<small>No service</small>" : ""));
         row.classList.toggle("locked", !open);
         // Only worth showing when there is a service charge (or the item is already marked).
         const svcSwitch = row.querySelector('[data-act="noService"]');
         svcSwitch.hidden = !open || (!it.noService && !(num(state.meta.service) > 0));
         svcSwitch.classList.toggle("on", !!it.noService);
         setHTML(svcSwitch, (it.noService ? '<span class="tk"></span>' : "") + "No service");
-        row.querySelector(".ns-tag").hidden = open || !it.noService;
         row.querySelector('[data-act="claim"]').hidden = !scan;
         if (scan) return updateScanItem(row, it, open);
         row.querySelector(".units-left").textContent = "";
@@ -1737,7 +1753,18 @@
           : (splitting ? "Done" : assigned.length ? "Who had it: " + assigned.map(personName).join(", ") : "Who had it?");
         row.classList.toggle("solo", simple && !splitting);
         row.classList.toggle("splitting", simple && splitting);
+        setHTML(row.querySelector(".who"), whoHTML(assigned, it));
+        row.querySelector(".item-foot").hidden = !open;
       });
+
+    // Who had it, as initial bubbles: up to 3, then "+2". Then short notes like "1 left" or "No service".
+    function whoHTML(ids, it, extra) {
+      const shown = ids.length > 3 ? ids.slice(0, 2) : ids;
+      const stack = ids.length ? '<span class="stack">' + shown.map((p) => avatar(p, true)).join("") + "</span>" +
+        (ids.length > shown.length ? "<span>+" + (ids.length - shown.length) + "</span>" : "") : "";
+      const notes = extra ? "<span>" + esc(extra) + "</span>" : "";
+      return stack + notes;
+    }
 
     // Scan mode: the box claims units of the item; the foot shows who has claimed what and what's left.
     function updateScanItem(row, it, open) {
@@ -1750,7 +1777,14 @@
       box.setAttribute("aria-label", mineN ? "You had " + mineN + ", tap to change" : "Tap if you had this");
       row.classList.toggle("ok", !open && price(it.price) > 0 && q > 0 && claimed === q);
       row.classList.toggle("unassigned", claimed > q);
-      row.querySelector(".units-left").textContent = claimed > q ? claimed - q + " too many" : q > 1 && left > 0 ? left + " left" : "";
+      const leftText = claimed > q ? claimed - q + " too many" : q > 1 && left > 0 ? left + " left" : "";
+      row.querySelector(".units-left").textContent = open ? leftText : "";
+      // everyone who has a share: the claimers and whoever they're splitting with
+      const sharing = [];
+      Object.keys(units).filter((pid) => state.people[pid] && units[pid].n > 0).forEach((pid) => {
+        [pid].concat(Object.keys(units[pid].with || {})).forEach((x) => { if (state.people[x] && !sharing.includes(x)) sharing.push(x); });
+      });
+      setHTML(row.querySelector(".who"), whoHTML(sharing, it, leftText));
       const sharedWith = mineN ? Object.keys(units[me].with || {}).filter((p) => state.people[p] && p !== me) : [];
       const splitting = !open && mineN > 0 && (sharedWith.length > 0 || splitOpen.has(it.id));
       const splitBtn = row.querySelector('[data-act="split"]');
@@ -1770,14 +1804,10 @@
       } else if (splitting) {   // who you're sharing your claim with
         h = people.filter((p) => p.id !== me).map((p) => '<button class="chip' + (sharedWith.includes(p.id) ? " on" : "") + '" data-act="with" data-p="' + p.id + '">' +
           avatar(p.id, true) + esc(personName(p.id)) + "</button>").join("");
-      } else {                  // who has claimed it so far
-        h = Object.keys(units).filter((pid) => state.people[pid] && units[pid].n > 0).map((pid) => {
-          const w = Object.keys(units[pid].with || {}).filter((x) => state.people[x] && x !== pid);
-          return '<button class="chip on" disabled>' + avatar(pid, true) + (pid === me ? "You" : esc(personName(pid))) + (q > 1 ? " ×" + units[pid].n : "") +
-            (w.length ? " with " + w.map((x) => (x === me ? "you" : esc(personName(x)))).join(", ") : "") + "</button>";
-        }).join("");
-      }
+      } else h = "";        // who has claimed it is in the row itself
       setHTML(chips, h);
+      // A second line only for editing, or for splitting what you claimed.
+      row.querySelector(".item-foot").hidden = !open && splitBtn.hidden && !splitting;
     }
 
     const opts = personOptions(people);
