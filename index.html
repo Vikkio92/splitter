@@ -109,7 +109,12 @@
     --shadow: none;
   }
 
+  :root { --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322a35a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5 10 17l9-10'/%3E%3C/svg%3E"); --bang: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e09a2b' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M12 5v9M12 19v.01'/%3E%3C/svg%3E"); }
   * { box-sizing: border-box; }
+  /* the shared marks: .tk (green tick) and .bang (amber !) as inline icons */
+  .tk, .bang { display: inline-block; width: 15px; height: 15px; flex: none; background: var(--tick) no-repeat center / 15px; vertical-align: -2px; }
+  .bang { background-image: var(--bang); }
+  .btn .tk { margin-right: -2px; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
@@ -271,7 +276,7 @@
   .chip.on .av { opacity: 1; }
   .chip.all { padding: 4px 11px; color: var(--muted); font-weight: 600; }
   .chip:disabled { cursor: default; }
-  .item.unassigned { box-shadow: inset 0 0 0 1.5px var(--warn); }
+  .item.unassigned { box-shadow: inset 3px 0 0 var(--warn); }
   .item.locked .chip:not(.on) { display: none; }
   .item.locked .chip.on { border-color: transparent; }
   .item.locked .qty:placeholder-shown { visibility: hidden; }
@@ -332,16 +337,17 @@
   .btn-row .btn.add { margin-top: 0; flex: 1 1 0; min-width: 0; padding-left: 10px; padding-right: 10px; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .btn-row .btn.add svg { vertical-align: -3px; margin-right: 6px; }
   /* the checklist: bill total vs items vs payments, live */
-  #checks { padding: 8px 10px; }
-  .check { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 4px 8px; width: 100%; padding: 9px 6px; text-align: left; border-radius: 12px; }
-  .check + .check { border-top: 1px solid var(--line); border-radius: 0; }
-  .check .ci { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 13px/1 var(--display-font); background: var(--warn-bg); color: var(--warn); }
-  .check.ok .ci { background: var(--owed-bg); color: var(--owed); }
-  .check.na .ci { background: var(--surface-2); color: var(--muted); }
+  .check { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; width: 100%; padding: 10px 2px 10px 12px; text-align: left; }
+  .check + .check { border-top: 1px solid var(--line); }
+  .check.ok { box-shadow: inset 3px 0 0 var(--owed); }
+  .check.bad { box-shadow: inset 3px 0 0 var(--warn); }
+  .check .cl { padding-left: 22px; }
+  .check.ok .cl { background: var(--tick) no-repeat 0 50% / 15px; }
+  .check.bad .cl { background: var(--bang) no-repeat 0 50% / 15px; }
   .check .cl { font-weight: 600; font-size: 15px; }
   .check .cv { text-align: right; font: 600 15px var(--display-font); font-variant-numeric: tabular-nums; }
   .check .cv small { display: block; font: 600 12px var(--font); color: var(--warn); }
-  .check .cact { grid-column: 2 / -1; justify-self: end; }
+  .check .cact { grid-column: 1 / -1; justify-self: end; }
   .check .cact .btn { min-height: 32px; padding: 5px 12px; font-size: 13px; }
   #checks.flash { animation: flash .9s ease 2; }
   @keyframes flash { 50% { box-shadow: 0 0 0 3px var(--warn); } }
@@ -375,10 +381,12 @@
   .btn.edit { min-height: 34px; padding: 6px 14px; border-radius: 11px; font-size: 14px; }
   .item.locked .item-foot { justify-content: space-between; }
   .item.locked.ok { box-shadow: inset 3px 0 0 var(--owed); padding-left: 12px; }
-  .item.locked.ok .name:disabled {
-    padding-left: 22px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322a35a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5 10 17l9-10'/%3E%3C/svg%3E") no-repeat 0 50% / 15px;
-  }
+  .item.locked.ok .name:disabled { padding-left: 22px; background: var(--tick) no-repeat 0 50% / 15px; }
+  .item.locked.unassigned { padding-left: 12px; }
+  /* confirmed people: same bar and tick as a confirmed item */
+  .prow.ok { box-shadow: inset 3px 0 0 var(--owed); padding: 6px 0 6px 12px; }
+  .prow.ok + .prow.ok { margin-top: 0; border-top: 1px solid var(--line); }
+  .prow.ok input:disabled { padding-left: 22px; background: var(--tick) no-repeat 0 50% / 15px; }
   .btn.confirm { min-height: 36px; padding: 6px 14px; border-radius: 11px; font-size: 14px; background: var(--key); color: var(--on-key); }
   /* while editing, Confirm sits right under the price box, the same size (the 24px × column + 5px gap to its right) */
   .item:not(.locked) .btn.confirm { width: 90px; min-height: 44px; padding: 6px 4px; border-radius: 12px; margin: 0 29px 0 auto; }
@@ -408,7 +416,6 @@
   body.scan .item-foot .units-left:empty, body.scan .item-foot .chips:empty { display: none; }
   body.scan .item-foot .chips:empty + .units-left { flex-basis: 100%; }
   body.scan .item-foot .edit { margin-left: auto; }
-  body.scan .item.locked.ok .name:disabled { padding-left: 0; background: none; }   /* the green bar says it all */
   .btn.nosvc { min-height: 30px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: none; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
   .btn.nosvc.on { color: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
   .ns-tag { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
@@ -487,8 +494,6 @@
 
   <section class="display" id="display"></section>
 
-  <section class="card" id="checks" hidden></section>
-
   <section class="card" id="receipt" hidden></section>
 
   <section class="card edit admin-card" data-sec="meta" id="billCard">
@@ -530,6 +535,8 @@
       <button class="btn add" id="paidAll"></button>
     </div>
   </section>
+
+  <section class="card" id="checks" hidden></section>
 
   <section class="card" id="results"></section>
 </main>
@@ -1580,7 +1587,7 @@
   // The same button text everywhere someone's pay links are shown.
   function payLinksLabel(pid) {
     const apps = payApps(pid);
-    return apps ? "✓ " + (apps.includes("&") ? "Both" : apps) : "Pay links";
+    return apps ? '<span class="tk"></span>' + (apps.includes("&") ? "Both" : apps) : "Pay links";
   }
 
   function renderBar() {
@@ -1603,7 +1610,7 @@
     const mine = meId(), apps = mine ? payApps(mine) : "";
     $("#myMonzo").hidden = !mine;
     $("#myMonzo").classList.toggle("on", !!apps);
-    $("#myMonzo").textContent = mine ? payLinksLabel(mine) : "";
+    setHTML($("#myMonzo"), mine ? payLinksLabel(mine) : "");
     if (code) $("#codePill").textContent = formatCode(code);
   }
 
@@ -1635,8 +1642,7 @@
     $("#itemsCard").hidden = isAdmin && !peopleLocked;
     $("#peopleEmpty").hidden = people.length > 0;
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") + (peopleLocked ? " · confirmed" : "") : "";
-    const me0 = myself();
-    $("#paidAll").textContent = me0 ? personName(me0) + " paid the rest" : "Paid the rest";
+    $("#paidAll").textContent = "Pay the rest";
     const myPerson = meId(), myRow = myself();
     const shown = guest && !scan
       ? items.filter((it) => (it.createdBy && it.createdBy === authUid) || (myPerson && (it.people || {})[myPerson]))
@@ -1660,13 +1666,14 @@
         const input = row.querySelector("input");
         setVal(input, p.name);
         input.disabled = !admin || peopleLocked;
+        row.classList.toggle("ok", peopleLocked);
         const by = claimedBy(p.id);
         row.querySelector('[data-act="unlink"]').hidden = !admin || !by || by === authUid;
         const mz = row.querySelector('[data-act="monzo"]');
         mz.hidden = !admin;
         const apps = payApps(p.id);
         mz.classList.toggle("on", !!apps);
-        mz.textContent = payLinksLabel(p.id);
+        setHTML(mz, payLinksLabel(p.id));
         row.lastChild.hidden = !admin || peopleLocked;
       });
 
@@ -1675,7 +1682,7 @@
       const all = people.length > 1 && people.every((p) => on[p.id]);
       return people.map((p) => '<button class="chip' + (on[p.id] ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '"' + dis + ">" +
         avatar(p.id, true) + esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
-        (people.length > 1 && !dis ? '<button class="chip all" data-act="all">' + (all ? "None" : "Everyone") + "</button>" : "");
+        (people.length > 1 && !dis && !all ? '<button class="chip all" data-act="all">Everyone</button>' : "");
     };
     $("#itemsEmpty").hidden = shown.length > 0;
     syncList($("#items"), shown,
@@ -1705,7 +1712,7 @@
         const svcSwitch = row.querySelector('[data-act="noService"]');
         svcSwitch.hidden = !open || (!it.noService && !(num(state.meta.service) > 0));
         svcSwitch.classList.toggle("on", !!it.noService);
-        svcSwitch.textContent = it.noService ? "✓ No service" : "No service";
+        setHTML(svcSwitch, (it.noService ? '<span class="tk"></span>' : "") + "No service");
         row.querySelector(".ns-tag").hidden = open || !it.noService;
         row.querySelector('[data-act="claim"]').hidden = !scan;
         if (scan) return updateScanItem(row, it, open);
@@ -1923,18 +1930,21 @@
       Object.assign(items, { ok: false, note: d > 0 ? money(d) + " still to add" : money(-d) + " too much" });
     }
     out.push(items);
-    const who = { key: "items", label: scan ? "Claimed" : "Assigned" };
-    if (!r.totalC) Object.assign(who, { ok: null, value: "–" });
-    else if (r.over.length) Object.assign(who, { ok: false, value: r.over.length + " over", note: "claimed more than ordered" });
-    else if (r.unassignedC) Object.assign(who, { ok: false, value: money(r.unassignedC), note: scan ? "not claimed yet" : "not assigned yet" });
-    else Object.assign(who, { ok: true, value: scan ? "Everything" : "Everything" });
-    out.push(who);
+    // In scan mode people claim items themselves, so whether everything's been claimed is worth tracking.
+    if (scan) {
+      const who = { key: "items", label: "Claimed" };
+      if (!r.totalC) Object.assign(who, { ok: null, value: "–" });
+      else if (r.over.length) Object.assign(who, { ok: false, value: r.over.length + " over", note: "claimed more than ordered" });
+      else if (r.unassignedC) Object.assign(who, { ok: false, value: money(r.unassignedC), note: "not claimed yet" });
+      else Object.assign(who, { ok: true, value: "Everything" });
+      out.push(who);
+    }
     // Payments cover what the receipt says (once it's typed in), even while items are still being added.
     const target = r.billC !== null ? r.billC : r.totalC, rem = target - r.paidTotal, me = myself();
     const paid = { key: "paid", label: "Paid", value: money(r.paidTotal) };
     if (!target) paid.ok = null;
     else if (rem === 0) paid.ok = true;
-    else if (rem > 0) Object.assign(paid, { ok: false, note: money(rem) + " to go", action: admin && { act: "paidRest", label: me ? personName(me) + " paid the rest" : "Paid the rest" } });
+    else if (rem > 0) Object.assign(paid, { ok: false, note: money(rem) + " to go", action: admin && { act: "paidRest", label: "Pay the rest" } });
     else Object.assign(paid, { ok: false, note: money(-rem) + " too much" });
     out.push(paid);
     return out;
@@ -1943,9 +1953,9 @@
     const box = $("#checks");
     box.hidden = !loaded || !!state.meta.locked;
     if (box.hidden) return;
-    setHTML(box, checks(last).map((c) =>
+    const list = checks(last), toFix = list.filter((c) => c.ok === false).length;
+    setHTML(box, '<div class="card-head"><h2>Checklist</h2><span class="count">' + (toFix ? toFix + " to fix" : "All good") + "</span></div>" + list.map((c) =>
       '<div class="check ' + (c.ok === true ? "ok" : c.ok === null ? "na" : "bad") + '" data-go="' + c.key + '" role="button" tabindex="0">' +
-      '<span class="ci">' + (c.ok === true ? "✓" : c.ok === null ? "–" : "!") + "</span>" +
       '<span class="cl">' + esc(c.label) + "</span>" +
       '<span class="cv">' + esc(c.value) + (c.note ? "<small>" + esc(c.note) + "</small>" : "") + "</span>" +
       (c.action ? '<span class="cact"><button class="btn small dark" data-act="' + c.action.act + '">' + esc(c.action.label) + "</button></span>" : "") +
@@ -2112,14 +2122,17 @@
         toast("Saved to the bill");
         return render();
       case "toggle": {
-        const pid = b.dataset.p, on = (state.items[id].people || {})[pid];
+        const pid = b.dataset.p, who = state.items[id].people || {}, on = who[pid];
+        // Every item belongs to someone: the last person can only be unticked once someone else is ticked.
+        if (on && !Object.keys(who).some((p) => p !== pid && state.people[p])) return toast("Tick who else had it first");
         return write({ ["items/" + id + "/people/" + pid]: on ? null : true });
       }
       case "all": {
         const on = state.items[id].people || {};
         const all = Object.keys(state.people).every((p) => on[p]);
         const map = {}; Object.keys(state.people).forEach((p) => { map[p] = true; });
-        return write({ ["items/" + id + "/people"]: all ? null : map });
+        if (all) return;
+        return write({ ["items/" + id + "/people"]: map });
       }
       case "delItem": {
         const it = state.items[id];
@@ -2228,7 +2241,8 @@
     // A bill that's only on this phone doesn't know who you are yet: ask once, so items default to you.
     if (!billId && !scanMode() && !myself() && Object.keys(state.people).length) {
       const me = await askWhoYouAre();
-      if (me) write({ "meta/me": me });
+      if (!me) return;   // every item starts as someone's, so we need to know whose
+      write({ "meta/me": me });
     }
     const me = myself(), prevWho = prev ? Object.keys(prev.people || {}) : [];
     const item = { name: "", price: "", qty: "", order: Date.now() };
@@ -2256,19 +2270,17 @@
   // The admin paid: one payment for whatever hasn't been paid yet.
   $("#paidAll").addEventListener("click", () => paidTheRest());
   async function paidTheRest() {
-    let me = myself();
-    if (!me) {
-      if (billId) return toast("Pick who you are first, at the top");
-      me = await askWhoYouAre();
-      if (!me) return;
-      write({ "meta/me": me });
-    }
     const r = compute(), target = r.billC !== null ? r.billC : r.totalC, rem = target - r.paidTotal;
     if (!target) return info("Nothing to pay yet", "Type the bill total, or add the items first.");
     if (rem <= 0) return info("Already fully paid", "Payments already cover the total of " + money(target) + ".");
-    if (!(await ask(personName(me) + " paid " + money(rem) + "?", r.paidTotal ? "That's what's left after the payments already added." : "The whole bill.", "Add payment"))) return;
-    write({ ["payments/" + uid()]: { personId: me, amount: (rem / 100).toFixed(2), note: r.paidTotal ? "The rest" : "Whole bill", order: Date.now() } });
+    const who = await sheet({
+      title: "Who paid the rest?", text: money(rem) + (r.paidTotal ? ", what's left after the payments already added." : ", the whole bill."),
+      buttons: sorted(state.people).map((p) => ({ label: personName(p.id), value: p.id })).concat([{ label: "Cancel", value: null }]),
+    });
+    if (!who) return;
+    write({ ["payments/" + uid()]: { personId: who, amount: (rem / 100).toFixed(2), note: r.paidTotal ? "The rest" : "Whole bill", order: Date.now() } });
   }
+
   $("#checks").addEventListener("click", (e) => {
     const row = e.target.closest("[data-go]");
     if (!row || e.target.closest("[data-act]")) return;
