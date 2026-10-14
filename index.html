@@ -331,7 +331,6 @@
   .btn-row { display: flex; gap: 8px; margin-top: 12px; }
   .btn-row .btn.add { margin-top: 0; flex: 1 1 0; min-width: 0; padding-left: 10px; padding-right: 10px; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .btn-row .btn.add svg { vertical-align: -3px; margin-right: 6px; }
-  .btn-row .btn.add.dark { flex: 0 0 auto; width: auto; padding-left: 22px; padding-right: 22px; }
   /* the bill total needs filling in (or doesn't match the items yet) */
   .tile.needs { background: var(--warn-bg); box-shadow: inset 0 0 0 1.5px var(--warn); }
   .tile.needs span { color: var(--warn); }
@@ -2116,7 +2115,8 @@
         if (r.unassignedC) return scanMode()
           ? info("Not everything is claimed", "Still to claim: " + r.unclaimed.join(", ") + ".")
           : info("Unassigned items", "Some items aren't assigned to anyone yet. Tick who had them first.");
-        if (r.billC === null) {
+        let billC = r.billC, confirmed = false;
+        if (billC === null) {
           const set = await sheet({
             title: "Enter the bill total", text: "Type the total printed on the bill (under Bill) so it can be checked against the items.",
             buttons: [{ label: "Got it", value: false }, { label: "Set bill = total", value: true, kind: "primary" }],
@@ -2125,11 +2125,12 @@
           if (!(await ask("Set the bill total to " + money(r.totalC) + "?",
             "Only if you've checked the bill says exactly " + money(r.totalC) + ". Comparing the two is how the app catches a missing or mistyped item.",
             "Yes, the bill says " + money(r.totalC)))) return;
-          return write({ "meta/billTotal": (r.totalC / 100).toFixed(2) });
+          write({ "meta/billTotal": (r.totalC / 100).toFixed(2) });
+          billC = r.totalC; confirmed = true;   // and carry on locking: no need to tap Lock again
         }
-        if (r.billC !== r.totalC) {
-          const d = r.billC - r.totalC;
-          return info("Totals don't match", "The bill says " + money(r.billC) + " but items + service come to " + money(r.totalC) + " (" +
+        if (billC !== r.totalC) {
+          const d = billC - r.totalC;
+          return info("Totals don't match", "The bill says " + money(billC) + " but items + service come to " + money(r.totalC) + " (" +
             (d > 0 ? money(d) + " missing" : money(-d) + " too much") + "). Fix the items or service % so they match.");
         }
         if (rem > 0) return info("Not fully paid", money(rem) + " hasn't been paid by anyone yet. Record who paid the bill with the “paid the rest” button.");
@@ -2143,7 +2144,8 @@
           if (!me) return;
           write({ "meta/me": me });
         }
-        if (!(await ask("Lock the bill?", msg, "Lock bill", "dark"))) return;
+        // Just confirmed the total? Lock straight away, unless there's something worth pointing out first.
+        if (!(confirmed && !idle.length) && !(await ask("Lock the bill?", msg, "Lock bill", "dark"))) return;
         receiptWho = null;
         return write({ "meta/locked": true });
       }
