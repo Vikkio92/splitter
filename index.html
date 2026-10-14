@@ -1358,6 +1358,9 @@
   async function shareLink() {
     if (!window.FIREBASE_CONFIG) return info("Sharing isn't set up", "Add your Firebase settings to firebase-config.js (see README).");
     if (!billId) {
+      // Friends join a bill that's ready: everyone at the table confirmed, and Manual or Scan chosen.
+      if (!state.meta.peopleLocked) return info("Confirm the people first", "Add everyone at the table under People, then tap Confirm. After that you can share the bill.");
+      if (!modeChosen()) return info("Choose how to add the items first", "Under Food & drinks, choose Manual or Scan receipt. After that you can share the bill.");
       if (!String(state.meta.name || "").trim()) {
         const name = await sheet({
           title: "Name this bill", text: "It's how everyone finds it in their list of bills.",
