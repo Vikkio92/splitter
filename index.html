@@ -1592,6 +1592,25 @@
   function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
   function setVal(input, v) { v = v == null ? "" : String(v); if (document.activeElement !== input && input.value !== v) input.value = v; }
   function setHTML(node, html) { if (node._html !== html) { node.innerHTML = html; node._html = html; } }
+  // Item boxes are built from nodes, not HTML strings: iPhone Safari showed one item's names and
+  // bubbles inside another item's box when they were written as near-identical HTML.
+  function mk(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function avatarNode(pid) {
+    const n = mk("span", "av sm", (personName(pid)[0] || "?").toUpperCase());
+    n.style.setProperty("--c", colorOf(pid));
+    return n;
+  }
+  function chipNode(pid, act, label, on, disabled) {
+    const b = mk("button", "chip" + (on ? " on" : ""));
+    b.dataset.act = act; b.dataset.p = pid; b.disabled = !!disabled;
+    b.append(avatarNode(pid), label);
+    return b;
+  }
   function syncList(box, list, make, update) {
     const existing = new Map(Array.from(box.children, (c) => [c.dataset.id, c]));
     let prev = null;
@@ -1635,9 +1654,9 @@
   }
 
   // The same button text everywhere someone's pay links are shown.
-  function payLinksLabel(pid) {
-    const apps = payApps(pid);
-    return apps ? '<span class="tk"></span>' + (apps.includes("&") ? "Both" : apps) : "Pay links";
+  function setPayLabel(btn, pid) {
+    const apps = pid ? payApps(pid) : "";
+    btn.replaceChildren(...(apps ? [mk("span", "tk"), apps.includes("&") ? "Both" : apps] : [pid ? "Pay links" : ""]));
   }
 
   function renderBar() {
@@ -1660,7 +1679,7 @@
     const mine = meId(), apps = mine ? payApps(mine) : "";
     $("#myMonzo").hidden = !mine;
     $("#myMonzo").classList.toggle("on", !!apps);
-    setHTML($("#myMonzo"), mine ? payLinksLabel(mine) : "");
+    setPayLabel($("#myMonzo"), mine);
     if (code) $("#codePill").textContent = formatCode(code);
   }
 
@@ -1719,7 +1738,7 @@
       (row, p) => {
         const av = row.querySelector(".av");
         av.style.setProperty("--c", colorOf(p.id));
-        setHTML(av, initial(p.id));
+        av.textContent = (personName(p.id)[0] || "?").toUpperCase();
         const input = row.querySelector("input");
         setVal(input, p.name);
         input.disabled = !admin || peopleLocked;
@@ -1730,7 +1749,7 @@
         mz.hidden = !admin;
         const apps = payApps(p.id);
         mz.classList.toggle("on", !!apps);
-        setHTML(mz, payLinksLabel(p.id));
+        setPayLabel(mz, p.id);
         row.lastChild.hidden = !admin || peopleLocked;
       });
 
@@ -1743,16 +1762,9 @@
       const key = people.map((p) => p.id + ":" + personName(p.id)).join("|");
       if (box.dataset.key !== key || box.querySelector('[data-act="unit"], [data-act="with"]')) {
         box.textContent = "";
-        people.forEach((p) => {
-          const b = document.createElement("button");
-          b.className = "chip"; b.dataset.act = "toggle"; b.dataset.p = p.id;
-          const av = document.createElement("span");
-          av.className = "av sm"; av.style.setProperty("--c", colorOf(p.id)); av.textContent = (personName(p.id)[0] || "?").toUpperCase();
-          b.append(av, personName(p.id));
-          box.appendChild(b);
-        });
-        const every = document.createElement("button");
-        every.className = "chip all"; every.dataset.act = "all"; every.textContent = "Everyone";
+        people.forEach((p) => box.appendChild(chipNode(p.id, "toggle", personName(p.id))));
+        const every = mk("button", "chip all", "Everyone");
+        every.dataset.act = "all";
         box.appendChild(every);
         box.dataset.key = key; box._html = null;
       }
@@ -1794,7 +1806,7 @@
         const svcSwitch = row.querySelector('[data-act="noService"]');
         svcSwitch.hidden = !open || (!it.noService && !(num(state.meta.service) > 0));
         svcSwitch.classList.toggle("on", !!it.noService);
-        setHTML(svcSwitch, (it.noService ? '<span class="tk"></span>' : "") + "No service");
+        svcSwitch.replaceChildren(...(it.noService ? [mk("span", "tk")] : []), "No service");
         row.querySelector('[data-act="claim"]').hidden = !scan;
         if (scan) return updateScanItem(row, it, open);
         // While editing, show what each person will pay for it (the bill only counts it once it's confirmed).
@@ -1822,21 +1834,25 @@
           : (splitting ? "Done" : assigned.length ? "Who had it: " + assigned.map(personName).join(", ") : "Who had it?");
         row.classList.toggle("solo", simple && !splitting);
         row.classList.toggle("splitting", simple && splitting);
-        setHTML(row.querySelector(".who"), whoHTML(assigned, it));
+        setWho(row.querySelector(".who"), assigned);
         row.querySelector(".item-foot").hidden = !open;
       });
 
     // A confirmed item's name, with short notes underneath ("2 left", "No service").
     function setNameText(row, it, extra) {
       const notes = [qty(it.qty) > 1 ? "×" + qty(it.qty) : "", extra, it.noService ? "No service" : ""].filter(Boolean).join(" · ");
-      setHTML(row.querySelector(".name-text"), '<span class="nt">' + esc(String(it.name || "").trim() || "Item") + "</span>" + (notes ? "<small>" + esc(notes) + "</small>" : ""));
+      row.querySelector(".name-text").replaceChildren(mk("span", "nt", String(it.name || "").trim() || "Item"), ...(notes ? [mk("small", null, notes)] : []));
     }
     // Who had it, as initial bubbles: up to 3, then "+2".
-    function whoHTML(ids) {
-      const shown = ids.length > 3 ? ids.slice(0, 2) : ids;
-      const stack = ids.length ? '<span class="stack">' + shown.map((p) => avatar(p, true)).join("") + "</span>" +
-        (ids.length > shown.length ? "<span>+" + (ids.length - shown.length) + "</span>" : "") : "";
-      return stack;
+    function setWho(box, ids) {
+      const shown = ids.length > 3 ? ids.slice(0, 2) : ids, kids = [];
+      if (ids.length) {
+        const stack = mk("span", "stack");
+        stack.append(...shown.map(avatarNode));
+        kids.push(stack);
+        if (ids.length > shown.length) kids.push(mk("span", null, "+" + (ids.length - shown.length)));
+      }
+      box.replaceChildren(...kids);
     }
 
     // Scan mode: the box claims units of the item; the foot shows who has claimed what and what's left.
@@ -1857,7 +1873,7 @@
       Object.keys(units).filter((pid) => state.people[pid] && units[pid].n > 0).forEach((pid) => {
         [pid].concat(Object.keys(units[pid].with || {})).forEach((x) => { if (state.people[x] && !sharing.includes(x)) sharing.push(x); });
       });
-      setHTML(row.querySelector(".who"), whoHTML(sharing, it));
+      setWho(row.querySelector(".who"), sharing);
       setNameText(row, it, leftText);
       const sharedWith = mineN ? Object.keys(units[me].with || {}).filter((p) => state.people[p] && p !== me) : [];
       const splitting = !open && mineN > 0 && (sharedWith.length > 0 || splitOpen.has(it.id));
@@ -1868,18 +1884,17 @@
       row.classList.toggle("splitting", splitting);
       const chips = row.querySelector(".chips");
       chips.classList.toggle("pick", splitting);
-      let h;
+      let kids = [];
       if (open) {          // the admin, editing: tap a name to give them one more (cycles back to none)
-        h = people.map((p) => {
+        kids = people.map((p) => {
           const n = units[p.id] && units[p.id].n > 0 ? units[p.id].n : 0;
-          return '<button class="chip' + (n ? " on" : "") + '" data-act="unit" data-p="' + p.id + '">' + avatar(p.id, true) +
-            esc(personName(p.id)) + (n && q > 1 ? " ×" + n : "") + "</button>";
-        }).join("");
+          return chipNode(p.id, "unit", personName(p.id) + (n && q > 1 ? " ×" + n : ""), n > 0);
+        });
       } else if (splitting) {   // who you're sharing your claim with
-        h = people.filter((p) => p.id !== me).map((p) => '<button class="chip' + (sharedWith.includes(p.id) ? " on" : "") + '" data-act="with" data-p="' + p.id + '">' +
-          avatar(p.id, true) + esc(personName(p.id)) + "</button>").join("");
-      } else h = "";        // who has claimed it is in the row itself
-      setHTML(chips, h);
+        kids = people.filter((p) => p.id !== me).map((p) => chipNode(p.id, "with", personName(p.id), sharedWith.includes(p.id)));
+      }                    // otherwise: who has claimed it is in the row itself
+      chips.replaceChildren(...kids);
+      chips.dataset.key = "";   // manual-mode buttons get rebuilt if this box is reused
       // A second line only for editing, or for splitting what you claimed.
       row.querySelector(".item-foot").hidden = !open && splitBtn.hidden && !splitting;
     }
