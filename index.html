@@ -331,9 +331,20 @@
   .btn-row { display: flex; gap: 8px; margin-top: 12px; }
   .btn-row .btn.add { margin-top: 0; flex: 1 1 0; min-width: 0; padding-left: 10px; padding-right: 10px; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .btn-row .btn.add svg { vertical-align: -3px; margin-right: 6px; }
-  /* the bill total needs filling in (or doesn't match the items yet) */
-  .tile.needs { background: var(--warn-bg); box-shadow: inset 0 0 0 1.5px var(--warn); }
-  .tile.needs span { color: var(--warn); }
+  /* the checklist: bill total vs items vs payments, live */
+  #checks { padding: 8px 10px; }
+  .check { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 4px 8px; width: 100%; padding: 9px 6px; text-align: left; border-radius: 12px; }
+  .check + .check { border-top: 1px solid var(--line); border-radius: 0; }
+  .check .ci { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 13px/1 var(--display-font); background: var(--warn-bg); color: var(--warn); }
+  .check.ok .ci { background: var(--owed-bg); color: var(--owed); }
+  .check.na .ci { background: var(--surface-2); color: var(--muted); }
+  .check .cl { font-weight: 600; font-size: 15px; }
+  .check .cv { text-align: right; font: 600 15px var(--display-font); font-variant-numeric: tabular-nums; }
+  .check .cv small { display: block; font: 600 12px var(--font); color: var(--warn); }
+  .check .cact { grid-column: 2 / -1; justify-self: end; }
+  .check .cact .btn { min-height: 32px; padding: 5px 12px; font-size: 13px; }
+  #checks.flash { animation: flash .9s ease 2; }
+  @keyframes flash { 50% { box-shadow: 0 0 0 3px var(--warn); } }
   #modeSeg { margin: 0 0 14px; background: var(--surface-2); }
   #modeSeg button.on { background: var(--key); color: var(--on-key); }
   #previewReceipt { margin-top: 8px; }
@@ -476,6 +487,8 @@
 
   <section class="display" id="display"></section>
 
+  <section class="card" id="checks" hidden></section>
+
   <section class="card" id="receipt" hidden></section>
 
   <section class="card edit admin-card" data-sec="meta" id="billCard">
@@ -508,7 +521,7 @@
     <button class="btn add" id="previewReceipt" hidden>See my receipt</button>
   </section>
 
-  <section class="card edit admin-card">
+  <section class="card edit admin-card" id="paymentsCard">
     <div class="card-head"><h2>Payments</h2></div>
     <p class="empty" id="paymentsEmpty">No payments yet.</p>
     <div id="payments" data-sec="payments"></div>
@@ -1623,7 +1636,7 @@
     $("#peopleEmpty").hidden = people.length > 0;
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") + (peopleLocked ? " · confirmed" : "") : "";
     const me0 = myself();
-    $("#paidAll").textContent = me0 ? personName(me0) + " paid all" : "Paid all";
+    $("#paidAll").textContent = me0 ? personName(me0) + " paid the rest" : "Paid the rest";
     const myPerson = meId(), myRow = myself();
     const shown = guest && !scan
       ? items.filter((it) => (it.createdBy && it.createdBy === authUid) || (myPerson && (it.people || {})[myPerson]))
@@ -1778,6 +1791,7 @@
       });
 
     renderResults();
+    renderChecks();
     renderDisplay();
     renderReceipt();
   }
@@ -1787,11 +1801,7 @@
     const box = $("#display");
     if (!loaded) { box.innerHTML = '<div class="d-top"><span class="d-label">Total</span></div><div class="d-total">…</div><div class="d-sub">Loading bill</div>'; return; }
     const r = last;
-    let tag = "";
-    if (r.billC !== null && r.totalC > 0) tag = r.billC === r.totalC ? '<span class="d-tag">✓ Matches bill</span>' : '<span class="d-tag">≠ Bill says ' + money(r.billC) + "</span>";
-    if (state.meta.locked) tag = '<span class="d-tag">Locked</span>';
-    // The bill total stays highlighted until it's filled in and matches the items.
-    $("#billTotalTile").classList.toggle("needs", r.billC === null || r.billC !== r.totalC);
+    const tag = state.meta.locked ? '<span class="d-tag">Locked</span>' : "";
     const pct = r.totalC ? Math.min(100, Math.round((r.paidTotal / r.totalC) * 100)) : 0;
     setHTML(box,
       '<div class="d-top"><span class="d-label">Total</span>' + tag + "</div>" +
@@ -1897,34 +1907,58 @@
     return t.trim();
   }
 
+  // What has to agree before the bill can be locked: the receipt's total, the items + service, who had what,
+  // and what's been paid. ok: true (fine), false (to fix) or null (can't tell yet).
+  function checks(r) {
+    const admin = canAdmin(), scan = scanMode(), out = [];
+    const noPrice = sorted(state.items).filter((it) => price(it.price) <= 0 || qty(it.qty) <= 0).length;
+    out.push({ key: "bill", label: "Bill total", ok: r.billC !== null, value: r.billC !== null ? money(r.billC) : "Not entered" });
+    const items = { key: "items", label: "Items + service", value: money(r.totalC) };
+    if (!r.totalC) Object.assign(items, { ok: false, value: "No items yet" });
+    else if (noPrice) Object.assign(items, { ok: false, note: noPrice + (noPrice === 1 ? " item needs" : " items need") + " a price" });
+    else if (r.billC === null) Object.assign(items, { ok: null, action: admin && { act: "setTotal", label: "Set bill = total" } });
+    else if (r.billC === r.totalC) items.ok = true;
+    else {
+      const d = r.billC - r.totalC;
+      Object.assign(items, { ok: false, note: d > 0 ? money(d) + " still to add" : money(-d) + " too much" });
+    }
+    out.push(items);
+    const who = { key: "items", label: scan ? "Claimed" : "Assigned" };
+    if (!r.totalC) Object.assign(who, { ok: null, value: "–" });
+    else if (r.over.length) Object.assign(who, { ok: false, value: r.over.length + " over", note: "claimed more than ordered" });
+    else if (r.unassignedC) Object.assign(who, { ok: false, value: money(r.unassignedC), note: scan ? "not claimed yet" : "not assigned yet" });
+    else Object.assign(who, { ok: true, value: scan ? "Everything" : "Everything" });
+    out.push(who);
+    // Payments cover what the receipt says (once it's typed in), even while items are still being added.
+    const target = r.billC !== null ? r.billC : r.totalC, rem = target - r.paidTotal, me = myself();
+    const paid = { key: "paid", label: "Paid", value: money(r.paidTotal) };
+    if (!target) paid.ok = null;
+    else if (rem === 0) paid.ok = true;
+    else if (rem > 0) Object.assign(paid, { ok: false, note: money(rem) + " to go", action: admin && { act: "paidRest", label: me ? personName(me) + " paid the rest" : "Paid the rest" } });
+    else Object.assign(paid, { ok: false, note: money(-rem) + " too much" });
+    out.push(paid);
+    return out;
+  }
+  function renderChecks() {
+    const box = $("#checks");
+    box.hidden = !loaded || !!state.meta.locked;
+    if (box.hidden) return;
+    setHTML(box, checks(last).map((c) =>
+      '<div class="check ' + (c.ok === true ? "ok" : c.ok === null ? "na" : "bad") + '" data-go="' + c.key + '" role="button" tabindex="0">' +
+      '<span class="ci">' + (c.ok === true ? "✓" : c.ok === null ? "–" : "!") + "</span>" +
+      '<span class="cl">' + esc(c.label) + "</span>" +
+      '<span class="cv">' + esc(c.value) + (c.note ? "<small>" + esc(c.note) + "</small>" : "") + "</span>" +
+      (c.action ? '<span class="cact"><button class="btn small dark" data-act="' + c.action.act + '">' + esc(c.action.label) + "</button></span>" : "") +
+      "</div>").join(""));
+  }
+
   let last = null;
   function renderResults() {
     const box = $("#results");
     if (!loaded) { box.innerHTML = '<div class="card-head"><h2>Split</h2></div><p class="empty">Loading bill…</p>'; return; }
     const r = compute(); last = r;
     const open = new Set(Array.from(box.querySelectorAll("details[open]"), (d) => d.dataset.p));
-    const restSel = $("#restWho");
-    const restWho = (restSel && restSel.value) || meId() || (r.people[0] && r.people[0].id);
-
     let h = '<div class="card-head"><h2>' + (state.meta.locked ? "Everyone" : "Split") + "</h2></div>";
-    const warn = (html) => '<div class="warn">' + ICON.alert + "<div>" + html + "</div></div>";
-    if (canAdmin() && r.billC !== null && r.billC !== r.totalC && r.totalC > 0) {
-      const d = r.billC - r.totalC;
-      h += warn("The bill says <b>" + money(r.billC) + "</b> but items + service come to <b>" + money(r.totalC) + "</b> — " +
-        (d > 0 ? money(d) + " missing. Maybe an item?" : money(-d) + " too much."));
-    }
-    if (canAdmin() && r.over.length) h += warn("Claimed more times than ordered: " + esc(r.over.join(", ")) + ".");
-    if (canAdmin() && r.unassignedC > 0) h += warn(scanMode() ? money(r.unassignedC) + " of items haven't been claimed yet: " + esc(r.unclaimed.join(", ")) + "."
-      : money(r.unassignedC) + " of items aren't assigned to anyone yet.");
-    const remaining = r.assignedC - r.paidTotal;
-    if (!canAdmin()) { /* nothing to fix for guests */ }
-    else if (r.unassignedC === 0 && remaining > 0 && r.totalC > 0) {
-      h += warn(money(remaining) + " hasn't been paid by anyone yet." +
-        '<div class="row"><select id="restWho">' + personOptions(r.people) + "</select>" +
-        '<button class="btn small dark" data-act="payRest">paid the rest</button></div>');
-    } else if (remaining < 0) {
-      h += warn("Payments are " + money(-remaining) + " more than the total. Check the amounts.");
-    }
 
     r.people.forEach((p) => {
       const id = p.id, net = r.net[id];
@@ -1951,11 +1985,10 @@
         '<div class="transfer">' + avatar(t.from, true) + esc(personName(t.from)) + ICON.arrow + avatar(t.to, true) + esc(personName(t.to)) +
         "<b>" + money(t.amt) + "</b></div>").join("");
     }
-    const canLock = canAdmin() && !state.meta.locked;
+    const canLock = canAdmin() && !state.meta.locked, toFix = checks(r).filter((c) => c.ok === false).length;
     h += '<div class="actions"><button class="btn' + (canLock ? "" : " primary") + '" data-act="share">' + ICON.share + "Summary</button>" +
-      (canLock ? '<button class="btn dark" data-act="lock">' + ICON.lock + "Lock bill</button>" : "") + "</div>";
+      (canLock ? '<button class="btn dark" data-act="lock">' + ICON.lock + "Lock bill" + (toFix ? " (" + toFix + " to fix)" : "") + "</button>" : "") + "</div>";
     box.innerHTML = h;
-    const rs = $("#restWho"); if (rs && restWho) rs.value = restWho;
   }
 
   function summaryText() {
@@ -2105,14 +2138,26 @@
         if (!(await ask("Delete this payment?", "The " + amt + "payment" + who + " is removed from the bill.", "Delete", "danger"))) return;
         return write({ ["payments/" + id]: null });
       }
-      case "payRest": {
-        const rem = last.assignedC - last.paidTotal;
-        return write({ ["payments/" + uid()]: { personId: $("#restWho").value, amount: (rem / 100).toFixed(2), note: "At table", order: Date.now() } });
+      case "paidRest": return paidTheRest();
+      case "setTotal": {
+        const r = last;
+        if (!(await ask("Set the bill total to " + money(r.totalC) + "?",
+          "Only if you've checked the bill says exactly " + money(r.totalC) + ". Comparing the two is how the app catches a missing or mistyped item.",
+          "Yes, the bill says " + money(r.totalC)))) return;
+        return write({ "meta/billTotal": (r.totalC / 100).toFixed(2) });
       }
       case "share": return shareText(summaryText());
       case "shareReceipt": return shareText(receiptText(receiptPerson()));
       case "lock": {
         const r = last, rem = r.assignedC - r.paidTotal;
+        const bad = checks(r).filter((c) => c.ok === false);
+        // A missing bill total on its own gets the "Set bill = total" popup below; anything else, see the checklist.
+        if (bad.length && !(bad.length === 1 && bad[0].key === "bill")) {
+          const box = $("#checks");
+          box.scrollIntoView({ behavior: "smooth", block: "center" });
+          box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
+          return toast(bad.length + (bad.length === 1 ? " thing" : " things") + " to fix first");
+        }
         if (!r.totalC) return info("Nothing to lock yet", "Add some items first.");
         const noPrice = sorted(state.items).filter((it) => price(it.price) <= 0 || qty(it.qty) <= 0).map((it) => String(it.name || "").trim() || "an unnamed item");
         if (noPrice.length) return info("Check these items", "These items need a price and a quantity of at least 1: " + noPrice.join(", ") + ".");
@@ -2208,8 +2253,9 @@
     if (!(await ask("Confirm " + names.length + " people?", list + ".\n\nThis can't be changed later: nobody can be added, removed or renamed.", "Confirm"))) return;
     write({ "meta/peopleLocked": true });
   });
-  // The admin paid the whole bill: one payment for whatever hasn't been paid yet.
-  $("#paidAll").addEventListener("click", async () => {
+  // The admin paid: one payment for whatever hasn't been paid yet.
+  $("#paidAll").addEventListener("click", () => paidTheRest());
+  async function paidTheRest() {
     let me = myself();
     if (!me) {
       if (billId) return toast("Pick who you are first, at the top");
@@ -2217,11 +2263,23 @@
       if (!me) return;
       write({ "meta/me": me });
     }
-    const r = compute(), rem = r.totalC - r.paidTotal;
-    if (!r.totalC) return info("Nothing to pay yet", "Add the items first.");
-    if (rem <= 0) return info("Already fully paid", "Payments already cover the total of " + money(r.totalC) + ".");
+    const r = compute(), target = r.billC !== null ? r.billC : r.totalC, rem = target - r.paidTotal;
+    if (!target) return info("Nothing to pay yet", "Type the bill total, or add the items first.");
+    if (rem <= 0) return info("Already fully paid", "Payments already cover the total of " + money(target) + ".");
     if (!(await ask(personName(me) + " paid " + money(rem) + "?", r.paidTotal ? "That's what's left after the payments already added." : "The whole bill.", "Add payment"))) return;
-    write({ ["payments/" + uid()]: { personId: me, amount: (rem / 100).toFixed(2), note: "Whole bill", order: Date.now() } });
+    write({ ["payments/" + uid()]: { personId: me, amount: (rem / 100).toFixed(2), note: r.paidTotal ? "The rest" : "Whole bill", order: Date.now() } });
+  }
+  $("#checks").addEventListener("click", (e) => {
+    const row = e.target.closest("[data-go]");
+    if (!row || e.target.closest("[data-act]")) return;
+    const go = row.dataset.go;
+    if (go === "bill") {
+      const input = $('[data-f="billTotal"]');
+      if (!$("#billCard").hidden && canAdmin()) { input.scrollIntoView({ behavior: "smooth", block: "center" }); input.focus({ preventScroll: true }); }
+      return;
+    }
+    const target = go === "paid" ? $("#paymentsCard") : $("#itemsCard");
+    if (!target.hidden && getComputedStyle(target).display !== "none") target.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   $("#previewReceipt").addEventListener("click", () => {
     receiptPreview = !receiptPreview;
