@@ -715,7 +715,10 @@
   }
 
   // Every edit goes through here as {"path/to/field": value}; null deletes.
+  const trail = [];   // the last few taps and saves (no names or amounts), for "Copy details"
+  function note(what) { trail.push(Math.round(performance.now()) + " " + what); if (trail.length > 80) trail.shift(); }
   function write(paths, deniedMsg) {
+    note("write " + Object.keys(paths).map((p) => p + "=" + (paths[p] === null ? "null" : typeof paths[p] === "object" ? "{" + Object.keys(paths[p]).join(",") + "}" : typeof paths[p])).join(" "));
     if (remote) { remote.write(paths, deniedMsg); return; }
     Object.keys(paths).forEach((p) => setPath(state, p.split("/"), paths[p]));
     lsSet(LOCAL_PREFIX + localId, JSON.stringify(state));
@@ -1785,6 +1788,7 @@
         row.classList.toggle("ok", !open && price(it.price) > 0 && qty(it.qty) > 0 && Object.keys(it.people || {}).some((id) => state.people[id]));
         row.classList.toggle("unassigned", !Object.keys(it.people || {}).some((id) => state.people[id]));
         setHTML(row.querySelector(".chips"), chipsFor(it));
+        if (open) note("draw " + it.id + " people=" + Object.keys(it.people || {}).join("+") + " split=" + splitOpen.has(it.id));
         // Guests: an item is just theirs unless they open "Split with others".
         // Everyone: an item is just yours unless you open "Split with others" (that's also how you
         // give an item to someone else entirely: split, tick them, untick yourself).
@@ -2137,6 +2141,7 @@
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const now = Date.now();
+    note("tap " + b.dataset.act + (b.dataset.p ? ":" + b.dataset.p : "") + (b.closest("[data-id]") ? " on " + b.closest("[data-id]").dataset.id : "") + (now - lastTap < 350 ? " (ignored, repeat)" : ""));
     if (now - lastTap < 350) return;
     lastTap = now;
     const row = b.closest("[data-id]"), id = row && row.dataset.id;
@@ -2214,8 +2219,30 @@
         if (!(price(it.price) > 0)) { row.querySelector('[data-f="price"]').focus(); return toast("Add a price first"); }
         if (!(qty(it.qty) > 0)) { row.querySelector('[data-f="qty"]').focus(); return toast("The quantity has to be a whole number"); }
         if (document.activeElement) document.activeElement.blur();
+        if (!scanMode()) {
+          const shownIds = Array.from(row.querySelectorAll(".chips .chip.on[data-p]"), (c) => c.dataset.p).sort();
+          const savedIds = Object.keys(it.people || {}).filter((p) => state.people[p]).sort();
+          const list = (ids) => ids.map(personName).join(" and ");
+          if (row.classList.contains("splitting") && shownIds.join() !== savedIds.join()) {
+            note("MISMATCH shown=" + shownIds.join("+") + " saved=" + savedIds.join("+"));
+            const details = JSON.stringify({ ua: navigator.userAgent, item: id, shown: shownIds, saved: savedIds, trail, people: Object.keys(state.people), me: myself(), chipsHTML: row.querySelector(".chips").innerHTML.replace(/<svg[\s\S]*?<\/svg>/g, "").slice(0, 600) });
+            const pick = await sheet({
+              title: "Who had it?", text: "The screen showed " + (list(shownIds) || "nobody") + ", but the bill had " + (list(savedIds) || "nobody") + ". Which is right?",
+              buttons: [
+                { label: "Copy details for Claude", value: null, stay: true, run: () => copy(details) },
+                { label: list(savedIds) || "Nobody", value: "saved" },
+                { label: list(shownIds) || "Nobody", value: "shown", kind: "primary" },
+              ],
+            });
+            if (!pick) return;
+            if (pick === "shown" && shownIds.length) {
+              const map = {}; shownIds.forEach((p) => { map[p] = true; });
+              write({ ["items/" + id + "/people"]: map });
+            }
+          }
+        }
         write({ ["items/" + id + "/draft"]: null });
-        const who = Object.keys(it.people || {}).filter((p) => state.people[p]).map(personName);
+        const who = Object.keys(state.items[id].people || {}).filter((p) => state.people[p]).map(personName);
         return toast(who.length && !scanMode() ? "Added for " + (who.length > 1 ? who.slice(0, -1).join(", ") + " and " + who[who.length - 1] : who[0]) : "Added to the bill");
       }
       case "toggle": {
