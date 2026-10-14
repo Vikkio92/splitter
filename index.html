@@ -1775,7 +1775,10 @@
         setHTML(svcSwitch, (it.noService ? '<span class="tk"></span>' : "") + "No service");
         row.querySelector('[data-act="claim"]').hidden = !scan;
         if (scan) return updateScanItem(row, it, open);
-        row.querySelector(".units-left").textContent = "";
+        // While editing, show what each person will pay for it (the bill only counts it once it's confirmed).
+        const n = Object.keys(it.people || {}).filter((p) => state.people[p]).length;
+        const each = n ? Math.round((price(it.price) * qty(it.qty) * 100) / n) : 0;
+        row.querySelector(".units-left").textContent = open && each > 0 ? (n > 1 ? money(each) + " each" : money(each)) : "";
         row.querySelector(".chips").classList.remove("pick");
         // confirmed = read-only, priced and assigned to someone
         row.classList.toggle("ok", !open && price(it.price) > 0 && qty(it.qty) > 0 && Object.keys(it.people || {}).some((id) => state.people[id]));
@@ -2463,6 +2466,13 @@
     else switchTo(t.dataset.pick);
   });
   window.addEventListener("hashchange", () => location.reload());
+
+  // If something unexpected breaks, say so (and what) instead of failing silently.
+  window.addEventListener("error", (e) => toast("Something went wrong: " + String(e.message || e.error || "unknown").slice(0, 120)));
+  window.addEventListener("unhandledrejection", (e) => {
+    const m = String((e.reason && e.reason.message) || e.reason || "");
+    if (m && !/permission|network|offline|app ?check|recaptcha/i.test(m)) toast("Something went wrong: " + m.slice(0, 120));
+  });
 
   // ---------- start ----------
   // Earlier versions kept a single bill on the phone; move it into the list.
