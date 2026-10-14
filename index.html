@@ -398,7 +398,8 @@
   .item-foot .split + .chips:empty { display: none; }
   .item.solo .chips { display: none; }
   .item.solo .item-foot, .item.splitting .item-foot { justify-content: space-between; }
-  .item.splitting .chips { order: -1; flex: 1 1 100%; }
+  /* names open BELOW the buttons, so nothing new appears under the finger that tapped "Split with others" */
+  .item.splitting .item-foot .chips { order: 10; flex: 1 1 100%; }
   .item.locked .item-foot { margin-top: 2px; }
   .btn.edit { min-height: 34px; padding: 6px 14px; border-radius: 11px; font-size: 14px; }
   .item.locked .item-foot { justify-content: space-between; }
@@ -2130,8 +2131,14 @@
     else pickPerson(e.target.value);
   });
 
+  // Phones can deliver one tap twice when the page moves under the finger (e.g. the keyboard closing):
+  // a second tap within a moment of the first is ignored. Nobody taps two buttons that fast on purpose.
+  let lastTap = 0;
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-act]"); if (!b) return;
+    const now = Date.now();
+    if (now - lastTap < 350) return;
+    lastTap = now;
     const row = b.closest("[data-id]"), id = row && row.dataset.id;
     const paths = {};
     switch (b.dataset.act) {
@@ -2208,7 +2215,8 @@
         if (!(qty(it.qty) > 0)) { row.querySelector('[data-f="qty"]').focus(); return toast("The quantity has to be a whole number"); }
         if (document.activeElement) document.activeElement.blur();
         write({ ["items/" + id + "/draft"]: null });
-        return toast("Added to the bill");
+        const who = Object.keys(it.people || {}).filter((p) => state.people[p]).map(personName);
+        return toast(who.length && !scanMode() ? "Added for " + (who.length > 1 ? who.slice(0, -1).join(", ") + " and " + who[who.length - 1] : who[0]) : "Added to the bill");
       }
       case "toggle": {
         const pid = b.dataset.p, who = state.items[id].people || {}, on = who[pid];
