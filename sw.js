@@ -1,6 +1,6 @@
 // Offline support: network first (so updates show up straight away), cache as fallback.
 // Only the app's own files, the Firebase SDK and the fonts are cached; live database traffic is left alone.
-const CACHE = "splitter-v35";
+const CACHE = "splitter-v36";
 const ASSETS = ["./", "./index.html", "./firebase-config.js", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {

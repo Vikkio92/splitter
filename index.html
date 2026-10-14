@@ -1734,13 +1734,31 @@
         row.lastChild.hidden = !admin || peopleLocked;
       });
 
-    const chipsFor = (it) => {
-      const on = it.people || {}, dis = canEditItem(it) && myDraft(it) ? "" : " disabled";
+    // The name buttons under an item, made once per item and then switched on/off from that item's own
+    // data on every redraw. (Building them from an HTML string let iPhone Safari show one item's names
+    // in another item's box.)
+    function syncChips(box, it) {
+      const on = it.people || {}, enabled = canEditItem(it) && myDraft(it);
       const all = people.length > 1 && people.every((p) => on[p.id]);
-      return people.map((p) => '<button class="chip' + (on[p.id] ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '"' + dis + ">" +
-        avatar(p.id, true) + esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
-        (people.length > 1 && !dis && !all ? '<button class="chip all" data-act="all">Everyone</button>' : "");
-    };
+      const key = people.map((p) => p.id + ":" + personName(p.id)).join("|");
+      if (box.dataset.key !== key || box.querySelector('[data-act="unit"], [data-act="with"]')) {
+        box.textContent = "";
+        people.forEach((p) => {
+          const b = document.createElement("button");
+          b.className = "chip"; b.dataset.act = "toggle"; b.dataset.p = p.id;
+          const av = document.createElement("span");
+          av.className = "av sm"; av.style.setProperty("--c", colorOf(p.id)); av.textContent = (personName(p.id)[0] || "?").toUpperCase();
+          b.append(av, personName(p.id));
+          box.appendChild(b);
+        });
+        const every = document.createElement("button");
+        every.className = "chip all"; every.dataset.act = "all"; every.textContent = "Everyone";
+        box.appendChild(every);
+        box.dataset.key = key; box._html = null;
+      }
+      box.querySelectorAll('[data-act="toggle"]').forEach((b) => { b.classList.toggle("on", !!on[b.dataset.p]); b.disabled = !enabled; });
+      box.querySelector('[data-act="all"]').hidden = !(people.length > 1 && enabled && !all);
+    }
     $("#itemsEmpty").hidden = shown.length > 0;
     syncList($("#items"), shown,
       () => el('<div class="item"><div class="item-row">' +
@@ -1787,7 +1805,7 @@
         // confirmed = read-only, priced and assigned to someone
         row.classList.toggle("ok", !open && price(it.price) > 0 && qty(it.qty) > 0 && Object.keys(it.people || {}).some((id) => state.people[id]));
         row.classList.toggle("unassigned", !Object.keys(it.people || {}).some((id) => state.people[id]));
-        setHTML(row.querySelector(".chips"), chipsFor(it));
+        syncChips(row.querySelector(".chips"), it);
         if (open) note("draw " + it.id + " people=" + Object.keys(it.people || {}).join("+") + " split=" + splitOpen.has(it.id));
         // Guests: an item is just theirs unless they open "Split with others".
         // Everyone: an item is just yours unless you open "Split with others" (that's also how you
