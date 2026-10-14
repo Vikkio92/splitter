@@ -128,6 +128,9 @@
             "noService": {
               ".validate": "newData.val() === true"
             },
+            "draft": {
+              ".validate": "newData.val() === true || newData.val() === auth.uid"
+            },
             "people": {
               "$personId": {
                 ".validate": "$personId.matches(/^[a-z0-9]{1,32}$/) && newData.val() === true && newData.parent().parent().parent().parent().parent().parent().child('bills').child($billId).child('people').child($personId).exists()"

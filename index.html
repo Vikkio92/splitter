@@ -410,7 +410,10 @@
   .prow.ok input:disabled { padding-left: 22px; background: var(--tick) no-repeat 0 50% / 15px; }
   .btn.confirm { min-height: 36px; padding: 6px 14px; border-radius: 11px; font-size: 14px; background: var(--key); color: var(--on-key); }
   /* while editing, Confirm sits right under the price box, the same size (the 24px × column + 5px gap to its right) */
-  .item:not(.locked) .btn.confirm { width: 90px; min-height: 44px; padding: 6px 4px; border-radius: 12px; margin: 0 29px 0 auto; }
+  .item:not(.locked) .btn.confirm { width: 90px; min-height: 34px; padding: 4px; border-radius: 11px; margin: 0 29px 0 auto; }
+  /* not confirmed yet: amber, like everything else that needs attention */
+  .item.draft { box-shadow: inset 0 0 0 1.5px var(--warn); }
+  .item.flash { animation: flash .9s ease 2; }
   #addItem { margin-top: 20px; }
   .item.locked .chip { background: none; padding: 2px 6px 2px 0; font-size: 13px; }
 
@@ -625,7 +628,9 @@
   let localId = null;    // id of the open bill when it lives only on this phone
   // Items added or changed here that the user hasn't tapped "Confirm" on yet. Purely a visual cue:
   // edits save as you type either way.
-  const editing = new Set();   // items open for editing on this phone; everything else is shown read-only
+  // An item being added or edited is a draft (items.draft = the editor's device id, or true on a bill
+  // that's only on this phone). Drafts are only shown to whoever is editing them, don't count towards any
+  // total, and become part of the bill when Confirm is tapped.
   // Guests' items are theirs alone unless they choose to split; this remembers "Split with others"
   // being open on an item before anyone else has been ticked.
   const splitOpen = new Set();
@@ -633,6 +638,7 @@
   // In a shared bill you have to pick who you are before you can edit anything.
   function picked() { return !billId || !!meId(); }
   function canAdmin() { return isAdmin && picked(); }
+  function myDraft(it) { return !!it.draft && (!billId || it.draft === true || it.draft === authUid); }
   function canEditItem(it) { return picked() && (isAdmin || (!!it.createdBy && it.createdBy === authUid)); }
 
   const $ = (s) => document.querySelector(s);
@@ -1479,6 +1485,7 @@
     people.forEach((p) => { raw[p.id] = 0; });
 
     sorted(state.items).forEach((it) => {
+      if (it.draft) return;   // not confirmed yet
       const c = price(it.price) * qty(it.qty) * 100;
       // Items marked "No service" (e.g. an optional donation) don't get the service charge on top.
       const f = it.noService ? 1 : 1 + rate, ns = !!it.noService;
@@ -1674,9 +1681,10 @@
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") + (peopleLocked ? " · confirmed" : "") : "";
     $("#paidAll").textContent = "Pay the rest";
     const myPerson = meId(), myRow = myself();
+    const visible = items.filter((it) => !it.draft || myDraft(it));   // other people's drafts stay with them
     const shown = guest && !scan
-      ? items.filter((it) => (it.createdBy && it.createdBy === authUid) || (myPerson && (it.people || {})[myPerson]))
-      : items;
+      ? visible.filter((it) => (it.createdBy && it.createdBy === authUid) || (myPerson && (it.people || {})[myPerson]))
+      : visible;
     $("#itemsHead").textContent = "Food & drinks";
     $("#previewReceipt").hidden = !guest || !meId() || !!state.meta.locked;
     $("#previewReceipt").textContent = receiptPreview ? "Hide my receipt" : "See my receipt";
@@ -1709,7 +1717,7 @@
       });
 
     const chipsFor = (it) => {
-      const on = it.people || {}, dis = canEditItem(it) && editing.has(it.id) ? "" : " disabled";
+      const on = it.people || {}, dis = canEditItem(it) && myDraft(it) ? "" : " disabled";
       const all = people.length > 1 && people.every((p) => on[p.id]);
       return people.map((p) => '<button class="chip' + (on[p.id] ? " on" : "") + '" data-act="toggle" data-p="' + p.id + '"' + dis + ">" +
         avatar(p.id, true) + esc(String(p.name || "").trim() || "Unnamed") + "</button>").join("") +
@@ -1729,7 +1737,8 @@
         '<button class="btn nosvc" data-act="noService">No service</button>' +
         '<button class="btn confirm" data-act="confirmItem">Confirm</button></div></div>'),
       (row, it) => {
-        const mine = canEditItem(it), open = mine && editing.has(it.id);
+        const mine = canEditItem(it), open = mine && myDraft(it);
+        row.classList.toggle("draft", open);
         row.querySelector(".cur").textContent = state.meta.currency;
         row.querySelectorAll("[data-f]").forEach((i) => {
           setVal(i, it[i.dataset.f]);
@@ -1973,10 +1982,12 @@
   // and what's been paid. ok: true (fine), false (to fix) or null (can't tell yet).
   function checks(r) {
     const admin = canAdmin(), scan = scanMode(), out = [];
-    const noPrice = sorted(state.items).filter((it) => price(it.price) <= 0 || qty(it.qty) <= 0).length;
+    const noPrice = sorted(state.items).filter((it) => !it.draft && (price(it.price) <= 0 || qty(it.qty) <= 0)).length;
+    const drafts = Object.values(state.items).filter((it) => it.draft).length;
     out.push({ key: "bill", label: "Bill total", ok: r.billC !== null, value: r.billC !== null ? money(r.billC) : "Not entered" });
     const items = { key: "items", label: "Items total", value: money(r.totalC) };
-    if (!r.totalC) Object.assign(items, { ok: false, value: "No items yet" });
+    if (drafts) Object.assign(items, { ok: false, note: drafts + (drafts === 1 ? " item" : " items") + " not confirmed yet" });
+    else if (!r.totalC) Object.assign(items, { ok: false, value: "No items yet" });
     else if (noPrice) Object.assign(items, { ok: false, note: noPrice + (noPrice === 1 ? " item needs" : " items need") + " a price" });
     else if (r.billC === null) Object.assign(items, { ok: null, action: admin && { act: "setTotal", label: "Set bill = total" } });
     else if (r.billC === r.totalC) items.ok = true;
@@ -2167,15 +2178,21 @@
         const on = !!(state.items[id] || {}).noService;
         return write({ ["items/" + id + "/noService"]: on ? null : true });
       }
-      case "editItem":
-        editing.add(id);
-        render();
+      case "editItem": {
+        const other = Object.keys(state.items).find((x) => x !== id && myDraft(state.items[x]));
+        if (other) return showDraft(other, "Confirm the item you're editing first");
+        write({ ["items/" + id + "/draft"]: authUid || true });
         return row.querySelector(".name").focus();
-      case "confirmItem":
-        editing.delete(id);
+      }
+      case "confirmItem": {
+        const it = state.items[id];
+        if (!String(it.name || "").trim()) { row.querySelector(".name").focus(); return toast("Give it a name first"); }
+        if (!(price(it.price) > 0)) { row.querySelector('[data-f="price"]').focus(); return toast("Add a price first"); }
+        if (!(qty(it.qty) > 0)) { row.querySelector('[data-f="qty"]').focus(); return toast("The quantity has to be a whole number"); }
         if (document.activeElement) document.activeElement.blur();
-        toast("Saved to the bill");
-        return render();
+        write({ ["items/" + id + "/draft"]: null });
+        return toast("Added to the bill");
+      }
       case "toggle": {
         const pid = b.dataset.p, who = state.items[id].people || {}, on = who[pid];
         // Every item belongs to someone: the last person can only be unticked once someone else is ticked.
@@ -2195,7 +2212,7 @@
         const name = String(it.name || "").trim(), claimed = scanMode() && claimedOf(it) > 0;
         if (!(await ask(name ? "Delete “" + name + "”?" : "Delete this item?",
           claimed ? "People have already claimed it. Their claims are removed too." : "It's removed from the bill.", "Delete", "danger"))) return;
-        editing.delete(id); splitOpen.delete(id);
+        splitOpen.delete(id);
         return write({ ["items/" + id]: null });
       }
       case "delPayment": {
@@ -2227,7 +2244,7 @@
           return toast(bad.length + (bad.length === 1 ? " thing" : " things") + " to fix first");
         }
         if (!r.totalC) return info("Nothing to lock yet", "Add some items first.");
-        const noPrice = sorted(state.items).filter((it) => price(it.price) <= 0 || qty(it.qty) <= 0).map((it) => String(it.name || "").trim() || "an unnamed item");
+        const noPrice = sorted(state.items).filter((it) => !it.draft && (price(it.price) <= 0 || qty(it.qty) <= 0)).map((it) => String(it.name || "").trim() || "an unnamed item");
         if (noPrice.length) return info("Check these items", "These items need a price and a quantity of at least 1: " + noPrice.join(", ") + ".");
         if (r.over.length) return info("Claimed too many times", "These items have more claims than were ordered: " + r.over.join(", ") + ". Ask whoever claimed them to check.");
         if (r.unassignedC) return scanMode()
@@ -2291,7 +2308,19 @@
     write({ ["people/" + uid()]: { name: "", order: Date.now() } });
     focusLast($("#people"), "input");
   });
+  // Scroll to an item you're still editing and make it flash.
+  function showDraft(id, msg) {
+    const row = $('#items [data-id="' + id + '"]');
+    if (row) {
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash");
+    }
+    toast(msg);
+  }
   $("#addItem").addEventListener("click", async () => {
+    // One item at a time: confirm the one you're on before starting another.
+    const open = Object.keys(state.items).find((x) => myDraft(state.items[x]));
+    if (open) return showDraft(open, "Confirm this item first");
     const items = sorted(state.items), prev = items[items.length - 1];
     // A bill that's only on this phone doesn't know who you are yet: ask once, so items default to you.
     if (!billId && !scanMode() && !myself() && Object.keys(state.people).length) {
@@ -2300,13 +2329,12 @@
       write({ "meta/me": me });
     }
     const me = myself(), prevWho = prev ? Object.keys(prev.people || {}) : [];
-    const item = { name: "", price: "", qty: "", order: Date.now() };
+    const item = { name: "", price: "", qty: "", order: Date.now(), draft: authUid || true };
     if (authUid) item.createdBy = authUid;
     if (scanMode()) { /* claimed by tapping, not ticked */ }
     else if (me) item.people = { [me]: true };
     else if (prevWho.length === 1) item.people = { [prevWho[0]]: true };
     const newId = uid();
-    editing.add(newId);
     write({ ["items/" + newId]: item });
     focusLast($("#items"), ".name");
   });
