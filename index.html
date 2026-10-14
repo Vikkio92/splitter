@@ -481,7 +481,11 @@
   }
 </style>
 </head>
-<body>
+<body class="home">
+<script>
+  // Start on the home page so nothing else flashes up while the app loads; a bill link opens the bill instead.
+  if (/^#b=/.test(location.hash)) document.body.classList.remove("home");
+</script>
 <main>
   <header>
     <div class="brand" id="homeBtn" role="button" tabindex="0" aria-label="Home"><span class="mark">÷</span><span class="brand-name">Splitter<span class="dot-ino">.ino</span></span></div>
