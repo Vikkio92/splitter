@@ -377,7 +377,10 @@
   .item.locked, .item + .item.locked { margin-top: 0; }
   .item.locked + .item:not(.locked) { margin-top: 10px; }
   .item.locked .item-row { grid-template-columns: minmax(0, 1fr) 52px 84px 24px; }
-  .item.locked .qty { display: none; }   /* shown as "×2" under the name instead */
+  .item.locked .qty { display: none; }
+  /* read-only price: no input padding, so up to 7 digits fit */
+  .item.locked .money .cur { left: 0; }
+  .item.locked .money input { padding-left: 12px; padding-right: 0; }   /* shown as "×2" under the name instead */
   /* who had it: small initial bubbles (up to 3, then +N), plus short notes */
   .item .who { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
   .item .who .stack { display: flex; padding-left: 7px; }
