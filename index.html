@@ -452,6 +452,8 @@
   .btn.nosvc.on { color: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
   .ns-tag { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
   #scanBtn { margin-top: 20px; }
+  .split-note { margin: -4px 4px 10px; font-size: 13px; color: var(--muted); }
+  .item:not(.locked) .item-foot { align-items: center; }
   #scanBtn + #addItem { margin-top: 8px; }
 
   /* ---------- sheet (in-app dialogs) ---------- */
@@ -1580,9 +1582,11 @@
     }
 
     const billC = String(state.meta.billTotal).trim() === "" ? null : Math.round(num(state.meta.billTotal) * 100);
+    // Everything assigned, the payments cover exactly what's been assigned, and the bill total (if typed) agrees.
+    const balanced = totalC > 0 && unassigned === 0 && !over.length && paidTotal === assignedC && (billC === null || billC === totalC);
     return {
       people, subtotalC, serviceC: totalC - subtotalC, totalC, unassignedC: Math.round(unassignedWithService),
-      share, svc, paid, payLines, paidTotal, net, transfers, lines, billC, assignedC, over, unclaimed,
+      share, svc, paid, payLines, paidTotal, net, transfers, lines, billC, assignedC, over, unclaimed, balanced,
     };
   }
 
@@ -1968,7 +1972,10 @@
     else {
       const you = who === me;
       const name = esc(personName(who)), net = r.net[who];
-      if (net > 0) {
+      if (!r.balanced) {
+        h += '<div class="banner settled"><div class="lead">' + (you ? "Your" : name + "'s") + ' share so far</div><div class="amt">' + money(r.share[who]) +
+          "</div>What to pay, and to whom, shows once the bill adds up.</div>";
+      } else if (net > 0) {
         h += '<div class="banner owe"><div class="lead">' + (you ? "You need" : name + " needs") + ' to pay</div><div class="amt">' + money(net) + "</div>" +
           r.transfers.filter((t) => t.from === who).map((t) => {
             const to = state.people[t.to] || {}, links = [["monzo", monzoLink(t.to, t.amt)], ["revolut", revolutLink(t.to, t.amt)]].filter((l) => l[1]);
@@ -2091,9 +2098,11 @@
     const open = new Set(Array.from(box.querySelectorAll("details[open]"), (d) => d.dataset.p));
     let h = '<div class="card-head"><h2>' + (state.meta.locked ? "Everyone" : "Split") + "</h2></div>";
 
+    if (!r.balanced && r.totalC > 0 && !state.meta.locked) h += '<p class="split-note">Who owes whom shows once the checklist is all green.</p>';
     r.people.forEach((p) => {
       const id = p.id, net = r.net[id];
-      const status = net > 0 ? '<span class="owe">owes ' + money(net) + "</span>"
+      const status = !r.balanced ? '<span class="settled">' + (r.paid[id] ? "paid " + money(r.paid[id]) : "nothing paid yet") + "</span>"
+                   : net > 0 ? '<span class="owe">owes ' + money(net) + "</span>"
                    : net < 0 ? '<span class="owed">is owed ' + money(-net) + "</span>"
                    : '<span class="settled">all square</span>';
       let bd = r.lines[id].map((l) => {
