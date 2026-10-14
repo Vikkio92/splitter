@@ -53,7 +53,7 @@
             ".validate": "newData.isBoolean()"
           },
           "mode": {
-            ".validate": "newData.isString() && newData.val() === 'scan'"
+            ".validate": "newData.isString() && (newData.val() === 'scan' || newData.val() === 'manual') && (!data.exists() || data.val() === newData.val())"
           },
           "peopleLocked": {
             ".validate": "newData.isBoolean()"

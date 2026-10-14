@@ -530,7 +530,7 @@
 
   <section class="card edit" id="itemsCard">
     <div class="card-head"><h2 id="itemsHead">Food &amp; drinks</h2><span class="count" id="itemsCount"></span></div>
-    <div class="seg" id="modeSeg" data-admin><button data-mode="">Manual</button><button data-mode="scan">Scan receipt</button></div>
+    <div class="seg" id="modeSeg" data-admin><button data-mode="manual">Manual</button><button data-mode="scan">Scan receipt</button></div>
     <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
     <div id="items" data-sec="items"></div>
     <button class="btn add primary" id="scanBtn" hidden><svg class="i" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 9h8M8 12h8M8 15h5"/></svg>Scan receipt</button>
@@ -1036,6 +1036,8 @@
 
   // ---------- scan mode ----------
   function scanMode() { return state.meta.mode === "scan"; }
+  // Older bills have no mode saved: if they already have items (or are locked), they're manual.
+  function modeChosen() { return !!state.meta.mode || Object.keys(state.items).length > 0 || !!state.meta.locked; }
   // Units of an item claimed so far, counting only people still on the bill.
   function claimedOf(it) {
     const u = it.units || {};
@@ -1644,8 +1646,11 @@
     syncEntry();
     const scan = scanMode();
     document.body.classList.toggle("scan", scan);
-    document.querySelectorAll("#modeSeg [data-mode]").forEach((b) => { b.classList.toggle("on", b.dataset.mode === (scan ? "scan" : "")); b.disabled = !admin; });
-    $("#addItem").hidden = !picked() || (scan && !admin);
+    // Manual or Scan is chosen once, before any items; after that the choice is gone for good.
+    const chosen = modeChosen();
+    $("#modeSeg").hidden = !admin || chosen;
+    document.querySelectorAll("#modeSeg [data-mode]").forEach((b) => { b.disabled = !admin; });
+    $("#addItem").hidden = !picked() || (scan && !admin) || !chosen;
     $("#addItem").classList.toggle("primary", !scan);
     $("#scanBtn").hidden = !scan || !admin;
     // People are confirmed once by the admin; after that nobody can be added, removed or renamed,
@@ -1663,7 +1668,8 @@
     $("#itemsHead").textContent = "Food & drinks";
     $("#previewReceipt").hidden = !guest || !meId() || !!state.meta.locked;
     $("#previewReceipt").textContent = receiptPreview ? "Hide my receipt" : "See my receipt";
-    $("#itemsEmpty").textContent = !scan ? "Nothing yet. Add what was ordered." : admin ? "Nothing yet. Scan the receipt to fill this in." : "Nothing yet. The receipt hasn't been scanned.";
+    $("#itemsEmpty").textContent = !chosen ? (admin ? "Choose how to add the items: type them in, or scan the receipt." : "Nothing yet.")
+      : !scan ? "Nothing yet. Add what was ordered." : admin ? "Nothing yet. Scan the receipt to fill this in." : "Nothing yet. The receipt hasn't been scanned.";
     $("#itemsCount").textContent = shown.length ? shown.length + (shown.length === 1 ? " item" : " items") : "";
     renderBar();
 
@@ -2353,19 +2359,12 @@
   // Manual: everyone adds what they had. Scan: the admin scans the receipt and everyone claims items from it.
   $("#modeSeg").addEventListener("click", async (e) => {
     const b = e.target.closest("[data-mode]");
-    if (!b || !canAdmin()) return;
-    const mode = b.dataset.mode || null;
-    if ((state.meta.mode || null) === mode) return;
-    const assigned = Object.keys(state.items).filter((id) => {
-      const it = state.items[id];
-      return Object.keys(it.people || {}).length || Object.keys(it.units || {}).length;
-    });
-    if (assigned.length && !(await ask("Switch to " + (mode ? "Scan receipt" : "Manual") + "?",
-      "Who had what is cleared, so everyone picks their items again. The items themselves stay.", "Switch"))) return;
-    const p = { "meta/mode": mode };
-    assigned.forEach((id) => { p["items/" + id + "/people"] = null; p["items/" + id + "/units"] = null; });
-    splitOpen.clear();
-    write(p);
+    if (!b || !canAdmin() || modeChosen()) return;
+    const scan = b.dataset.mode === "scan";
+    if (!(await ask(scan ? "Scan the receipt?" : "Type the items in?",
+      scan ? "You scan the receipt and everyone ticks off what they had. You can't switch to typing items in later."
+           : "Everyone adds what they had. You can't switch to scanning the receipt later.", scan ? "Scan receipt" : "Manual"))) return;
+    write({ "meta/mode": scan ? "scan" : "manual" });
   });
   $("#myMonzo").addEventListener("click", () => editPayLinks(meId()));
 
