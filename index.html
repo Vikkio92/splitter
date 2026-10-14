@@ -352,6 +352,10 @@
   .check .cl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; padding-left: 21px; }
   .check .cv small { font-size: 11px; }
   .check .cv { white-space: nowrap; }
+  /* label · button · amount: the amounts stay lined up on the right */
+  .check .cl { grid-column: 1; grid-row: 1; }
+  .check .cact { grid-column: 2; grid-row: 1; }
+  .check .cv { grid-column: 3; grid-row: 1; }
   #checks.flash { animation: flash .9s ease 2; }
   @keyframes flash { 50% { box-shadow: 0 0 0 3px var(--warn); } }
   #modeSeg { margin: 0 0 12px; }
