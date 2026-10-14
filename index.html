@@ -327,8 +327,17 @@
   .banner.owed .btn.pay { background: var(--owed); }
   .btn.pay.revolut { background: var(--key); color: var(--on-key); }
   .pay-note { font-size: 12px; opacity: .8; margin: 0 2px 6px; }
-  .bar #myMonzo { min-height: 30px; padding: 4px 10px; font-size: 13px; }
-  .bar #myMonzo.on { color: var(--owed); }
+  /* two buttons side by side under a list (Add person + Confirm, Add payment + paid all) */
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-row .btn.add { margin-top: 0; flex: 1 1 0; min-width: 0; padding-left: 10px; padding-right: 10px; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .btn-row .btn.add svg { vertical-align: -3px; margin-right: 6px; }
+  .btn-row .btn.add.dark { flex: 0 0 auto; width: auto; padding-left: 22px; padding-right: 22px; }
+  /* the bill total needs filling in (or doesn't match the items yet) */
+  .tile.needs { background: var(--warn-bg); box-shadow: inset 0 0 0 1.5px var(--warn); }
+  .tile.needs span { color: var(--warn); }
+  #modeSeg { margin: 0 0 14px; background: var(--surface-2); }
+  #modeSeg button.on { background: var(--key); color: var(--on-key); }
+  #previewReceipt { margin-top: 8px; }
   .btn.small.on { color: var(--owed); }
   .banner.owed { background: var(--owed-bg); color: var(--owed); }
   .banner.settled { background: var(--surface-2); color: var(--text); }
@@ -450,7 +459,7 @@
     <button class="role code" id="codePill" aria-label="Copy the join code" hidden></button>
     <button class="icon-btn" id="adminLink" aria-label="Admin link" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/></svg></button>
     <label class="me">You are <select id="meSel"></select></label>
-    <button class="btn small pill" id="myMonzo" hidden></button>
+    <button class="btn small" id="myMonzo" hidden></button>
   </div>
 
   <section id="home">
@@ -467,13 +476,12 @@
 
   <section class="card" id="receipt" hidden></section>
 
-  <section class="card edit admin-card" data-sec="meta">
+  <section class="card edit admin-card" data-sec="meta" id="billCard">
     <div class="card-head"><h2>Bill</h2></div>
     <div class="tiles">
       <label class="tile wide"><span>Bill name</span><input data-f="name" placeholder="e.g. Friday at Dishoom" autocomplete="off" maxlength="60"></label>
       <label class="tile"><span>Service %</span><input data-f="service" inputmode="decimal" placeholder="0" maxlength="8"></label>
-      <label class="tile"><span>Bill total</span><input data-f="billTotal" inputmode="decimal" placeholder="0.00" maxlength="12"></label>
-      <div class="tile wide"><span>Items</span><div class="seg" id="modeSeg"><button data-mode="">Manual</button><button data-mode="scan">Scan receipt</button></div></div>
+      <label class="tile" id="billTotalTile"><span>Bill total</span><input data-f="billTotal" inputmode="decimal" placeholder="0.00" maxlength="12"></label>
     </div>
   </section>
 
@@ -481,23 +489,31 @@
     <div class="card-head"><h2>People</h2><span class="count" id="peopleCount"></span></div>
     <p class="empty" id="peopleEmpty">No one yet. Add everyone at the table.</p>
     <div id="people" data-sec="people"></div>
-    <button class="btn add" id="addPerson" data-admin><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add person</button>
+    <div class="btn-row" id="peopleActions">
+      <button class="btn add primary" id="addPerson"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add person</button>
+      <button class="btn add dark" id="confirmPeople">Confirm</button>
+    </div>
   </section>
 
-  <section class="card edit">
+  <section class="card edit" id="itemsCard">
     <div class="card-head"><h2 id="itemsHead">Food &amp; drinks</h2><span class="count" id="itemsCount"></span></div>
+    <div class="seg" id="modeSeg" data-admin><button data-mode="">Manual</button><button data-mode="scan">Scan receipt</button></div>
     <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
     <div id="items" data-sec="items"></div>
     <button class="btn add primary" id="scanBtn" hidden><svg class="i" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 9h8M8 12h8M8 15h5"/></svg>Scan receipt</button>
     <input type="file" id="scanFile" accept="image/*" hidden>
     <button class="btn add primary" id="addItem"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add new item</button>
+    <button class="btn add" id="previewReceipt" hidden>See my receipt</button>
   </section>
 
   <section class="card edit admin-card">
     <div class="card-head"><h2>Payments</h2></div>
     <p class="empty" id="paymentsEmpty">No payments yet.</p>
     <div id="payments" data-sec="payments"></div>
-    <button class="btn add" id="addPayment" data-admin><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add payment</button>
+    <div class="btn-row" data-admin>
+      <button class="btn add" id="addPayment"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add payment</button>
+      <button class="btn add" id="paidAll"></button>
+    </div>
   </section>
 
   <section class="card" id="results"></section>
@@ -1546,6 +1562,12 @@
     return Object.keys(PAY_APPS).filter((k) => p[k]).map((k) => PAY_APPS[k].name).join(" & ");
   }
 
+  // The same button text everywhere someone's pay links are shown.
+  function payLinksLabel(pid) {
+    const apps = payApps(pid);
+    return apps ? "✓ " + (apps.includes("&") ? "Both" : apps) : "Pay links";
+  }
+
   function renderBar() {
     const bar = $("#sharedBar");
     bar.hidden = !billId;
@@ -1566,7 +1588,7 @@
     const mine = meId(), apps = mine ? payApps(mine) : "";
     $("#myMonzo").hidden = !mine;
     $("#myMonzo").classList.toggle("on", !!apps);
-    $("#myMonzo").textContent = apps ? "✓ " + apps : "+ Monzo / Revolut";
+    $("#myMonzo").textContent = mine ? payLinksLabel(mine) : "";
     if (code) $("#codePill").textContent = formatCode(code);
   }
 
@@ -1591,13 +1613,22 @@
     $("#addItem").hidden = !picked() || (scan && !admin);
     $("#addItem").classList.toggle("primary", !scan);
     $("#scanBtn").hidden = !scan || !admin;
+    // People are confirmed once by the admin; after that nobody can be added, removed or renamed,
+    // and only then does Food & drinks appear for the admin.
+    const peopleLocked = !!state.meta.peopleLocked;
+    $("#peopleActions").hidden = !admin || peopleLocked;
+    $("#itemsCard").hidden = isAdmin && !peopleLocked;
     $("#peopleEmpty").hidden = people.length > 0;
-    $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") : "";
+    $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") + (peopleLocked ? " · confirmed" : "") : "";
+    const me0 = myself();
+    $("#paidAll").textContent = me0 ? personName(me0) + " paid all" : "Paid all";
     const myPerson = meId(), myRow = myself();
     const shown = guest && !scan
       ? items.filter((it) => (it.createdBy && it.createdBy === authUid) || (myPerson && (it.people || {})[myPerson]))
       : items;
-    $("#itemsHead").textContent = scan && guest ? "Tap what you had" : guest ? "Your food & drinks" : "Food & drinks";
+    $("#itemsHead").textContent = "Food & drinks";
+    $("#previewReceipt").hidden = !guest || !meId() || !!state.meta.locked;
+    $("#previewReceipt").textContent = receiptPreview ? "Hide my receipt" : "See my receipt";
     $("#itemsEmpty").textContent = !scan ? "Nothing yet. Add what was ordered." : admin ? "Nothing yet. Scan the receipt to fill this in." : "Nothing yet. The receipt hasn't been scanned.";
     $("#itemsCount").textContent = shown.length ? shown.length + (shown.length === 1 ? " item" : " items") : "";
     renderBar();
@@ -1613,15 +1644,15 @@
         setHTML(av, initial(p.id));
         const input = row.querySelector("input");
         setVal(input, p.name);
-        input.disabled = !admin;
+        input.disabled = !admin || peopleLocked;
         const by = claimedBy(p.id);
         row.querySelector('[data-act="unlink"]').hidden = !admin || !by || by === authUid;
         const mz = row.querySelector('[data-act="monzo"]');
         mz.hidden = !admin;
         const apps = payApps(p.id);
         mz.classList.toggle("on", !!apps);
-        mz.textContent = apps ? "✓ " + (apps.includes("&") ? "Both" : apps) : "Pay links";
-        row.lastChild.hidden = !admin;
+        mz.textContent = payLinksLabel(p.id);
+        row.lastChild.hidden = !admin || peopleLocked;
       });
 
     const chipsFor = (it) => {
@@ -1757,6 +1788,8 @@
     let tag = "";
     if (r.billC !== null && r.totalC > 0) tag = r.billC === r.totalC ? '<span class="d-tag">✓ Matches bill</span>' : '<span class="d-tag">≠ Bill says ' + money(r.billC) + "</span>";
     if (state.meta.locked) tag = '<span class="d-tag">Locked</span>';
+    // The bill total stays highlighted until it's filled in and matches the items.
+    $("#billTotalTile").classList.toggle("needs", r.billC === null || r.billC !== r.totalC);
     const pct = r.totalC ? Math.min(100, Math.round((r.paidTotal / r.totalC) * 100)) : 0;
     setHTML(box,
       '<div class="d-top"><span class="d-label">Total</span>' + tag + "</div>" +
@@ -1769,6 +1802,7 @@
 
   // Once the admin locks the bill, everyone sees their own receipt instead of the editor.
   let receiptWho = null;   // whose receipt the admin is looking at (defaults to their own)
+  let receiptPreview = false;   // a guest looking at their receipt before the bill is locked
   function receiptPerson() {
     if (!canAdmin()) return meId();
     if (receiptWho && state.people[receiptWho]) return receiptWho;
@@ -1779,14 +1813,15 @@
   function renderReceipt() {
     const box = $("#receipt");
     const locked = loaded && !!state.meta.locked;
+    const preview = loaded && !locked && receiptPreview && !canAdmin() && !!meId();
     document.body.classList.toggle("is-locked", locked);
-    box.hidden = !locked;
-    if (!locked) return;
+    box.hidden = !locked && !preview;
+    if (!locked && !preview) return;
     const r = last, who = receiptPerson();
     const admin = canAdmin(), me = myself();
     const first = who ? "" : '<option value="">Who are you?</option>';
     const viewOptions = r.people.map((p) => '<option value="' + p.id + '">' + esc(personName(p.id)) + (p.id === me ? " (you)" : "") + "</option>").join("");
-    let h = '<div class="receipt-head"><h2>' + (admin && who !== me ? "Viewing" : "Your receipt") + '</h2><select id="receiptWho">' +
+    let h = '<div class="receipt-head"><h2>' + (admin && who !== me ? "Viewing" : preview ? "Your receipt so far" : "Your receipt") + '</h2><select id="receiptWho">' +
       (admin ? viewOptions : pickerOptions(first)) + "</select></div>";
 
     if (!who) h += '<p class="empty">Pick your name to see what you owe.</p>';
@@ -1971,6 +2006,7 @@
     const paths = {};
     switch (b.dataset.act) {
       case "delPerson": {
+        if (state.meta.peopleLocked) return;
         const hasPay = Object.values(state.payments).some((pm) => pm.personId === id);
         const hasItems = Object.values(state.items).some((it) => (it.people || {})[id] || (it.units || {})[id]);
         const gone = [hasItems && "what they had", hasPay && "their payments"].filter(Boolean);
@@ -2080,7 +2116,17 @@
         if (r.unassignedC) return scanMode()
           ? info("Not everything is claimed", "Still to claim: " + r.unclaimed.join(", ") + ".")
           : info("Unassigned items", "Some items aren't assigned to anyone yet. Tick who had them first.");
-        if (r.billC === null) return info("Enter the bill total", "Type the total printed on the bill (under Bill) so it can be checked against the items.");
+        if (r.billC === null) {
+          const set = await sheet({
+            title: "Enter the bill total", text: "Type the total printed on the bill (under Bill) so it can be checked against the items.",
+            buttons: [{ label: "Got it", value: false }, { label: "Set bill = total", value: true, kind: "primary" }],
+          });
+          if (set !== true) return;
+          if (!(await ask("Set the bill total to " + money(r.totalC) + "?",
+            "Only if you've checked the bill says exactly " + money(r.totalC) + ". Comparing the two is how the app catches a missing or mistyped item.",
+            "Yes, the bill says " + money(r.totalC)))) return;
+          return write({ "meta/billTotal": (r.totalC / 100).toFixed(2) });
+        }
         if (r.billC !== r.totalC) {
           const d = r.billC - r.totalC;
           return info("Totals don't match", "The bill says " + money(r.billC) + " but items + service come to " + money(r.totalC) + " (" +
@@ -2142,6 +2188,38 @@
     editing.add(newId);
     write({ ["items/" + newId]: item });
     focusLast($("#items"), ".name");
+  });
+  // Confirm who's at the table, once: after this nobody can be added, removed or renamed.
+  $("#confirmPeople").addEventListener("click", async () => {
+    if (!canAdmin()) return;
+    const people = sorted(state.people), names = people.map((p) => String(p.name || "").trim());
+    if (people.length < 2) return info("Add everyone first", "Add everyone at the table, including you.");
+    if (names.some((n) => !n)) return info("Some people have no name", "Give every person a name first.");
+    const dupe = names.find((n, i) => names.findIndex((m) => m.toLowerCase() === n.toLowerCase()) !== i);
+    if (dupe) return info("Two people are called " + dupe, "Use different names so everyone can find themselves.");
+    const list = names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0];
+    if (!(await ask("Confirm " + names.length + " people?", list + ".\n\nThis can't be changed later: nobody can be added, removed or renamed.", "Confirm"))) return;
+    write({ "meta/peopleLocked": true });
+  });
+  // The admin paid the whole bill: one payment for whatever hasn't been paid yet.
+  $("#paidAll").addEventListener("click", async () => {
+    let me = myself();
+    if (!me) {
+      if (billId) return toast("Pick who you are first, at the top");
+      me = await askWhoYouAre();
+      if (!me) return;
+      write({ "meta/me": me });
+    }
+    const r = compute(), rem = r.totalC - r.paidTotal;
+    if (!r.totalC) return info("Nothing to pay yet", "Add the items first.");
+    if (rem <= 0) return info("Already fully paid", "Payments already cover the total of " + money(r.totalC) + ".");
+    if (!(await ask(personName(me) + " paid " + money(rem) + "?", r.paidTotal ? "That's what's left after the payments already added." : "The whole bill.", "Add payment"))) return;
+    write({ ["payments/" + uid()]: { personId: me, amount: (rem / 100).toFixed(2), note: "Whole bill", order: Date.now() } });
+  });
+  $("#previewReceipt").addEventListener("click", () => {
+    receiptPreview = !receiptPreview;
+    render();
+    if (receiptPreview) $("#receipt").scrollIntoView({ behavior: "smooth", block: "start" });
   });
   $("#addPayment").addEventListener("click", () => {
     const first = sorted(state.people)[0];
