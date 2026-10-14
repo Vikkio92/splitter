@@ -355,9 +355,13 @@
   .check .cv small { font-size: 11px; }
   .check .cv { white-space: nowrap; }
   /* label · button · amount: the amounts stay lined up on the right */
+  /* fixed button and amount columns, so the buttons are the same size and line up */
+  .check { grid-template-columns: minmax(0, 1fr) 96px 66px; }
   .check .cl { grid-column: 1; grid-row: 1; }
   .check .cact { grid-column: 2; grid-row: 1; }
+  .check .cact .btn { width: 100%; padding-left: 4px; padding-right: 4px; }
   .check .cv { grid-column: 3; grid-row: 1; }
+  .check.noact .cv { grid-column: 2 / 4; }
   #checks.flash { animation: flash .9s ease 2; }
   @keyframes flash { 50% { box-shadow: 0 0 0 3px var(--warn); } }
   #modeSeg { margin: 0 0 12px; }
@@ -2028,7 +2032,7 @@
     if (box.hidden) return;
     const list = checks(last), toFix = list.filter((c) => c.ok === false).length;
     setHTML(box, '<div class="card-head"><h2>Checklist</h2><span class="count">' + (toFix ? toFix + " to fix" : "All good") + "</span></div>" + list.map((c) =>
-      '<div class="check ' + (c.ok === true ? "ok" : c.ok === null ? "na" : "bad") + '" data-go="' + c.key + '" role="button" tabindex="0">' +
+      '<div class="check ' + (c.ok === true ? "ok" : c.ok === null ? "na" : "bad") + (c.action ? "" : " noact") + '" data-go="' + c.key + '" role="button" tabindex="0">' +
       '<span class="cl">' + esc(c.label) + "</span>" +
       '<span class="cv">' + esc(c.value) + (c.note ? "<small>" + esc(c.note) + "</small>" : "") + "</span>" +
       (c.action ? '<span class="cact"><button class="btn small dark" data-act="' + c.action.act + '">' + esc(c.action.label) + "</button></span>" : "") +
