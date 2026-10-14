@@ -1920,7 +1920,7 @@
     const admin = canAdmin(), scan = scanMode(), out = [];
     const noPrice = sorted(state.items).filter((it) => price(it.price) <= 0 || qty(it.qty) <= 0).length;
     out.push({ key: "bill", label: "Bill total", ok: r.billC !== null, value: r.billC !== null ? money(r.billC) : "Not entered" });
-    const items = { key: "items", label: "Items + service", value: money(r.totalC) };
+    const items = { key: "items", label: "Items total", value: money(r.totalC) };
     if (!r.totalC) Object.assign(items, { ok: false, value: "No items yet" });
     else if (noPrice) Object.assign(items, { ok: false, note: noPrice + (noPrice === 1 ? " item needs" : " items need") + " a price" });
     else if (r.billC === null) Object.assign(items, { ok: null, action: admin && { act: "setTotal", label: "Set bill = total" } });
@@ -1941,7 +1941,7 @@
     }
     // Payments cover what the receipt says (once it's typed in), even while items are still being added.
     const target = r.billC !== null ? r.billC : r.totalC, rem = target - r.paidTotal, me = myself();
-    const paid = { key: "paid", label: "Paid", value: money(r.paidTotal) };
+    const paid = { key: "paid", label: "Payments total", value: money(r.paidTotal) };
     if (!target) paid.ok = null;
     else if (rem === 0) paid.ok = true;
     else if (rem > 0) Object.assign(paid, { ok: false, note: money(rem) + " to go", action: admin && { act: "paidRest", label: "Pay the rest" } });
