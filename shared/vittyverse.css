@@ -855,6 +855,7 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) .lookup .hw ruby rt { font: 600 12.5px var(--font); color: var(--muted); letter-spacing: .06em; padding-bottom: 2px; }
 :where([data-app="shiori"]) .lookup .lk-head .badge { margin-bottom: 6px; }
 :where([data-app="shiori"]) .lookup .deinf { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 500; }
+:where([data-app="shiori"]) .lookup .deinf .emph { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); font-size: 11px; font-weight: 600; letter-spacing: .02em; vertical-align: 1px; }
 :where([data-app="shiori"]) .lookup ol { margin: 12px 0 6px; padding-left: 22px; }
 :where([data-app="shiori"]) .lookup li { margin: 0 0 8px; line-height: 1.45; font-size: 15px; }
 :where([data-app="shiori"]) .lookup li::marker { color: var(--muted); font: 600 13px var(--display-font); }
