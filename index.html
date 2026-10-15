@@ -115,7 +115,8 @@
   .tk, .bang { display: inline-block; width: 15px; height: 15px; flex: none; background: var(--tick) no-repeat center / 15px; vertical-align: -2px; }
   .bang { background-image: var(--bang); }
   .btn .tk { margin-right: -2px; }
-  html { -webkit-text-size-adjust: 100%; }
+  /* app, not a web page: a double tap never zooms (pinch-to-zoom still works, for anyone who needs it) */
+  html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.45 var(--font); -webkit-font-smoothing: antialiased;
