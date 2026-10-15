@@ -849,6 +849,11 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) .lookup { position: absolute; z-index: 8; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 24px)); max-height: 46%; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); color: var(--text); border-radius: 24px; box-shadow: var(--shadow-float); animation: up .22s cubic-bezier(.2, .8, .2, 1); }
 :where([data-app="shiori"]) .lookup.bottom { bottom: calc(env(safe-area-inset-bottom) + 24px); }
 :where([data-app="shiori"]) .lookup.top { top: calc(env(safe-area-inset-top) + 16px); }
+/* placed next to the word (placeCard): grows out from it */
+:where([data-app="shiori"]) .lookup.anchored { transform: none; animation: card-in .2s var(--glide); }
+:where([data-app="shiori"]) .lookup.anchored.under { transform-origin: 50% 0; }
+:where([data-app="shiori"]) .lookup.anchored.over { transform-origin: 50% 100%; }
+@keyframes card-in { from { opacity: 0; transform: scale(.96); } }
 :where([data-app="shiori"]) .lookup .lk-scroll { overflow: auto; padding: 16px 18px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
 :where([data-app="shiori"]) .lookup .lk-head { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
 :where([data-app="shiori"]) .lookup .hw { font: 700 30px/1.15 var(--font); }
@@ -893,16 +898,12 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) .lookup .ocr-buttons { display: flex; gap: 8px; margin: 12px 0 8px; }
 :where([data-app="shiori"]) .lookup .ocr-buttons .btn { flex: 1; }
 :where([data-app="shiori"]) .lookup .progress { margin: 4px 0 8px; }
-/* Shior.ino: DeepL translation inside a lookup card */
+/* Shior.ino: the translation inside a lookup card */
 :where([data-app="shiori"]) .lookup .lk-translation { margin: 6px 0 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 14px; font-size: 15px; line-height: 1.45; }
 :where([data-app="shiori"]) .lookup .lk-translation p { margin: 0; }
 :where([data-app="shiori"]) .lookup .lk-translation .src { display: block; margin-top: 4px; font: 600 10.5px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 :where([data-app="shiori"]) .lookup .lk-translation .muted { color: var(--muted); }
 :where([data-app="shiori"]) .lookup .lk-translation.error p { color: var(--danger); font-size: 14px; }
-:where([data-app="shiori"]) .sheet ol.steps { margin: 4px 0 14px; padding-left: 20px; color: var(--muted); font-size: 14px; line-height: 1.5; }
-:where([data-app="shiori"]) .sheet ol.steps li + li { margin-top: 4px; }
-:where([data-app="shiori"]) .sheet ol.steps code { font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; color: var(--text); }
-:where([data-app="shiori"]) .sheet .test-result { font-size: 14px; margin: 10px 2px 0; }
 :where([data-app="shiori"]) .page-head .subhead { margin-top: 18px; }
 
 :where([data-app="shiori"]) .sheet .progress { margin: 12px 0 0; }
