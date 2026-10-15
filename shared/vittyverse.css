@@ -775,6 +775,26 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 }
 :where([data-app="shiori"]) .chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 :where([data-app="shiori"]) .chart-head .title { font: 600 18px/1.25 var(--display-font); letter-spacing: -0.01em; }
+/* Stats: your level, this week against your usual, and the kanji you look up most */
+:where([data-app="shiori"]) .level-card > .title { font: 600 18px/1.25 var(--display-font); letter-spacing: -0.01em; }
+:where([data-app="shiori"]) .level-head { display: flex; align-items: center; gap: 16px; margin: 10px 0 12px; }
+:where([data-app="shiori"]) .level-num { font: 700 64px/1 var(--display-font); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+:where([data-app="shiori"]) .level-band { font: 600 18px/1.2 var(--display-font); }
+:where([data-app="shiori"]) .level-delta { font-size: 14px; color: var(--muted); margin-top: 3px; }
+:where([data-app="shiori"]) .level-meter { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+:where([data-app="shiori"]) .level-meter i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+:where([data-app="shiori"]) .level-parts { display: grid; gap: 4px; margin: 12px 0 4px; font-size: 14px; color: var(--muted); }
+:where([data-app="shiori"]) .level-parts b { color: var(--text); font-weight: 600; }
+:where([data-app="shiori"]) .level-card .chart { margin-top: 12px; }
+:where([data-app="shiori"]) .trend { font: 600 14px var(--display-font); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+:where([data-app="shiori"]) .trend.good { color: var(--text); }
+:where([data-app="shiori"]) .kanji-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 8px; margin-top: 10px; }
+:where([data-app="shiori"]) .kanji { display: grid; justify-items: center; gap: 2px; padding: 10px 4px 8px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); transition: transform .28s var(--spring), background-color .2s ease, color .2s ease; }
+:where([data-app="shiori"]) .kanji:active { transform: scale(.95); transition-duration: .07s; }
+:where([data-app="shiori"]) .kanji b { font: 500 30px/1.1 "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; }
+:where([data-app="shiori"]) .kanji small { font: 600 12px var(--display-font); color: var(--muted); }
+:where([data-app="shiori"]) .kanji.on { background: var(--key); color: var(--on-key); }
+:where([data-app="shiori"]) .kanji.on small { color: inherit; opacity: .75; }
 :where([data-app="shiori"]) .chart-head .seg { min-width: 240px; }
 :where([data-app="shiori"]) .chart { position: relative; }
 :where([data-app="shiori"]) .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
