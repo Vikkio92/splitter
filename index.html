@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Splitter.ino</title>
 <meta name="description" content="Split the bill">
 <meta property="og:title" content="Splitter.ino">
@@ -115,8 +115,8 @@
   .tk, .bang { display: inline-block; width: 15px; height: 15px; flex: none; background: var(--tick) no-repeat center / 15px; vertical-align: -2px; }
   .bang { background-image: var(--bang); }
   .btn .tk { margin-right: -2px; }
-  /* app, not a web page: a double tap never zooms (pinch-to-zoom still works, for anyone who needs it) */
-  html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+  /* app, not a web page: no zooming at all, only scrolling */
+  html { -webkit-text-size-adjust: 100%; touch-action: pan-x pan-y; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.45 var(--font); -webkit-font-smoothing: antialiased;
@@ -494,6 +494,9 @@
 </head>
 <body class="home">
 <script>
+  // No zooming at all (iPhone Safari ignores the viewport setting, so stop its pinch gestures directly).
+  ["gesturestart", "gesturechange", "gestureend"].forEach((t) => document.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
+  document.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
   // Start on the home page so nothing else flashes up while the app loads; a bill link opens the bill instead.
   if (/^#b=/.test(location.hash)) document.body.classList.remove("home");
 </script>
