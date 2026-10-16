@@ -1,7 +1,7 @@
 /* VittyVerse — the one stylesheet for every app in the suite.
 
    Apps link it with  <link rel="stylesheet" href="../vittyverse/vittyverse.css">
-   and declare who they are with  <html data-app="splitter|gymmer|shiori">.
+   and declare who they are with  <html data-app="splitter|gymmer|shiori|mapper">.
    That attribute picks the app's accent colour and switches on its own section below.
 
    Rules of the house:
@@ -31,7 +31,7 @@
 /* =====================================================================
    2. Tokens
    Neutral palette, status colours and type are shared by every app.
-   Each app only picks its accent: <html data-app="splitter|gymmer|shiori">.
+   Each app only picks its accent: <html data-app="splitter|gymmer|shiori|mapper">.
    Dark mode follows the phone unless the user picked a theme (data-theme on <html>).
    ===================================================================== */
 :root {
@@ -83,11 +83,11 @@
 }
 
 /* ---- module accents: one colour per app, usable anywhere (the home page shows them all) ---- */
-:root { --splitter: #c9f53b; --gymmer: #ff8a1f; --shiori: #ff86b4; --on-module: #111113; /* ink on a module colour, both themes */ }
+:root { --splitter: #c9f53b; --gymmer: #ff8a1f; --shiori: #ff86b4; --mapper: #ffc222; --on-module: #111113; /* ink on a module colour, both themes */ }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; }
+  :root:not([data-theme="light"]) { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; }
 }
-:root[data-theme="dark"] { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; }
+:root[data-theme="dark"] { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; }
 
 /* ---- each app's accent (and the few colours only one app needs) ---- */
 :root[data-app="splitter"] {
@@ -102,7 +102,8 @@
   --body: #e4e2da; --muscle-0: #cfccc2; --heat: #e0301e;
 }
 :root[data-app="shiori"] { --accent: var(--shiori); /* sakura */ }
-/* the home page has no app colour of its own: ink, so the three module colours stand out */
+:root[data-app="mapper"] { --accent: var(--mapper); /* Mapstr yellow */ }
+/* the home page has no app colour of its own: ink, so the module colours stand out */
 :root[data-app="home"] { --accent: var(--key); --on-accent: var(--on-key); }
 @media (prefers-color-scheme: dark) {
   :root[data-app="gymmer"]:not([data-theme="light"]) { --body: #1c1c1f; --muscle-0: #2c2c31; --heat: #ff4a36; }
@@ -934,7 +935,74 @@ html.r-turning::view-transition-new(r-page) { animation: r-fade-in .15s ease-out
 :where([data-app="shiori"]) .sheet .progress { margin: 12px 0 0; }
 
 /* =====================================================================
-   8. The page at the site root (a plain list of the apps; not an app itself)
+   8. Mapper.ino (the map itself is Google's; this styles everything around it)
+   ===================================================================== */
+html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
+:where([data-app="mapper"]) body { padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 96px); }
+:where([data-app="mapper"]) h2 { font: 700 26px/1.15 var(--display-font); letter-spacing: -0.02em; margin: 0; padding: 2px 0 12px; }
+:where([data-app="mapper"]) .row { display: flex; gap: 10px; align-items: center; }
+:where([data-app="mapper"]) .row > .grow { flex: 1; min-width: 0; }
+/* the map fills the screen under the header, and the tab bar floats over its foot */
+:where([data-app="mapper"]) body.on-map { height: 100dvh; display: flex; flex-direction: column; padding-bottom: 0; overflow: hidden; }
+:where([data-app="mapper"]) body.on-map main { flex: none; width: 100%; }
+:where([data-app="mapper"]) .map-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+/* the one exception to the suite's no-zoom rule: pinching the map zooms the map (never the page) */
+:where([data-app="mapper"]) #map { position: absolute; inset: 0; background: var(--surface-2); touch-action: none; }
+:where([data-app="mapper"]) .map-note { position: absolute; inset: 0; display: grid; place-content: center; padding: 24px 32px 120px; text-align: center; color: var(--muted); font-size: 15px; background: var(--bg); }
+:where([data-app="mapper"]) .map-note b { display: block; color: var(--text); font: 700 20px/1.2 var(--display-font); margin-bottom: 6px; }
+:where([data-app="mapper"]) .map-top { position: absolute; z-index: 2; top: 10px; left: 0; right: 0; pointer-events: none; }
+:where([data-app="mapper"]) .map-top > * { pointer-events: auto; }
+:where([data-app="mapper"]) .map-top .chips { padding: 0 12px 10px; }
+:where([data-app="mapper"]) .map-top .chip { box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 4px 14px rgba(0, 0, 0, .14); }
+:where([data-app="mapper"]) .map-top .match { margin: 0 12px; display: inline-flex; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, .14); }
+:where([data-app="mapper"]) .map-btns { position: absolute; z-index: 2; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 84px); display: grid; gap: 8px; }
+:where([data-app="mapper"]) .map-btn { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: var(--surface); color: var(--text); box-shadow: var(--shadow-float); transition: transform .28s var(--spring); }
+:where([data-app="mapper"]) .map-btn:active { transform: scale(0.9); transition-duration: .07s; }
+:where([data-app="mapper"]) .map-btn svg.i { width: 20px; height: 20px; }
+:where([data-app="mapper"]) .map-count { position: absolute; z-index: 2; left: 12px; bottom: calc(env(safe-area-inset-bottom) + 92px); padding: 7px 12px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow-float); font-size: 13px; font-weight: 600; color: var(--muted); }
+/* the tag filter: chips with a count, and "all / any" once two or more are picked */
+:where([data-app="mapper"]) .chip .n { margin-left: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+:where([data-app="mapper"]) .chip.on { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+:where([data-app="mapper"]) .chip.on .n { color: inherit; opacity: .6; }
+:where([data-app="mapper"]) .chip.clear { color: var(--text); font-weight: 600; }
+:where([data-app="mapper"]) .match { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: 13px; font-size: 13px; color: var(--muted); font-weight: 600; }
+:where([data-app="mapper"]) .match .seg { padding: 2px; }
+:where([data-app="mapper"]) .match .seg button { min-height: 30px; padding: 0 12px; white-space: nowrap; }
+/* pins: a yellow drop with an ink dot; the one you're looking at stands a little bigger */
+:where([data-app="mapper"]) .pin { width: 30px; height: 30px; margin-bottom: 4px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--mapper); border: 2.5px solid #111113; display: grid; place-items: center; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); transition: transform .2s var(--spring); cursor: pointer; }
+:where([data-app="mapper"]) .pin::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #111113; }
+:where([data-app="mapper"]) .pin.sel { transform: rotate(-45deg) scale(1.3); }
+:where([data-app="mapper"]) .you { width: 18px; height: 18px; border-radius: 50%; background: var(--info); border: 3px solid #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--info) 25%, transparent); }
+/* a place: its tags to tick, a new tag, and Google Maps for directions */
+:where([data-app="mapper"]) .sheet .sub { margin-bottom: 12px; }
+:where([data-app="mapper"]) .sheet .chips.wrap { padding-top: 2px; }
+:where([data-app="mapper"]) .new-tag { display: flex; gap: 8px; margin-top: 12px; }
+:where([data-app="mapper"]) .new-tag .search { flex: 1; }
+:where([data-app="mapper"]) .sheet-actions { display: grid; gap: 8px; margin-top: 18px; }
+:where([data-app="mapper"]) a.btn { text-decoration: none; }
+:where([data-app="mapper"]) .li .t, :where([data-app="mapper"]) .li .s, :where([data-app="mapper"]) .li .tags { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:where([data-app="mapper"]) .li .tags { color: var(--muted); font-size: 13px; }
+:where([data-app="mapper"]) .li .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; }
+:where([data-app="mapper"]) .li .ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); flex: none; }
+:where([data-app="mapper"]) .li .ico.saved { background: var(--accent); color: var(--on-accent); }
+:where([data-app="mapper"]) .results { margin-top: 12px; }
+:where([data-app="mapper"]) .places-search { margin-bottom: 2px; }
+:where([data-app="mapper"]) .places .match { margin-top: 4px; }
+:where([data-app="mapper"]) .places .list { margin-top: 12px; }
+:where([data-app="mapper"]) .settings .card .row + .row { margin-top: 10px; }
+:where([data-app="mapper"]) .tag-row { display: flex; align-items: center; gap: 8px; }
+:where([data-app="mapper"]) .tag-row + .tag-row { margin-top: 8px; }
+:where([data-app="mapper"]) .tag-row .search { flex: 1; font-weight: 600; background: var(--surface-2); box-shadow: none; padding: 10px 12px; }
+:where([data-app="mapper"]) .tag-row .n { min-width: 28px; text-align: right; color: var(--muted); font-size: 13px; }
+/* this month's Google calls, and the Mapstr import's progress */
+:where([data-app="mapper"]) .usage { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+:where([data-app="mapper"]) .usage .v { font-size: 20px; }
+:where([data-app="mapper"]) .import-progress { background: var(--surface-2); box-shadow: none; margin: 14px 0 0; }
+:where([data-app="mapper"]) .import-progress .bar { height: 8px; border-radius: 999px; background: var(--line); margin: 10px 0 0; overflow: hidden; }
+:where([data-app="mapper"]) .import-progress .bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .3s ease; }
+
+/* =====================================================================
+   9. The page at the site root (a plain list of the apps; not an app itself)
    ===================================================================== */
 :where([data-app="home"]) body { padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 40px); }
 :where([data-app="home"]) a { color: inherit; text-decoration: none; }
@@ -943,6 +1011,7 @@ html.r-turning::view-transition-new(r-page) { animation: r-fade-in .15s ease-out
 :where([data-app="home"]) .module.splitter { --m: var(--splitter); }
 :where([data-app="home"]) .module.gymmer { --m: var(--gymmer); }
 :where([data-app="home"]) .module.shiori { --m: var(--shiori); }
+:where([data-app="home"]) .module.mapper { --m: var(--mapper); }
 :where([data-app="home"]) .module:active { transform: scale(0.98); }
 @media (hover: hover) { :where([data-app="home"]) a.module:hover { transform: translateY(-3px); } }
 :where([data-app="home"]) .module .glyph { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--on-module); color: var(--m); font: 700 28px/1 var(--display-font); }
