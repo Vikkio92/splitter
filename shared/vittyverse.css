@@ -223,9 +223,6 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 var
 /* wider layout for tablet-first apps (Shior.ino); phones still get the 16px gutter */
 main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 
-/* ---------- back to the VittyVerse home: a small apps grid right after each app's brand ---------- */
-header > .icon-btn.suite { margin-left: -10px; margin-right: auto; color: var(--muted); }
-
 /* ---------- page title (a view's name, with an action on the right) ---------- */
 .page-head h2 { font: 700 26px/1.15 var(--display-font); letter-spacing: -0.02em; margin: 0; padding: 2px 0 12px; }
 .btn.back { padding-left: 0; }
@@ -244,7 +241,8 @@ header > .icon-btn.suite { margin-left: -10px; margin-right: auto; color: var(--
 /* ---------- floating tab bar (the suite's bottom navigation) ----------
    Suite layout rules:
    - An app with more than one section uses this tab bar, and Settings is always its last tab.
-   - The header holds only: brand, the VittyVerse button (.suite), the app's one primary action, and the theme toggle. */
+   - The header holds only: brand, the app's one primary action, and the theme toggle. Each app stands alone
+     (its own home-screen icon), so there's no button back to a suite home. */
 .tabbar {
   position: fixed; z-index: 30; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 14px); transform: translateX(-50%);
   display: flex; gap: 4px; padding: 5px; border-radius: 999px; max-width: calc(100% - 24px);
@@ -323,7 +321,6 @@ main > header:first-child { view-transition-name: vv-header; }
 :where([data-app="splitter"]) .bang { background-image: var(--bang); }
 :where([data-app="splitter"]) .btn .tk { margin-right: -2px; }
 html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
-html:where([data-app="splitter"][data-public]) header > .suite { display: none; }
 :where([data-app="splitter"]) body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 var(--font); -webkit-font-smoothing: antialiased; padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 32px); }
 :where([data-app="splitter"]) input, :where([data-app="splitter"]) select { font: inherit; font-size: 16px; color: var(--text); background: var(--surface-2); border: 1.5px solid transparent; border-radius: 12px; padding: 10px 12px; min-width: 0; width: 100%; -webkit-appearance: none; appearance: none; }
 :where([data-app="splitter"]) select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239b9ba3' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; padding-right: 32px; }
@@ -822,6 +819,14 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) #view-reader foliate-view { position: absolute; inset: calc(env(safe-area-inset-top) + 4px) 0 calc(env(safe-area-inset-bottom) + 20px) 0; display: block; }
 /* Manga pages use the whole screen, edge to edge. The page number lives in the bottom bar instead. */
 :where([data-app="shiori"]) #view-reader.manga foliate-view { inset: 0; }
+/* page turns: a quick cross-fade of the page alone (reader.js turn); the rest of the screen stays as it is */
+html.r-turning[data-app="shiori"] #view-reader foliate-view { view-transition-name: r-page; }
+html.r-turning::view-transition-old(root), html.r-turning::view-transition-new(root) { animation: none; }
+html.r-turning::view-transition-group(root), html.r-turning::view-transition-group(r-page) { animation: none; }
+html.r-turning::view-transition-old(r-page) { animation: r-fade-out .15s ease-out both; }
+html.r-turning::view-transition-new(r-page) { animation: r-fade-in .15s ease-out both; }
+@keyframes r-fade-out { to { opacity: 0; } }
+@keyframes r-fade-in { from { opacity: 0; } }
 :where([data-app="shiori"]) #view-reader.manga .r-footer { display: none; }
 /* Reader bars: solid floating cards over the page (no fade into the page), with full-size 44px buttons.
    Sized first for the iPad mini (744 x 1133 portrait); they stay centred and capped on wider screens. */
@@ -929,7 +934,7 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) .sheet .progress { margin: 12px 0 0; }
 
 /* =====================================================================
-   8. VittyVerse home (the launcher at the site root)
+   8. The page at the site root (a plain list of the apps; not an app itself)
    ===================================================================== */
 :where([data-app="home"]) body { padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 40px); }
 :where([data-app="home"]) a { color: inherit; text-decoration: none; }
@@ -947,8 +952,4 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="home"]) .module .name .dot-ino { opacity: .5; font-weight: 500; }
 :where([data-app="home"]) .module .tag { margin: 6px 0 0; font-size: 15px; font-weight: 500; opacity: .72; }
 :where([data-app="home"]) .module .live { align-self: flex-start; max-width: 100%; margin-top: 14px; padding: 6px 12px; border-radius: 999px; background: color-mix(in srgb, var(--on-module) 10%, transparent); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:where([data-app="home"]) .module.soon { background: transparent; color: var(--muted); border: 1.5px dashed var(--line); }
-:where([data-app="home"]) .module.soon .glyph { background: var(--surface-2); color: var(--muted); }
-:where([data-app="home"]) .module.soon .name { color: var(--text); }
-:where([data-app="home"]) .module.soon .live { background: var(--surface-2); }
 :where([data-app="home"]) .foot { margin-top: 28px; }
