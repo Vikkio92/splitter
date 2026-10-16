@@ -1012,6 +1012,9 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .li.more { justify-content: center; color: var(--muted); font-weight: 600; font-size: 14px; min-height: 48px; }
 :where([data-app="mapper"]) .chip.more { color: var(--text); font-weight: 600; border: 1.5px dashed var(--line); background: transparent; }
 :where([data-app="mapper"]) .sheet-search { margin: 4px 0 2px; }
+:where([data-app="mapper"]) .ask-group { background: var(--surface-2); box-shadow: none; margin: 14px 0 0; padding: 14px; }
+:where([data-app="mapper"]) .ask-group .chips { padding-top: 10px; }
+:where([data-app="mapper"]) .ask-group .sheet .chip, :where([data-app="mapper"]) .ask-group .chip { background: var(--surface); }
 :where([data-app="mapper"]) .tags-view .search { margin-bottom: 2px; }
 :where([data-app="mapper"]) .tags-summary { margin: 10px 4px 0; color: var(--muted); font-size: 14px; }
 :where([data-app="mapper"]) .tags-view .list .li .r { margin-left: auto; }
