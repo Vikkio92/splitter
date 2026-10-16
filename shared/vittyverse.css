@@ -236,6 +236,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 
 /* ---------- base ---------- */
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 var(--font); -webkit-font-smoothing: antialiased; }
+
+/* ---------- scrollbars: thin and rounded, in the suite's colours, on every page and every scrolling box ----------
+   scrollbar-color is inherited, so setting it on html covers everything; scrollbar-width isn't, hence :where(*)
+   (no specificity, so a box that hides its scrollbar, like .chips, still wins). Safari, which has neither, gets the
+   same look through its ::-webkit-scrollbar pseudo-elements (other browsers ignore those once scrollbar-color is set). */
+html { scrollbar-color: var(--scroll) transparent; }
+:where(*) { scrollbar-width: thin; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--muted); }
 /* wider layout for tablet-first apps (Shior.ino); phones still get the 16px gutter */
 main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 
@@ -607,11 +618,7 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 /* =====================================================================
    6. Gymmer.ino
    ===================================================================== */
-html:where([data-app="gymmer"]) { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--scroll) transparent; }
-:where([data-app="gymmer"]) .sheet { scrollbar-width: thin; scrollbar-color: var(--scroll) transparent; }
-:where([data-app="gymmer"])::-webkit-scrollbar, :where([data-app="gymmer"]) ::-webkit-scrollbar { width: 10px; height: 10px; }
-:where([data-app="gymmer"])::-webkit-scrollbar-track, :where([data-app="gymmer"]) ::-webkit-scrollbar-track { background: transparent; }
-:where([data-app="gymmer"])::-webkit-scrollbar-thumb, :where([data-app="gymmer"]) ::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+html:where([data-app="gymmer"]) { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
 :where([data-app="gymmer"]) body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 var(--font); -webkit-font-smoothing: antialiased; padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 96px); }
 :where([data-app="gymmer"]) h2 { font: 700 26px/1.15 var(--display-font); letter-spacing: -0.02em; margin: 0; padding: 2px 0 12px; }
 :where([data-app="gymmer"]) h3 { font: 600 13px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 4px 6px; }
@@ -982,6 +989,14 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .chip .sw { margin-right: 7px; }
 :where([data-app="mapper"]) .chip.filter-btn { color: var(--text); font-weight: 600; gap: 6px; }
 :where([data-app="mapper"]) .chip.filter-btn svg.i { width: 16px; height: 16px; }
+:where([data-app="mapper"]) .chip.colours-btn { color: var(--text); font-weight: 600; }
+:where([data-app="mapper"]) .chip.colours-btn .sw { margin-right: 0; }
+:where([data-app="mapper"]) .chip.colours-btn .sw + .sw { margin-left: -3px; }
+:where([data-app="mapper"]) .chip.colours-btn .sw:last-of-type { margin-right: 7px; }
+:where([data-app="mapper"]) .legend { display: grid; gap: 2px; }
+:where([data-app="mapper"]) .legend-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; font-weight: 500; }
+:where([data-app="mapper"]) .legend-row .sw { width: 14px; height: 14px; }
+:where([data-app="mapper"]) .legend-row .n { color: var(--muted); font-size: 13px; }
 :where([data-app="mapper"]) .chip.picked { color: var(--text); font-weight: 600; border-color: var(--text); }
 :where([data-app="mapper"]) .chip.picked svg.i { width: 14px; height: 14px; margin-left: 6px; color: var(--muted); }
 /* a tag's colour: a small swatch beside its name */
