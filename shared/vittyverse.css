@@ -102,7 +102,22 @@
   --body: #e4e2da; --muscle-0: #cfccc2; --heat: #e0301e;
 }
 :root[data-app="shiori"] { --accent: var(--shiori); /* sakura */ }
-:root[data-app="mapper"] { --accent: var(--mapper); /* Mapstr yellow */ }
+:root[data-app="mapper"] {
+  --accent: var(--mapper); /* Mapstr yellow */
+  /* tag colours: the data-viz reference palette's eight categorical hues, light steps; --pin-none for no tag */
+  --tag-blue: #2a78d6; --tag-orange: #eb6834; --tag-aqua: #1baf7a; --tag-yellow: #eda100;
+  --tag-magenta: #e87ba4; --tag-green: #008300; --tag-violet: #6250d6; --tag-red: #e34948; --pin-none: #b8b7b0;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-app="mapper"]:not([data-theme="light"]) {
+    --tag-blue: #3987e5; --tag-orange: #d95926; --tag-aqua: #199e70; --tag-yellow: #c98500;
+    --tag-magenta: #d55181; --tag-green: #008300; --tag-violet: #9085e9; --tag-red: #e66767; --pin-none: #6f6f76;
+  }
+}
+:root[data-app="mapper"][data-theme="dark"] {
+  --tag-blue: #3987e5; --tag-orange: #d95926; --tag-aqua: #199e70; --tag-yellow: #c98500;
+  --tag-magenta: #d55181; --tag-green: #008300; --tag-violet: #9085e9; --tag-red: #e66767; --pin-none: #6f6f76;
+}
 /* the home page has no app colour of its own: ink, so the module colours stand out */
 :root[data-app="home"] { --accent: var(--key); --on-accent: var(--on-key); }
 @media (prefers-color-scheme: dark) {
@@ -954,7 +969,6 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .map-top > * { pointer-events: auto; }
 :where([data-app="mapper"]) .map-top .chips { padding: 0 12px 10px; }
 :where([data-app="mapper"]) .map-top .chip { box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 4px 14px rgba(0, 0, 0, .14); }
-:where([data-app="mapper"]) .map-top .match { margin: 0 12px; display: inline-flex; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, .14); }
 :where([data-app="mapper"]) .map-btns { position: absolute; z-index: 2; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 84px); display: grid; gap: 8px; }
 :where([data-app="mapper"]) .map-btn { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: var(--surface); color: var(--text); box-shadow: var(--shadow-float); transition: transform .28s var(--spring); }
 :where([data-app="mapper"]) .map-btn:active { transform: scale(0.9); transition-duration: .07s; }
@@ -965,11 +979,27 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .chip.on { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 :where([data-app="mapper"]) .chip.on .n { color: inherit; opacity: .6; }
 :where([data-app="mapper"]) .chip.clear { color: var(--text); font-weight: 600; }
-:where([data-app="mapper"]) .match { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: 13px; font-size: 13px; color: var(--muted); font-weight: 600; }
-:where([data-app="mapper"]) .match .seg { padding: 2px; }
-:where([data-app="mapper"]) .match .seg button { min-height: 30px; padding: 0 12px; white-space: nowrap; }
+:where([data-app="mapper"]) .chip .sw { margin-right: 7px; }
+:where([data-app="mapper"]) .chip.filter-btn { color: var(--text); font-weight: 600; gap: 6px; }
+:where([data-app="mapper"]) .chip.filter-btn svg.i { width: 16px; height: 16px; }
+:where([data-app="mapper"]) .chip.picked { color: var(--text); font-weight: 600; border-color: var(--text); }
+:where([data-app="mapper"]) .chip.picked svg.i { width: 14px; height: 14px; margin-left: 6px; color: var(--muted); }
+/* a tag's colour: a small swatch beside its name */
+:where([data-app="mapper"]) .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--text) 12%, transparent); }
+:where([data-app="mapper"]) h2 .sw { width: 16px; height: 16px; vertical-align: 2px; }
+:where([data-app="mapper"]) .li .sw { width: 14px; height: 14px; }
+:where([data-app="mapper"]) .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+:where([data-app="mapper"]) .swatch { width: 36px; height: 36px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 2px color-mix(in srgb, #000 10%, transparent); transition: transform .28s var(--spring); }
+:where([data-app="mapper"]) .swatch.on { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--text); }
+:where([data-app="mapper"]) .swatch:active { transform: scale(0.9); transition-duration: .07s; }
+:where([data-app="mapper"]) .tag-group { font: 600 11px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 10px 2px 0; }
+:where([data-app="mapper"]) .group-head { display: flex; align-items: center; justify-content: space-between; }
+:where([data-app="mapper"]) .group-head .btn { margin-top: 10px; }
+:where([data-app="mapper"]) .settings .list .li .r { margin-left: auto; }
+:where([data-app="mapper"]) .settings .list .li .chev { color: var(--muted); display: grid; }
+:where([data-app="mapper"]) .sheet .field { margin-top: 4px; }
 /* pins: a yellow drop with an ink dot; the one you're looking at stands a little bigger */
-:where([data-app="mapper"]) .pin { width: 30px; height: 30px; margin-bottom: 4px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--mapper); border: 2.5px solid #111113; display: grid; place-items: center; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); transition: transform .2s var(--spring); cursor: pointer; }
+:where([data-app="mapper"]) .pin { width: 30px; height: 30px; margin-bottom: 4px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--pin, var(--mapper)); border: 2.5px solid #111113; display: grid; place-items: center; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); transition: transform .2s var(--spring); cursor: pointer; }
 :where([data-app="mapper"]) .pin::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #111113; }
 :where([data-app="mapper"]) .pin.sel { transform: rotate(-45deg) scale(1.3); }
 :where([data-app="mapper"]) .you { width: 18px; height: 18px; border-radius: 50%; background: var(--info); border: 3px solid #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--info) 25%, transparent); }
@@ -982,18 +1012,13 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) a.btn { text-decoration: none; }
 :where([data-app="mapper"]) .li .t, :where([data-app="mapper"]) .li .s, :where([data-app="mapper"]) .li .tags { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 :where([data-app="mapper"]) .li .tags { color: var(--muted); font-size: 13px; }
-:where([data-app="mapper"]) .li .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; }
+:where([data-app="mapper"]) .li .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c, var(--accent)); flex: none; }
 :where([data-app="mapper"]) .li .ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); flex: none; }
 :where([data-app="mapper"]) .li .ico.saved { background: var(--accent); color: var(--on-accent); }
 :where([data-app="mapper"]) .results { margin-top: 12px; }
 :where([data-app="mapper"]) .places-search { margin-bottom: 2px; }
-:where([data-app="mapper"]) .places .match { margin-top: 4px; }
 :where([data-app="mapper"]) .places .list { margin-top: 12px; }
 :where([data-app="mapper"]) .settings .card .row + .row { margin-top: 10px; }
-:where([data-app="mapper"]) .tag-row { display: flex; align-items: center; gap: 8px; }
-:where([data-app="mapper"]) .tag-row + .tag-row { margin-top: 8px; }
-:where([data-app="mapper"]) .tag-row .search { flex: 1; font-weight: 600; background: var(--surface-2); box-shadow: none; padding: 10px 12px; }
-:where([data-app="mapper"]) .tag-row .n { min-width: 28px; text-align: right; color: var(--muted); font-size: 13px; }
 /* this month's Google calls, and the Mapstr import's progress */
 :where([data-app="mapper"]) .usage { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 :where([data-app="mapper"]) .usage .v { font-size: 20px; }
