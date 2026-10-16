@@ -29,6 +29,19 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
+<!-- Opening a shared bill goes through Firebase, reCAPTCHA (App Check) and sign-in before the bill can load.
+     Start those connections and the Firebase code downloads while the page itself loads.
+     The SDK version here must match SDK in the script below. -->
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://www.google.com">
+<link rel="preconnect" href="https://content-firebaseappcheck.googleapis.com">
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com">
+<link rel="preconnect" href="https://securetoken.googleapis.com">
+<link rel="preconnect" href="https://bill-splitter-233a5-default-rtdb.europe-west1.firebasedatabase.app">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-check.js">
 <!-- All styling comes from the shared VittyVerse stylesheet; data-app on <html> picks Splitter's accent and section. -->
 <link rel="stylesheet" href="./shared/vittyverse.css">
 <!-- no zoom, the sliding pill and the suite's motion: shared by every VittyVerse page -->
@@ -144,7 +157,7 @@
   const CURRENT = "splitter-current";      // id of the bill that's open
   const LOCAL_PREFIX = "splitter-local:";  // + id -> a bill that lives only on this phone
   const KEYS = "bill-splitter-key:";       // + bill id -> admin key, if this device is an admin
-  const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/12.19.0/";
+  const SDK = window.FIREBASE_SDK || "https://www.gstatic.com/firebasejs/12.19.0/";   // and the modulepreload links in <head>
   // Models that read receipt photos (Firebase AI Logic, Gemini Developer API), tried in order if one is busy.
   const RECEIPT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash"];
   const DEFAULT_META = { currency: "£", service: "", billTotal: "" };
@@ -325,7 +338,8 @@
       acts.innerHTML = "";
       const cancelValue = input ? null : false;
       const done = (v) => {
-        VV.dismiss(modal, () => { modal.hidden = true; }); closeSheet = null;
+        VV.dismiss(modal, () => { modal.hidden = true; $("#modal .sheet").style.transform = ""; }); closeSheet = null;
+        document.documentElement.classList.remove("sheet-open");
         document.removeEventListener("keydown", onKey);
         stopFitting();
         resolve(v);
@@ -349,11 +363,41 @@
       document.addEventListener("keydown", onKey);
       closeSheet = done;
       VV.keep(modal);
+      $("#modal .sheet").style.transform = "";
+      document.documentElement.classList.add("sheet-open");   // the page behind stays still
       modal.hidden = false;
       startFitting();
       if (input) inp.focus({ preventScroll: true });
     });
   }
+  // Swipe a sheet down to close it, as on any phone. Only from the top of its content, so a long sheet still
+  // scrolls; let go early and it springs back.
+  (function swipeToClose() {
+    const el = $("#modal .sheet");
+    let y0 = null, dy = 0, t0 = 0;
+    el.addEventListener("touchstart", (e) => {
+      y0 = e.touches.length > 1 || el.scrollTop > 0 || e.target.closest("input, select, textarea") ? null : e.touches[0].clientY;
+      dy = 0; t0 = e.timeStamp;
+    }, { passive: true });
+    el.addEventListener("touchmove", (e) => {
+      if (y0 === null) return;
+      dy = Math.max(0, e.touches[0].clientY - y0);
+      if (!dy) { el.style.transform = ""; return; }   // upwards: the sheet scrolls as usual
+      e.preventDefault();
+      el.style.transform = "translateY(" + dy + "px)";
+    }, { passive: false });
+    const end = (e) => {
+      if (y0 === null) return;
+      y0 = null;
+      if (!dy) return;
+      const flick = dy > 40 && e.timeStamp - t0 < 250;
+      if ((dy > 110 || flick) && closeSheet) return $("#scrim").onclick();   // closes as a tap outside would
+      el.animate([{ transform: el.style.transform }, { transform: "none" }], { duration: 200, easing: "cubic-bezier(.2, .8, .2, 1)" });
+      el.style.transform = "";
+    };
+    el.addEventListener("touchend", end);
+    el.addEventListener("touchcancel", end);
+  })();
   // On phones the keyboard covers the bottom of the screen, where sheets sit. Size the sheet's layer to the
   // part of the screen that's actually visible, so the field being typed in stays in view.
   function fitSheet() {
@@ -1215,9 +1259,10 @@
     $("#dot").classList.toggle("on", online && loaded);
     $("#statusText").textContent = !loaded ? "Connecting…" : online ? "Live" : "Offline · will sync";
     const sel = $("#meSel");
-    setHTML(sel, pickerOptions('<option value="">Choose…</option>'));
+    // until the bill arrives there are no names to pick from: say so, rather than show an empty list
+    setHTML(sel, loaded ? pickerOptions('<option value="">Choose…</option>') : '<option value="">Loading names…</option>');
     if (document.activeElement !== sel) sel.value = meId() || "";
-    sel.disabled = !!meId();   // your name is fixed once picked
+    sel.disabled = !loaded || !!meId();   // your name is fixed once picked
     bar.classList.toggle("needme", loaded && !meId());
     $("#role").textContent = isAdmin ? "Admin" : "Guest";
     $("#role").classList.toggle("admin", isAdmin);

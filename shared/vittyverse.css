@@ -587,6 +587,9 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="splitter"]) .item:not(.locked) .item-foot { align-items: center; }
 :where([data-app="splitter"]) #scanBtn + #addItem { margin-top: 8px; }
 :where([data-app="splitter"]) .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+/* while a sheet is open the page behind stays still: no scrolling it through the sheet or the dimmed area */
+html:where([data-app="splitter"]).sheet-open, html:where([data-app="splitter"]).sheet-open body { overflow: hidden; }
+:where([data-app="splitter"]) .modal .scrim { touch-action: none; }
 :where([data-app="splitter"]) .scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); animation: fade .18s ease; }
 :where([data-app="splitter"]) .sheet h3 { font: 700 22px/1.2 var(--display-font); letter-spacing: -0.02em; margin: 0 0 8px; }
 :where([data-app="splitter"]) .sheet p { margin: 0 0 16px; color: var(--muted); white-space: pre-line; }
