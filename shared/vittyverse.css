@@ -993,10 +993,6 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .chip.colours-btn .sw { margin-right: 0; }
 :where([data-app="mapper"]) .chip.colours-btn .sw + .sw { margin-left: -3px; }
 :where([data-app="mapper"]) .chip.colours-btn .sw:last-of-type { margin-right: 7px; }
-:where([data-app="mapper"]) .legend { display: grid; gap: 2px; }
-:where([data-app="mapper"]) .legend-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; font-weight: 500; }
-:where([data-app="mapper"]) .legend-row .sw { width: 14px; height: 14px; }
-:where([data-app="mapper"]) .legend-row .n { color: var(--muted); font-size: 13px; }
 :where([data-app="mapper"]) .chip.picked { color: var(--text); font-weight: 600; border-color: var(--text); }
 :where([data-app="mapper"]) .chip.picked svg.i { width: 14px; height: 14px; margin-left: 6px; color: var(--muted); }
 /* a tag's colour: a small swatch beside its name */
