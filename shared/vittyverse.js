@@ -191,5 +191,31 @@
   })();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pills); else pills();
 
-  window.VV = { swap, dismiss, keep, noZoom, reduced };
+  // ---------- light or dark ----------
+  // One setting for the whole suite ("vittyverse-theme": "light" or "dark", or absent to follow the device). Each page's
+  // <head> applies it before the first paint; VV.themeControl() is the switch for an app's Settings. A change (here,
+  // in another tab, or the device switching) fires "vv-theme" on window, for anything that has to redraw.
+  const THEME = "vittyverse-theme";
+  const themeNow = () => { try { return localStorage.getItem(THEME) || "auto"; } catch (e) { return "auto"; } };
+  const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+  function applyTheme() {
+    const v = themeNow();
+    if (v === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = v;
+    const bg = isDark() ? "#000000" : "#f2f2f7";   // the status bar matches the page
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", bg));
+    document.querySelectorAll("[data-vv-theme] button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+    dispatchEvent(new Event("vv-theme"));
+  }
+  function setTheme(v) {
+    try { v === "auto" ? localStorage.removeItem(THEME) : localStorage.setItem(THEME, v); } catch (e) {}
+    applyTheme();
+  }
+  const themeControl = () => `<div class="seg" data-vv-theme role="radiogroup" aria-label="Appearance">${
+    [["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"]].map(([v, l]) => `<button type="button" data-v="${v}" class="${themeNow() === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-vv-theme] button"); if (b) setTheme(b.dataset.v); });
+  addEventListener("storage", (e) => { if (e.key === THEME) applyTheme(); });
+  addEventListener("pageshow", applyTheme);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+
+  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark };
 })();
