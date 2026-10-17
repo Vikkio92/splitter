@@ -1220,7 +1220,8 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="chesser"]) .result-dot, :where([data-app="chesser"]) .mark-dot { width: 30px; height: 30px; flex: none; border-radius: 10px; display: grid; place-items: center; font: 700 13px var(--display-font); background: var(--fill); color: var(--muted); }
 :where([data-app="chesser"]) .result-dot.win { background: var(--good-bg); color: var(--good); }
 :where([data-app="chesser"]) .result-dot.loss { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
-:where([data-app="chesser"]) a.li { color: inherit; text-decoration: none; }
+:where([data-app="chesser"]) a { color: inherit; text-decoration: none; }
+:where([data-app="chesser"]) p.hint a { text-decoration: underline; text-decoration-color: var(--line); }
 /* a review: the board and its moves, the key moments, the coach */
 :where([data-app="chesser"]) .review .lead { margin: -6px 2px 10px; }
 :where([data-app="chesser"]) .review-grid { display: grid; gap: 12px; }
@@ -1237,6 +1238,18 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="chesser"]) .mv.blunder:not(.on) { color: var(--danger); }
 :where([data-app="chesser"]) .mv.mistake:not(.on), :where([data-app="chesser"]) .mv.inaccuracy:not(.on) { color: color-mix(in srgb, var(--danger) 70%, var(--text)); }
 :where([data-app="chesser"]) .mv.best sup { color: var(--good); }
+/* Learn: puzzles from your games, and lessons */
+:where([data-app="chesser"]) .puzzle-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+:where([data-app="chesser"]) .puzzle-head .k { font: 500 13px var(--font); letter-spacing: .02em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+:where([data-app="chesser"]) .lesson-n { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 700 14px var(--display-font); background: var(--fill); color: var(--muted); }
+:where([data-app="chesser"]) .lesson-n.done { background: var(--accent); color: var(--on-accent); }
+:where([data-app="chesser"]) .lesson-n svg.i { width: 15px; height: 15px; stroke-width: 3; }
+:where([data-app="chesser"]) .lesson-row.next .lesson-n { box-shadow: inset 0 0 0 2px var(--accent); color: var(--text); }
+:where([data-app="chesser"]) .task-card { margin-top: 0; }
+:where([data-app="chesser"]) .task-card .task { font-size: 17px; font-weight: 600; line-height: 1.35; }
+:where([data-app="chesser"]) .lesson-intro { font-size: 16px; line-height: 1.5; }
+:where([data-app="chesser"]) .exercise { display: flex; flex-direction: column; gap: 6px; }
+:where([data-app="chesser"]) .done-card h3 { margin: 0 0 6px; font: 700 20px var(--display-font); }
 @media (min-width: 900px) {
   :where([data-app="chesser"]) main { max-width: 1040px; }
   :where([data-app="chesser"]) .review-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
