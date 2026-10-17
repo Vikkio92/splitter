@@ -60,6 +60,13 @@
   --scroll: rgba(17, 17, 19, 0.18);
   --shadow: 0 1px 2px rgba(17, 17, 19, 0.04), 0 8px 24px rgba(17, 17, 19, 0.06);
   --shadow-float: 0 2px 6px rgba(17, 17, 19, 0.06), 0 20px 50px -16px rgba(17, 17, 19, 0.28);
+  /* Liquid Glass (house rule: anything that floats over content): see "Liquid Glass" in section 3 */
+  --glass: color-mix(in srgb, var(--surface) 56%, transparent);
+  --glass-thick: color-mix(in srgb, var(--surface) 84%, transparent);
+  --glass-blur: blur(14px) saturate(1.9) brightness(1.04);
+  --glass-rim: rgba(255, 255, 255, 0.85);
+  --glass-line: rgba(17, 17, 19, 0.07);
+  --glass-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-line), 0 1px 2px rgba(17, 17, 19, 0.06), 0 12px 32px -12px rgba(17, 17, 19, 0.3);
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", sans-serif;
   --display-font: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
 }
@@ -71,6 +78,9 @@
     --danger: #ff7b72; --good: #4fd68a; --good-bg: #11291b; --info: #7fa8ff; --info-bg: #142240;
     --warn: #ffcc66; --warn-bg: #2e2410; --focus: var(--accent); --scroll: rgba(255, 255, 255, 0.16); --shadow: none;
     --shadow-float: 0 2px 6px rgba(0, 0, 0, 0.4), 0 24px 60px -18px rgba(0, 0, 0, 0.8);
+    --glass: color-mix(in srgb, var(--surface) 52%, transparent); --glass-thick: color-mix(in srgb, var(--surface) 82%, transparent);
+    --glass-blur: blur(14px) saturate(1.6) brightness(0.92); --glass-rim: rgba(255, 255, 255, 0.16); --glass-line: rgba(255, 255, 255, 0.06);
+    --glass-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-line), 0 1px 2px rgba(0, 0, 0, 0.4), 0 14px 36px -12px rgba(0, 0, 0, 0.75);
   }
 }
 :root[data-theme="dark"] {
@@ -80,6 +90,9 @@
   --danger: #ff7b72; --good: #4fd68a; --good-bg: #11291b; --info: #7fa8ff; --info-bg: #142240;
   --warn: #ffcc66; --warn-bg: #2e2410; --focus: var(--accent); --scroll: rgba(255, 255, 255, 0.16); --shadow: none;
   --shadow-float: 0 2px 6px rgba(0, 0, 0, 0.4), 0 24px 60px -18px rgba(0, 0, 0, 0.8);
+  --glass: color-mix(in srgb, var(--surface) 52%, transparent); --glass-thick: color-mix(in srgb, var(--surface) 82%, transparent);
+  --glass-blur: blur(14px) saturate(1.6) brightness(0.92); --glass-rim: rgba(255, 255, 255, 0.16); --glass-line: rgba(255, 255, 255, 0.06);
+  --glass-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-line), 0 1px 2px rgba(0, 0, 0, 0.4), 0 14px 36px -12px rgba(0, 0, 0, 0.75);
 }
 
 /* ---- module accents: one colour per app, usable anywhere (the home page shows them all) ---- */
@@ -225,7 +238,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .checkrow.on .box { background: var(--key); border-color: var(--key); color: var(--on-key); }
 .checkrow .box svg { width: 16px; height: 16px; stroke-width: 3; visibility: hidden; }
 .checkrow.on .box svg { visibility: visible; }
-.toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px); transform: translate(-50%, -8px); background: var(--key); color: var(--on-key); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 60; max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 10px; }
+.toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 14px); transform: translate(-50%, -8px); background: var(--glass-thick); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); color: var(--text); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 60; width: max-content; max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 10px; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); animation: drop .2s ease; }
 .toast.has-undo { pointer-events: auto; padding-right: 6px; }
 .toast button { background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 13px; padding: 5px 12px; border-radius: 999px; }
@@ -273,9 +286,7 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 .tabbar {
   position: fixed; z-index: 30; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 14px); transform: translateX(-50%);
   display: flex; gap: 4px; padding: 5px; border-radius: 999px; max-width: calc(100% - 24px);
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
-  border: 1px solid var(--line); box-shadow: var(--shadow-float);
+  background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow);
 }
 .tabbar > a, .tabbar > button {
   position: relative; z-index: 1; display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 999px; white-space: nowrap;
@@ -288,12 +299,27 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 .tabbar > .on { background: var(--key); color: var(--on-key); }
 .tabbar > .on svg.i { stroke-width: 2.4; }
 /* vittyverse.js adds one pill (.tab-thumb) that glides to the current tab instead of each tab lighting up on its own */
-.tabbar.has-thumb > .on { background: transparent; }
-.tabbar > .tab-thumb { position: absolute; z-index: 0; left: 0; top: 5px; height: 44px; width: 0; border-radius: 999px; background: var(--key); pointer-events: none; will-change: transform, width; transition: opacity .2s; }
+.tabbar.has-thumb > .on { background: transparent; color: var(--text); }
+/* the current tab sits under a lens of clearer glass */
+.tabbar > .tab-thumb { position: absolute; z-index: 0; left: 0; top: 5px; height: 44px; width: 0; border-radius: 999px; background: color-mix(in srgb, var(--text) 9%, transparent); box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-line); pointer-events: none; will-change: transform, width; transition: opacity .2s; }
 @media (max-width: 480px) {
   .tabbar { --tab-compact: 1; }   /* read by vittyverse.js: only the current tab shows its label */
   .tabbar > a, .tabbar > button { padding: 0 14px; }
   .tabbar > :not(.on) > span { max-width: 0; margin-left: 0; opacity: 0; }
+}
+
+/* ---------- Liquid Glass (house rule) ----------
+   Anything that floats over content is glass: the tab bar, toasts, map controls, the reader's bars. It's the --glass
+   tokens: a see-through fill, a blur that brightens what's behind, a bright rim along the top edge and a soft shadow.
+   Content (cards, lists, sheets, the lookup card) stays solid so text stays easy to read; bars over reading text use
+   --glass-thick. Never on things that come in their hundreds (map pins, list rows): every blur costs on each frame.
+   With Reduce Transparency on, or in a browser that can't blur, glass turns solid. .glass applies the recipe. */
+.glass { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root, :root[data-theme] { --glass: var(--surface) !important; --glass-thick: var(--surface) !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root, :root[data-theme] { --glass: var(--surface) !important; --glass-thick: var(--surface) !important; --glass-blur: none !important; }
 }
 
 /* ---------- utilities (stand-ins for one-off inline styles, so they win like inline styles did) ---------- */
@@ -857,8 +883,8 @@ html.r-turning::view-transition-new(r-page) { animation: r-fade-in .15s ease-out
 /* Reader bars: solid floating cards over the page (no fade into the page), with full-size 44px buttons.
    Sized first for the iPad mini (744 x 1133 portrait); they stay centred and capped on wider screens. */
 :where([data-app="shiori"]) .r-bar { position: absolute; left: 12px; right: 12px; z-index: 5; margin: 0 auto; max-width: 760px;
-  background: color-mix(in srgb, var(--surface) 90%, transparent); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
-  border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 10px 34px rgba(0, 0, 0, .16), 0 1px 3px rgba(0, 0, 0, .08);
+  background: var(--glass-thick); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 0; border-radius: 24px; box-shadow: var(--glass-shadow);
   transition: transform .32s var(--glide), opacity .22s ease; }
 :where([data-app="shiori"]) .r-top { top: calc(env(safe-area-inset-top) + 10px); display: flex; align-items: center; gap: 6px; padding: 8px; min-height: 62px; }
 :where([data-app="shiori"]) .r-top .title { flex: 1; min-width: 0; text-align: center; padding: 0 6px; }
@@ -978,12 +1004,13 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .map-top { position: absolute; z-index: 2; top: 10px; left: 0; right: 0; pointer-events: none; }
 :where([data-app="mapper"]) .map-top > * { pointer-events: auto; }
 :where([data-app="mapper"]) .map-top .chips { padding: 0 12px 10px; }
-:where([data-app="mapper"]) .map-top .chip { box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 4px 14px rgba(0, 0, 0, .14); }
+:where([data-app="mapper"]) .map-top .chip:not(.on) { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
+:where([data-app="mapper"]) .map-top .chip.on { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 1px 2px rgba(0, 0, 0, .12), 0 6px 16px -6px rgba(0, 0, 0, .3); }
 :where([data-app="mapper"]) .map-btns { position: absolute; z-index: 2; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 84px); display: grid; gap: 8px; }
-:where([data-app="mapper"]) .map-btn { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: var(--surface); color: var(--text); box-shadow: var(--shadow-float); transition: transform .28s var(--spring); }
+:where([data-app="mapper"]) .map-btn { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; color: var(--text); transition: transform .28s var(--spring); background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 :where([data-app="mapper"]) .map-btn:active { transform: scale(0.9); transition-duration: .07s; }
 :where([data-app="mapper"]) .map-btn svg.i { width: 20px; height: 20px; }
-:where([data-app="mapper"]) .map-count { position: absolute; z-index: 2; left: 12px; bottom: calc(env(safe-area-inset-bottom) + 92px); padding: 7px 12px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow-float); font-size: 13px; font-weight: 600; color: var(--muted); }
+:where([data-app="mapper"]) .map-count { position: absolute; z-index: 2; left: 12px; bottom: calc(env(safe-area-inset-bottom) + 92px); padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text); background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 /* the tag filter: chips with a count, and "all / any" once two or more are picked */
 :where([data-app="mapper"]) .chip .n { margin-left: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
 :where([data-app="mapper"]) .chip.on { background: var(--accent); color: var(--on-accent); border-color: transparent; }
