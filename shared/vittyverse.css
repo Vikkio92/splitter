@@ -31,7 +31,7 @@
 /* =====================================================================
    2. Tokens
    Neutral palette, status colours and type are shared by every app.
-   Each app only picks its accent: <html data-app="splitter|gymmer|shiori|mapper">.
+   Each app only picks its accent: <html data-app="splitter|gymmer|shiori|mapper|chesser">.
    Dark mode follows the phone unless the user picked a theme (data-theme on <html>).
    ===================================================================== */
 :root {
@@ -115,11 +115,12 @@ html.vv-splashing { overflow: hidden; }   /* the splash isn't fixed (see vittyve
 [data-app="splitter"] { --splash: #d4ff3a; }
 [data-app="gymmer"] { --splash: #ff8a1f; }
 [data-app="mapper"] { --splash: #ffc222; }
-:root { --splitter: #c9f53b; --gymmer: #ff8a1f; --shiori: #ff86b4; --mapper: #ffc222; --on-module: #111113; /* ink on a module colour, both themes */ }
+[data-app="chesser"] { --splash: #c8935a; }
+:root { --splitter: #c9f53b; --gymmer: #ff8a1f; --shiori: #ff86b4; --mapper: #ffc222; --chesser: #c8935a; --on-module: #111113; /* ink on a module colour, both themes */ }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; }
+  :root:not([data-theme="light"]) { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; --chesser: #d9a46a; }
 }
-:root[data-theme="dark"] { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; }
+:root[data-theme="dark"] { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; --chesser: #d9a46a; }
 
 /* ---- each app's accent (and the few colours only one app needs) ---- */
 :root[data-app="splitter"] {
@@ -134,6 +135,7 @@ html.vv-splashing { overflow: hidden; }   /* the splash isn't fixed (see vittyve
   --body: #e5e5ea; --muscle-0: #d1d1d6; --heat: #e0301e;
 }
 :root[data-app="shiori"] { --accent: var(--shiori); /* sakura */ }
+:root[data-app="chesser"] { --accent: var(--chesser); /* walnut, like a wooden board */ }
 :root[data-app="mapper"] {
   --accent: var(--mapper); /* Mapstr yellow */
   /* tag colours: the data-viz reference palette's eight categorical hues, light steps; --pin-none for no tag */
@@ -302,6 +304,11 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 .stat .v small { font: 500 13px var(--font); color: var(--muted); margin-left: 3px; letter-spacing: 0; }
 .stat .d { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .stat, .sheet .stat { background: var(--fill); box-shadow: none; }
+
+/* ---------- two choices side by side in a sheet (Cancel / Delete), and a row of stat tiles ---------- */
+.confirm-row { display: flex; gap: 8px; }
+.confirm-row .btn { flex: 1 1 0; min-height: 50px; }
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 
 /* ---------- a list drawn flat on a card or sheet ---------- */
 .list.inset { box-shadow: none; background: var(--fill); }
@@ -814,15 +821,12 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) .book-tile .bar.blank { visibility: hidden; } /* keeps the space on books without progress */
 :where([data-app="shiori"]) .cover .tick { position: absolute; top: 6px; right: 6px; z-index: 2; width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); }
 :where([data-app="shiori"]) .cover .tick svg.i { width: 15px; height: 15px; stroke-width: 3; }
-/* Shior.ino: two side-by-side choices in a sheet (Cancel / Delete, Test / Save) */
-:where([data-app="shiori"]) .confirm-row { display: flex; gap: 8px; }
 :where([data-app="shiori"]) .row-actions { display: flex; gap: 6px; flex: none; }
 /* Shior.ino: the "Show all / Show fewer" row at the end of a shortened list */
 :where([data-app="shiori"]) .list .li.more { justify-content: center; gap: 6px; color: var(--accent); font-weight: 600; font-size: 14px; min-height: 46px; }
 :where([data-app="shiori"]) .list .li.more svg.i { width: 16px; height: 16px; stroke-width: 2.4; }
 :where([data-app="shiori"]) .list .li.more svg.i.down { transform: rotate(90deg); }
 :where([data-app="shiori"]) .list .li.more svg.i.up { transform: rotate(-90deg); }
-:where([data-app="shiori"]) .confirm-row .btn { flex: 1 1 0; min-height: 50px; }
 /* Shior.ino: Calibre books that aren't on this device yet, and their download progress */
 :where([data-app="shiori"]) .cover .cloud-badge { position: absolute; bottom: 6px; right: 6px; z-index: 2; width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; background: rgba(0, 0, 0, .55); color: #fff; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 :where([data-app="shiori"]) .cover .cloud-badge svg.i { width: 15px; height: 15px; stroke-width: 2.4; }
@@ -1133,7 +1137,113 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .import-progress .bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .3s ease; }
 
 /* =====================================================================
-   9. The page at the site root (a plain list of the apps; not an app itself)
+   9. Chesser.ino (the board is drawn by js/board.js; the pieces are the cburnett set)
+   ===================================================================== */
+:where([data-app="chesser"]) body { padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 100px); }
+:root[data-app="chesser"] { --sq-light: #eed6ae; --sq-dark: #b8875b; --arrow-hint: rgba(30, 110, 210, .82); --arrow-best: rgba(24, 130, 52, .85); --arrow-bad: rgba(214, 48, 49, .85); }
+/* the board: wood squares, coordinates in the corner squares, a soft frame */
+:where([data-app="chesser"]) .board-wrap { width: 100%; max-width: min(560px, calc(100dvh - env(safe-area-inset-top) - 300px)); margin: 0 auto; }
+:where([data-app="chesser"]) .cb { position: relative; width: 100%; aspect-ratio: 1; border-radius: 10px; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; box-shadow: 0 1px 0 rgba(0,0,0,.08), 0 6px 22px rgba(60, 35, 10, .18); }
+:where([data-app="chesser"]) .cb-squares { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }
+:where([data-app="chesser"]) .cb-sq { position: relative; }
+:where([data-app="chesser"]) .cb-sq.l { background: var(--sq-light); color: var(--sq-dark); }
+:where([data-app="chesser"]) .cb-sq.d { background: var(--sq-dark); color: var(--sq-light); }
+:where([data-app="chesser"]) .cb-rank, :where([data-app="chesser"]) .cb-file { position: absolute; font: 700 clamp(8px, 2.1vw, 11px)/1 var(--font); pointer-events: none; }
+:where([data-app="chesser"]) .cb-rank { top: 3px; left: 3px; }
+:where([data-app="chesser"]) .cb-file { bottom: 2px; right: 4px; }
+:where([data-app="chesser"]) .no-coords .cb-rank, :where([data-app="chesser"]) .no-coords .cb-file { display: none; }
+:where([data-app="chesser"]) .cb-marks, :where([data-app="chesser"]) .cb-pieces { position: absolute; inset: 0; pointer-events: none; }
+:where([data-app="chesser"]) .cb-mark, :where([data-app="chesser"]) .cb-piece { position: absolute; left: 0; top: 0; width: 12.5%; height: 12.5%; }
+:where([data-app="chesser"]) .cb-piece { z-index: 1; transition: transform .22s cubic-bezier(.2, .8, .2, 1), opacity .2s ease; will-change: transform; -webkit-user-drag: none; }
+:where([data-app="chesser"]) .cb-piece.dragging { z-index: 5; transition: none; scale: 1.18; filter: drop-shadow(0 6px 8px rgba(0,0,0,.3)); }
+:where([data-app="chesser"]) .cb-piece.gone { opacity: 0; }
+:where([data-app="chesser"]) .cb-piece.arriving { animation: cb-in .22s ease both; }
+@keyframes cb-in { from { opacity: 0; scale: .7; } }
+:where([data-app="chesser"]) .cb-mark.last { background: rgba(255, 214, 64, .42); }
+:where([data-app="chesser"]) .cb-mark.sel { background: rgba(255, 214, 64, .62); }
+:where([data-app="chesser"]) .cb-mark.dot { background: radial-gradient(circle, rgba(40, 25, 10, .3) 0 17%, transparent 18%); }
+:where([data-app="chesser"]) .cb-mark.cap { background: radial-gradient(circle, transparent 0 66%, rgba(40, 25, 10, .3) 67% 80%, transparent 81%); }
+:where([data-app="chesser"]) .cb-mark.check { background: radial-gradient(circle, rgba(255, 30, 30, .9) 0, rgba(230, 0, 0, .55) 30%, transparent 72%); }
+:where([data-app="chesser"]) .cb-mark.hint { box-shadow: inset 0 0 0 4px var(--arrow-hint); background: rgba(30, 110, 210, .18); }
+:where([data-app="chesser"]) .cb-mark.bad { background: rgba(214, 48, 49, .38); }
+:where([data-app="chesser"]) .cb-mark.good { background: rgba(24, 130, 52, .32); }
+:where([data-app="chesser"]) .cb-arrows { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; overflow: visible; }
+:where([data-app="chesser"]) .cb-arrows line { animation: fade .2s ease; }
+:where([data-app="chesser"]) .cb-promo { position: absolute; z-index: 10; width: 12.5%; display: flex; flex-direction: column; background: var(--surface); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.3); overflow: hidden; }
+:where([data-app="chesser"]) .cb-promo[style*="bottom: 0"] { flex-direction: column-reverse; }
+:where([data-app="chesser"]) .cb-promo button { aspect-ratio: 1; padding: 6%; }
+:where([data-app="chesser"]) .cb-promo button:active { background: var(--fill); }
+:where([data-app="chesser"]) .cb-promo img { width: 100%; height: 100%; display: block; }
+/* a game: the two players around the board, the coach under it, the actions at the bottom */
+:where([data-app="chesser"]) .game { display: flex; flex-direction: column; gap: 6px; padding-top: 14px; }
+:where([data-app="chesser"]) .player { width: 100%; max-width: min(560px, calc(100dvh - env(safe-area-inset-top) - 300px)); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; padding: 0 2px; font-size: 15px; }
+:where([data-app="chesser"]) .player .who b::after { content: ""; display: inline-block; width: 8px; height: 8px; margin: 0 8px 1px; border-radius: 50%; background: transparent; vertical-align: middle; }
+:where([data-app="chesser"]) .player.to-move .who b::after { background: var(--accent); }
+:where([data-app="chesser"]) .player.thinking .who b::after { background: var(--accent); animation: cb-think .9s ease-in-out infinite; }
+@keyframes cb-think { 50% { opacity: .25; } }
+:where([data-app="chesser"]) .caps { display: flex; align-items: center; min-width: 0; }
+:where([data-app="chesser"]) .caps .cap { width: 20px; height: 20px; margin-right: -7px; }
+:where([data-app="chesser"]) .caps .lead { margin-left: 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
+:where([data-app="chesser"]) .coach-bubble { display: flex; gap: 10px; align-items: flex-start; width: 100%; max-width: 560px; margin: 6px auto 0; padding: 12px 10px 12px 12px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); animation: up .22s cubic-bezier(.2, .8, .2, 1); }
+:where([data-app="chesser"]) .coach-face { width: 32px; height: 32px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); }
+:where([data-app="chesser"]) .coach-face svg.i { width: 17px; height: 17px; }
+:where([data-app="chesser"]) .coach-bubble.warn .coach-face { background: var(--danger); color: #fff; }
+:where([data-app="chesser"]) .coach-bubble.good .coach-face { background: var(--good); color: #fff; }
+:where([data-app="chesser"]) .coach-bubble .say { margin: 5px 0 0; font-size: 15px; line-height: 1.42; }
+:where([data-app="chesser"]) .bubble-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+:where([data-app="chesser"]) .game-actions { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
+:where([data-app="chesser"]) .game-actions .act { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 72px; padding: 8px 6px; border-radius: 16px; font-size: 12px; font-weight: 600; color: var(--muted); transition: transform .28s var(--spring), background-color .2s ease; }
+:where([data-app="chesser"]) .game-actions .act svg.i { width: 22px; height: 22px; color: var(--text); }
+:where([data-app="chesser"]) .game-actions .act:active { background: var(--fill); transform: scale(.94); transition-duration: .07s; }
+/* a new game, and your rating */
+:where([data-app="chesser"]) .rating-card .stat-line { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+:where([data-app="chesser"]) .rating-card .k { font: 500 13px var(--font); letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+:where([data-app="chesser"]) .num.big { font: 700 40px/1.05 var(--display-font); letter-spacing: -0.02em; }
+:where([data-app="chesser"]) .delta { font-size: 14px; font-weight: 600; }
+:where([data-app="chesser"]) .delta.up, :where([data-app="chesser"]) .stat small.up { color: var(--good); }
+:where([data-app="chesser"]) .delta.down, :where([data-app="chesser"]) .stat small.down { color: var(--danger); }
+:where([data-app="chesser"]) .spark { height: 64px; margin-top: 10px; }
+:where([data-app="chesser"]) .spark svg { width: 100%; height: 100%; display: block; overflow: visible; }
+:where([data-app="chesser"]) .level-info { font-size: 14px; margin-top: 2px; }
+:where([data-app="chesser"]) .level-info .badge { margin-left: 6px; vertical-align: 1px; }
+:where([data-app="chesser"]) .setup .li .seg { min-width: 210px; }
+:where([data-app="chesser"]) .end-head h2 { font-size: 26px; }
+:where([data-app="chesser"]) .end-head.win h2 { color: var(--good); }
+/* stats */
+:where([data-app="chesser"]) .stats-row { margin: 10px 0; }
+:where([data-app="chesser"]) .stats-row.three { grid-template-columns: repeat(3, 1fr); }
+:where([data-app="chesser"]) .themes .theme-row + .theme-row { margin-top: 12px; }
+:where([data-app="chesser"]) .theme-name { font-size: 15px; font-weight: 500; margin-bottom: 5px; }
+:where([data-app="chesser"]) .theme-bar { height: 6px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+:where([data-app="chesser"]) .theme-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+:where([data-app="chesser"]) .themes .hint { margin-top: 14px; }
+:where([data-app="chesser"]) .result-dot, :where([data-app="chesser"]) .mark-dot { width: 30px; height: 30px; flex: none; border-radius: 10px; display: grid; place-items: center; font: 700 13px var(--display-font); background: var(--fill); color: var(--muted); }
+:where([data-app="chesser"]) .result-dot.win { background: var(--good-bg); color: var(--good); }
+:where([data-app="chesser"]) .result-dot.loss { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+:where([data-app="chesser"]) a.li { color: inherit; text-decoration: none; }
+/* a review: the board and its moves, the key moments, the coach */
+:where([data-app="chesser"]) .review .lead { margin: -6px 2px 10px; }
+:where([data-app="chesser"]) .review-grid { display: grid; gap: 12px; }
+:where([data-app="chesser"]) .review-nav { display: flex; justify-content: center; gap: 18px; margin-top: 8px; }
+:where([data-app="chesser"]) .review-say { margin-top: 12px; }
+:where([data-app="chesser"]) .mark-dot.blunder { background: var(--danger); color: #fff; }
+:where([data-app="chesser"]) .mark-dot.mistake { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+:where([data-app="chesser"]) .move-list { position: relative; display: flex; flex-wrap: wrap; gap: 2px 0; padding: 10px 12px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); max-height: 220px; overflow-y: auto; }
+:where([data-app="chesser"]) .mv { padding: 4px 7px; border-radius: 8px; font: 500 15px var(--display-font); font-variant-numeric: tabular-nums; }
+:where([data-app="chesser"]) .mv .n { color: var(--muted); margin-right: 4px; font-weight: 400; }
+:where([data-app="chesser"]) .mv sup { font-size: 10px; margin-left: 1px; }
+:where([data-app="chesser"]) .mv.on { background: var(--key); color: var(--on-key); }
+:where([data-app="chesser"]) .mv.on .n { color: inherit; opacity: .6; }
+:where([data-app="chesser"]) .mv.blunder:not(.on) { color: var(--danger); }
+:where([data-app="chesser"]) .mv.mistake:not(.on), :where([data-app="chesser"]) .mv.inaccuracy:not(.on) { color: color-mix(in srgb, var(--danger) 70%, var(--text)); }
+:where([data-app="chesser"]) .mv.best sup { color: var(--good); }
+@media (min-width: 900px) {
+  :where([data-app="chesser"]) main { max-width: 1040px; }
+  :where([data-app="chesser"]) .review-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+}
+
+/* =====================================================================
+   10. The page at the site root (a plain list of the apps; not an app itself)
    ===================================================================== */
 :where([data-app="home"]) body { padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 40px); }
 :where([data-app="home"]) a { color: inherit; text-decoration: none; }
@@ -1143,6 +1253,7 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="home"]) .module.gymmer { --m: var(--gymmer); }
 :where([data-app="home"]) .module.shiori { --m: var(--shiori); }
 :where([data-app="home"]) .module.mapper { --m: var(--mapper); }
+:where([data-app="home"]) .module.chesser { --m: var(--chesser); }
 :where([data-app="home"]) .module:active { transform: scale(0.98); }
 @media (hover: hover) { :where([data-app="home"]) a.module:hover { transform: translateY(-3px); } }
 :where([data-app="home"]) .module .glyph { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--on-module); color: var(--m); font: 700 28px/1 var(--display-font); }
