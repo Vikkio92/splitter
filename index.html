@@ -48,6 +48,8 @@
 <script src="./shared/vittyverse.js"></script>
 </head>
 <body class="home">
+<!-- the opening splash (shared/vittyverse.js takes it away) -->
+<div class="vv-splash" aria-hidden="true"><img src="mark.png" alt=""><b>Splitter<span>.ino</span></b><small>Split the bill. Accountant style.</small></div>
 <script>
   // Start on the home page so nothing else flashes up while the app loads; a bill link opens the bill instead.
   if (/^#b=/.test(location.hash)) document.body.classList.remove("home");

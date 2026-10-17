@@ -6,6 +6,8 @@
 // - The tab bar can be dragged: slide a finger along it and the lens follows, and the section under the finger opens
 //   as you go, like the tab bars in Apple's own apps.
 // - Every bottom sheet (.sheet) swipes down to close, in every app.
+// - Opening an app shows its splash (.vv-splash: the icon's mark on the icon's colour, the name and its line) for
+//   about a second, once per launch; a reload in the same session goes straight in.
 // Exposed as window.VV for the apps: VV.swap(update), VV.dismiss(el, done), VV.keep(el), VV.noZoom(doc).
 (function () {
   "use strict";
@@ -17,6 +19,23 @@
     doc.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
   }
   noZoom(document);
+
+  // ---------- the opening splash ----------
+  // The page's .vv-splash covers everything from the first paint; it lifts away once the app has had about a
+  // second to draw underneath. Once per launch: sessionStorage starts empty each time a home-screen app is opened.
+  (function splash() {
+    let seen = false;
+    try { const k = "vv-splash:" + location.pathname; seen = !!sessionStorage.getItem(k); sessionStorage.setItem(k, "1"); } catch (e) {}
+    if (seen) { document.documentElement.classList.add("vv-no-splash"); return; }
+    // on its own clock, not the page's load events: an app's start-up code can hold those back
+    const lift = () => {
+      const el = document.querySelector(".vv-splash");
+      if (!el) return document.readyState === "loading" ? setTimeout(lift, 50) : undefined;
+      el.classList.add("out");
+      setTimeout(() => el.remove(), reduced() ? 0 : 520);
+    };
+    setTimeout(lift, Math.max(0, 1100 - performance.now()));
+  })();
 
   // ---------- view changes: a short cross-fade with a small rise, tab bar and header held still ----------
   // `update` changes the page (it may return a promise); without View Transitions it simply runs.

@@ -100,6 +100,20 @@
 }
 
 /* ---- module accents: one colour per app, usable anywhere (the home page shows them all) ---- */
+/* the opening splash: each app's icon, full screen (the mark on the icon's own colour), with its name and line */
+.vv-splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6vh; background: var(--splash, #111); color: #111113; text-align: center; transition: opacity .42s ease, transform .5s cubic-bezier(.2,.8,.2,1); }
+.vv-splash img { width: 112px; height: 112px; object-fit: contain; animation: vv-splash-in .6s cubic-bezier(.2,.9,.25,1.15) both; }
+.vv-splash b { margin-top: 26px; font: 700 34px/1.1 var(--display-font); letter-spacing: -.02em; animation: vv-splash-in .6s .08s cubic-bezier(.2,.9,.25,1) both; }
+.vv-splash b span { opacity: .55; }
+.vv-splash small { margin-top: 8px; font: 500 17px/1.3 var(--font); opacity: .72; animation: vv-splash-in .6s .16s cubic-bezier(.2,.9,.25,1) both; }
+.vv-splash.out { opacity: 0; transform: scale(1.06); pointer-events: none; }
+.vv-no-splash .vv-splash { display: none; }
+@keyframes vv-splash-in { from { opacity: 0; transform: translateY(10px) scale(.94); } }
+@media (prefers-reduced-motion: reduce) { .vv-splash, .vv-splash * { animation: none !important; transition: opacity .2s ease !important; } .vv-splash.out { transform: none; } }
+[data-app="shiori"] { --splash: #ff86b4; }
+[data-app="splitter"] { --splash: #d4ff3a; }
+[data-app="gymmer"] { --splash: #ff8a1f; }
+[data-app="mapper"] { --splash: #ffc222; }
 :root { --splitter: #c9f53b; --gymmer: #ff8a1f; --shiori: #ff86b4; --mapper: #ffc222; --on-module: #111113; /* ink on a module colour, both themes */ }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; }
