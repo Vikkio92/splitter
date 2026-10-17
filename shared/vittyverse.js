@@ -6,6 +6,8 @@
 // - The tab bar can be dragged: slide a finger along it and the lens follows, and the section under the finger opens
 //   as you go, like the tab bars in Apple's own apps.
 // - Every bottom sheet (.sheet) swipes down to close, in every app.
+// - No fade under the status bar: iOS 26 blurs the top of a home-screen web app unless a solid fixed bar covers
+//   that edge, so every page gets one (.vv-topedge), in the page's own colour.
 // - Opening an app shows its splash (.vv-splash: the icon's mark on the icon's colour, the name and its line) for
 //   about a second, once per launch; a reload in the same session goes straight in.
 // Exposed as window.VV for the apps: VV.swap(update), VV.dismiss(el, done), VV.keep(el), VV.noZoom(doc).
@@ -19,6 +21,20 @@
     doc.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
   }
   noZoom(document);
+
+  // ---------- a solid top edge ----------
+  // iOS 26 draws its "scroll edge" blur, a fade into the status bar, across the top of a home-screen web app. WebKit
+  // leaves it out when the top edge is covered by a position: fixed box nearly the width of the screen with a plain
+  // background colour and no backdrop-filter, and uses that colour for the status bar instead. So: one such strip,
+  // as tall as the status bar, in the page colour. It doesn't ignore taps (pointer-events: none would hide it from
+  // the hit test WebKit uses), but it only covers the status bar.
+  (function topEdge() {
+    const add = () => {
+      if (!document.body) return requestAnimationFrame(add);
+      if (!document.querySelector(".vv-topedge")) document.body.prepend(Object.assign(document.createElement("div"), { className: "vv-topedge" }));
+    };
+    add();
+  })();
 
   // ---------- the opening splash ----------
   // The page's .vv-splash covers everything from the first paint; it lifts away once the app has had a moment to

@@ -100,6 +100,9 @@
 }
 
 /* ---- module accents: one colour per app, usable anywhere (the home page shows them all) ---- */
+/* the top edge: a solid strip behind the status bar, so iOS 26 doesn't fade the page into it (see vittyverse.js).
+   Above the page, under full-screen views like Shior.ino's reader (z-index 20) and every sheet and toast. */
+.vv-topedge { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 19; background: var(--bg); }
 /* the opening splash: each app's icon, full screen (the mark on the icon's own colour), with its name and line */
 .vv-splash { position: absolute; top: 0; left: 0; right: 0; height: 100vh; height: 100lvh; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6vh; background: var(--splash, #111); color: #111113; text-align: center; transition: opacity .42s ease, transform .5s cubic-bezier(.2,.8,.2,1); }
 .vv-splash img { width: 112px; height: 112px; object-fit: contain; animation: vv-splash-in .6s cubic-bezier(.2,.9,.25,1.15) both; }
