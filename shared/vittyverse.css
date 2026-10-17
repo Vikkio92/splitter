@@ -1024,9 +1024,14 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .tags-view .list .li .chev { color: var(--muted); display: grid; }
 :where([data-app="mapper"]) .sheet .field { margin-top: 4px; }
 /* pins: a yellow drop with an ink dot; the one you're looking at stands a little bigger */
-:where([data-app="mapper"]) .pin { width: 30px; height: 30px; margin-bottom: 4px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--pin, var(--mapper)); border: 2.5px solid #111113; display: grid; place-items: center; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); transition: transform .2s var(--spring); cursor: pointer; }
+/* no shadow: with hundreds of pins on a phone, every shadow is repainted on each frame of a zoom */
+:where([data-app="mapper"]) .pin { width: 28px; height: 28px; margin-bottom: 4px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--pin, var(--mapper)); border: 2.5px solid #111113; display: grid; place-items: center; cursor: pointer; }
 :where([data-app="mapper"]) .pin::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #111113; }
-:where([data-app="mapper"]) .pin.sel { transform: rotate(-45deg) scale(1.3); }
+:where([data-app="mapper"]) .pin.sel { transform: rotate(-45deg) scale(1.3); transition: transform .2s var(--spring); }
+/* zoomed out, pins close together become one numbered bubble; tap it to zoom in */
+:where([data-app="mapper"]) .cluster { min-width: 34px; height: 34px; padding: 0 8px; border-radius: 999px; display: grid; place-items: center; background: #111113; color: #fff; border: 3px solid var(--mapper); font: 700 13px/1 var(--font); font-variant-numeric: tabular-nums; cursor: pointer; }
+:where([data-app="mapper"]) .cluster.mid { min-width: 40px; height: 40px; font-size: 14px; }
+:where([data-app="mapper"]) .cluster.big { min-width: 48px; height: 48px; font-size: 15px; }
 :where([data-app="mapper"]) .you { width: 18px; height: 18px; border-radius: 50%; background: var(--info); border: 3px solid #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--info) 25%, transparent); }
 /* a place: its tags to tick, a new tag, and Google Maps for directions */
 :where([data-app="mapper"]) .sheet .sub { margin-bottom: 12px; }
