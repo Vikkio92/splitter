@@ -21,20 +21,30 @@
   noZoom(document);
 
   // ---------- the opening splash ----------
-  // The page's .vv-splash covers everything from the first paint; it lifts away once the app has had about a
-  // second to draw underneath. Once per launch: sessionStorage starts empty each time a home-screen app is opened.
+  // The page's .vv-splash covers everything from the first paint; it lifts away once the app has had a moment to
+  // draw underneath. Once per launch: sessionStorage starts empty each time a home-screen app is opened.
+  // The status bar: while html has .vv-splashing, the theme-color tags carry the splash colour (applyTheme below
+  // keeps it so), and lifting the splash hands them back in the same moment. The splash itself isn't position: fixed,
+  // because iPhone Safari colours its status bar from a fixed element at the top and is slow to let go of that colour.
   (function splash() {
     let seen = false;
     try { const k = "vv-splash:" + location.pathname; seen = !!sessionStorage.getItem(k); sessionStorage.setItem(k, "1"); } catch (e) {}
-    if (seen) { document.documentElement.classList.add("vv-no-splash"); return; }
+    const root = document.documentElement;
+    if (seen) { root.classList.add("vv-no-splash"); return; }
+    root.classList.add("vv-splashing");
+    const colour = getComputedStyle(root).getPropertyValue("--splash").trim();
+    if (colour) document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", colour));
     // on its own clock, not the page's load events: an app's start-up code can hold those back
     const lift = () => {
       const el = document.querySelector(".vv-splash");
-      if (!el) return document.readyState === "loading" ? setTimeout(lift, 50) : undefined;
+      if (!el && document.readyState === "loading") return setTimeout(lift, 50);
+      root.classList.remove("vv-splashing");
+      applyTheme();   // the status bar goes back to the page's colour as the splash fades
+      if (!el) return;
       el.classList.add("out");
       setTimeout(() => el.remove(), reduced() ? 0 : 520);
     };
-    setTimeout(lift, Math.max(0, 1100 - performance.now()));
+    setTimeout(lift, Math.max(0, 1600 - performance.now()));
   })();
 
   // ---------- view changes: a short cross-fade with a small rise, tab bar and header held still ----------
@@ -220,7 +230,8 @@
   function applyTheme() {
     const v = themeNow();
     if (v === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = v;
-    const bg = isDark() ? "#000000" : "#f2f2f7";   // the status bar matches the page
+    const splash = document.documentElement.classList.contains("vv-splashing") && getComputedStyle(document.documentElement).getPropertyValue("--splash").trim();
+    const bg = splash || (isDark() ? "#000000" : "#f2f2f7");   // the status bar matches the page (or the splash, while it's up)
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", bg));
     document.querySelectorAll("[data-vv-theme] button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
     dispatchEvent(new Event("vv-theme"));
