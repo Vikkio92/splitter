@@ -345,6 +345,10 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 @keyframes down { to { transform: translateY(40px); opacity: 0; } }
 @keyframes rise { from { transform: translateY(10px); opacity: 0; } }
 :root { --spring: cubic-bezier(.3, 1.4, .5, 1); --glide: cubic-bezier(.2, .8, .2, 1); }
+/* the tab bar can be dragged along (vittyverse.js): it takes the finger's sideways moves, and the lens lifts while held */
+.tabbar { touch-action: none; }
+.tabbar > .tab-thumb { transition: opacity .2s, scale .25s var(--spring), background-color .2s; }
+.tabbar.dragging > .tab-thumb { scale: 1.12; background: color-mix(in srgb, var(--text) 14%, transparent); }
 
 /* No zooming anywhere in the suite (house rule): no pinch, no double-tap. vittyverse.js stops iPhone Safari's pinch. */
 html { touch-action: pan-x pan-y; }
