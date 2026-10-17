@@ -285,28 +285,26 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
      (its own home-screen icon), so there's no button back to a suite home. */
 .tabbar {
   position: fixed; z-index: 30; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 14px); transform: translateX(-50%);
-  display: flex; gap: 4px; padding: 5px; border-radius: 999px; max-width: calc(100% - 24px);
+  display: flex; gap: 2px; padding: 5px; border-radius: 999px; width: max-content; max-width: calc(100% - 24px);
   background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow);
 }
+/* every tab the same width, its icon above its label, and every label always showing (as in Apple Music and
+   Mapstr); on a narrow phone the tabs all narrow together */
 .tabbar > a, .tabbar > button {
-  position: relative; z-index: 1; display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 999px; white-space: nowrap;
-  color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: none;
-  transition: background-color .2s, color .25s ease, padding .34s var(--glide), transform .28s var(--spring);
+  position: relative; z-index: 1; flex: 0 1 76px; width: 76px; min-width: 0; height: 54px; padding: 0 4px; border-radius: 999px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: .01em; text-decoration: none; white-space: nowrap;
+  transition: background-color .2s, color .25s ease, transform .28s var(--spring);
 }
-.tabbar > :active { transform: scale(0.94); transition-duration: .07s, .07s, .34s, .07s; }
-.tabbar svg.i { width: 20px; height: 20px; flex: none; }
-.tabbar > * > span { display: inline-block; overflow: hidden; max-width: 9em; margin-left: 8px; transition: max-width .34s var(--glide), margin .34s var(--glide), opacity .25s ease; }
+.tabbar > :active { transform: scale(0.94); transition-duration: .07s; }
+.tabbar svg.i { width: 22px; height: 22px; flex: none; }
+.tabbar > * > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .tabbar > .on { background: var(--key); color: var(--on-key); }
 .tabbar > .on svg.i { stroke-width: 2.4; }
 /* vittyverse.js adds one pill (.tab-thumb) that glides to the current tab instead of each tab lighting up on its own */
 .tabbar.has-thumb > .on { background: transparent; color: var(--text); }
 /* the current tab sits under a lens of clearer glass */
-.tabbar > .tab-thumb { position: absolute; z-index: 0; left: 0; top: 5px; height: 44px; width: 0; border-radius: 999px; background: color-mix(in srgb, var(--text) 9%, transparent); box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-line); pointer-events: none; will-change: transform, width; transition: opacity .2s; }
-@media (max-width: 480px) {
-  .tabbar { --tab-compact: 1; }   /* read by vittyverse.js: only the current tab shows its label */
-  .tabbar > a, .tabbar > button { padding: 0 14px; }
-  .tabbar > :not(.on) > span { max-width: 0; margin-left: 0; opacity: 0; }
-}
+.tabbar > .tab-thumb { position: absolute; z-index: 0; left: 0; top: 5px; height: 54px; width: 0; border-radius: 999px; background: color-mix(in srgb, var(--text) 9%, transparent); box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-line); pointer-events: none; will-change: transform, width; transition: opacity .2s; }
 
 /* ---------- Liquid Glass (house rule) ----------
    Anything that floats over content is glass: the tab bar, toasts, map controls, the reader's bars. It's the --glass
@@ -342,7 +340,7 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 @keyframes drop { from { transform: translate(-50%, -8px); opacity: 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes away { to { opacity: 0; } }
-@keyframes down { to { transform: translateY(40px); opacity: 0; } }
+@keyframes down { to { transform: translateY(calc(var(--swipe, 0px) + 40px)); opacity: 0; } }
 @keyframes rise { from { transform: translateY(10px); opacity: 0; } }
 :root { --spring: cubic-bezier(.3, 1.4, .5, 1); --glide: cubic-bezier(.2, .8, .2, 1); }
 /* the tab bar can be dragged along (vittyverse.js): it takes the finger's sideways moves, and the lens lifts while held */
@@ -358,7 +356,9 @@ html { touch-action: pan-x pan-y; }
 .chip:active, .seg button:active { transform: scale(0.95); transition-duration: .07s; }
 .bill-row:active, a.li:active, button.li:active, .li[role="button"]:active { transform: scale(0.985); transition-duration: .07s; }
 
-/* sheets and dialogs leave the way they came in (VV.dismiss adds .leaving) */
+/* sheets and dialogs leave the way they came in (VV.dismiss adds .leaving); while one is open the page behind stays
+   still (Splitter keeps its own .sheet-open for its separate backdrop) */
+html:has(.scrim:not(.leaving) > .sheet) { overflow: hidden; }
 .leaving { pointer-events: none; }
 .scrim.leaving, .leaving > .scrim { animation: away .19s ease forwards; }
 .leaving .sheet { animation: down .19s cubic-bezier(.4, 0, 1, 1) forwards; }
@@ -1010,11 +1010,11 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .map-top .chips { padding: 0 12px 10px; }
 :where([data-app="mapper"]) .map-top .chip:not(.on) { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 :where([data-app="mapper"]) .map-top .chip.on { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 1px 2px rgba(0, 0, 0, .12), 0 6px 16px -6px rgba(0, 0, 0, .3); }
-:where([data-app="mapper"]) .map-btns { position: absolute; z-index: 2; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 84px); display: grid; gap: 8px; }
+:where([data-app="mapper"]) .map-btns { position: absolute; z-index: 2; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 92px); display: grid; gap: 8px; }
 :where([data-app="mapper"]) .map-btn { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; color: var(--text); transition: transform .28s var(--spring); background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 :where([data-app="mapper"]) .map-btn:active { transform: scale(0.9); transition-duration: .07s; }
 :where([data-app="mapper"]) .map-btn svg.i { width: 20px; height: 20px; }
-:where([data-app="mapper"]) .map-count { position: absolute; z-index: 2; left: 12px; bottom: calc(env(safe-area-inset-bottom) + 92px); padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text); background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
+:where([data-app="mapper"]) .map-count { position: absolute; z-index: 2; left: 12px; bottom: calc(env(safe-area-inset-bottom) + 100px); padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text); background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 /* the tag filter: chips with a count, and "all / any" once two or more are picked */
 :where([data-app="mapper"]) .chip .n { margin-left: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
 :where([data-app="mapper"]) .chip.on { background: var(--accent); color: var(--on-accent); border-color: transparent; }

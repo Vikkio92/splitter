@@ -5,6 +5,7 @@
 //   and sheets slide away instead of vanishing. All of it stays still with "Reduce motion" on.
 // - The tab bar can be dragged: slide a finger along it and the lens follows, and the section under the finger opens
 //   as you go, like the tab bars in Apple's own apps.
+// - Every bottom sheet (.sheet) swipes down to close, in every app.
 // Exposed as window.VV for the apps: VV.swap(update), VV.dismiss(el, done), VV.keep(el), VV.noZoom(doc).
 (function () {
   "use strict";
@@ -45,8 +46,7 @@
   }
 
   // ---------- floating tab bar: one pill that glides between tabs ----------
-  // The apps keep marking the current tab with .on; the pill follows it with a gentle spring,
-  // and keeps following while the tab labels open and close (on phones only the current tab shows its label).
+  // The apps keep marking the current tab with .on; the pill follows it with a gentle spring.
   function pill(bar) {
     if (bar._vvPill) return;
     const thumb = document.createElement("span");
@@ -56,22 +56,10 @@
     bar._vvPill = true;
     bar.classList.add("has-thumb");
     let x = null, w = null, raf = 0, from = null, to = null, t0 = 0;
-    // Where the current tab will be once its label has finished opening (and the others closing), so the pill
-    // heads straight there instead of chasing a moving tab. --tab-compact is 1 when only the current tab shows a label.
+    // where the current tab is (every tab is the same width and never changes size, so its box is the target)
     const target = () => {
-      const tabs = [...bar.children].filter((el) => el !== thumb);
-      if (!tabs.some((el) => el.classList.contains("on"))) return null;
-      const bs = getComputedStyle(bar), compact = bs.getPropertyValue("--tab-compact").trim() === "1";
-      let at = parseFloat(bs.paddingLeft) || 0;
-      for (const tab of tabs) {
-        const cs = getComputedStyle(tab), label = tab.querySelector(":scope > span");
-        const showLabel = label && (!compact || tab.classList.contains("on"));
-        const icon = tab.querySelector("svg") ? tab.querySelector("svg").getBoundingClientRect().width : 0;
-        const width = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) + icon + (showLabel ? 8 + label.scrollWidth : 0);   // 8: the label's margin-left
-        if (tab.classList.contains("on")) return { x: at, w: width };
-        at += width + (parseFloat(bs.columnGap) || 0);
-      }
-      return null;
+      const on = [...bar.children].find((el) => el !== thumb && el.classList.contains("on"));
+      return on ? { x: on.offsetLeft, w: on.offsetWidth } : null;
     };
     const paint = () => { thumb.style.transform = `translateX(${x}px)`; thumb.style.width = `${w}px`; };
     // a glide timed by the clock, not by frames, so a busy frame (a new view drawing) can't throw it off;
@@ -159,6 +147,48 @@
     bar.addEventListener("pointercancel", () => { if (press) { press.dragging = true; release(); } });
   }
   const pills = () => document.querySelectorAll(".tabbar").forEach(pill);
+
+  // ---------- sheets swipe down to close ----------
+  // Any bottom sheet (.sheet) closes with a swipe down from the top of its content, as on any phone: a flick or a long
+  // drag closes it, a short drag springs back. It closes the way a tap outside does (a click on its backdrop, the .scrim
+  // around it or beside it), so each app's own closing runs. A long sheet still scrolls: the swipe only starts when it's
+  // scrolled to the top, and never from a field being typed in.
+  (function swipeSheets() {
+    const backdrop = (sheet) => {
+      const host = sheet.parentElement;
+      if (!host) return null;
+      return host.classList.contains("scrim") ? host : host.querySelector(":scope > .scrim");
+    };
+    let el = null, y0 = 0, dy = 0, t0 = 0;
+    document.addEventListener("touchstart", (e) => {
+      el = null;
+      const sheet = e.target.closest && e.target.closest(".sheet");
+      if (!sheet || e.touches.length > 1 || sheet.scrollTop > 0 || e.target.closest("input, select, textarea") || !backdrop(sheet)) return;
+      el = sheet; y0 = e.touches[0].clientY; dy = 0; t0 = e.timeStamp;
+    }, { passive: true });
+    document.addEventListener("touchmove", (e) => {
+      if (!el) return;
+      dy = Math.max(0, e.touches[0].clientY - y0);
+      if (!dy) { el.style.removeProperty("--swipe"); el.style.transform = ""; return; }   // upwards: the sheet scrolls as usual
+      e.preventDefault();
+      el.style.setProperty("--swipe", dy + "px");
+      el.style.transform = "translateY(var(--swipe))";
+    }, { passive: false });
+    const end = (e) => {
+      if (!el) return;
+      const sheet = el;
+      el = null;
+      if (!dy) return;
+      const flick = dy > 40 && e.timeStamp - t0 < 250;
+      const b = backdrop(sheet);
+      if ((dy > 110 || flick) && b) { b.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })); return; }
+      if (!reduced()) sheet.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 200, easing: "cubic-bezier(.2, .8, .2, 1)" });
+      sheet.style.removeProperty("--swipe");
+      sheet.style.transform = "";
+    };
+    document.addEventListener("touchend", end);
+    document.addEventListener("touchcancel", end);
+  })();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pills); else pills();
 
   window.VV = { swap, dismiss, keep, noZoom, reduced };
