@@ -975,6 +975,11 @@ html.r-turning::view-transition-new(r-page) { animation: r-fade-in .15s ease-out
 :where([data-app="shiori"]) .font-gothic { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif; }
 :where([data-app="shiori"]) .r-panel .btn.block { margin-top: 4px; }
 :where([data-app="shiori"]) .lookup .lk-head .badge + .badge { margin-left: 4px; }
+/* Shior.ino: "Not right?" on a lookup card, and dragging across the right word */
+:where([data-app="shiori"]) .lookup .lk-actions .not-right { flex: 0 0 auto; color: var(--muted); }
+:where([data-app="shiori"]) .lookup .picked-note { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+:where([data-app="shiori"]) .r-pick { position: absolute; z-index: 9; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 18px; border-radius: 999px; font-weight: 600; font-size: 15px; background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-shadow); animation: pick-in .25s ease-out both; }
+@keyframes pick-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 /* Shior.ino: manga lookups (hold on a bubble, or hold and drag a box) */
 :where([data-app="shiori"]) .ocr-mark { position: absolute; z-index: 7; pointer-events: none; border: 2.5px solid var(--accent); border-radius: 14px; background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
 :where([data-app="shiori"]) .ocr-mark.ring { width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; animation: ocr-ring .45s ease-out both; }
