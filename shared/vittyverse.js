@@ -284,5 +284,52 @@
   }
   const enter = (el) => play(el, "vv-enter"), flash = (el) => play(el, "vv-flash"), pulse = (el) => play(el, "vv-pulse");
 
-  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse };
+  // ---------- pull to refresh ----------
+  // A screen whose contents come from somewhere else refreshes when you pull it down from the top, as lists do on
+  // iPhone: VV.pullToRefresh(el, refresh, { when }). `refresh` returns a promise, and the spinner turns until it
+  // settles; `when()` says whether the screen showing now can be pulled (not a player, not with a sheet open).
+  function pullToRefresh(el, refresh, opts = {}) {
+    const PULL = 70, MAX = 120;
+    const ring = document.createElement("div");
+    ring.className = "vv-ptr";
+    ring.setAttribute("aria-hidden", "true");
+    ring.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>';
+    el.classList.add("vv-ptr-host");
+    el.prepend(ring);
+    let y0 = null, pull = 0, busy = false;
+    const show = (d) => {
+      ring.style.transform = `translateY(${d - 52}px) rotate(${d * 3}deg)`;
+      ring.style.opacity = String(Math.min(1, d / PULL));
+      ring.classList.toggle("armed", d >= PULL);
+    };
+    const reset = () => { ring.classList.remove("spin", "armed", "drag"); ring.style.transform = ""; ring.style.opacity = ""; };
+    document.addEventListener("touchstart", (e) => {
+      y0 = !busy && e.touches.length === 1 && scrollY <= 0 && el.contains(e.target) && !document.querySelector(".scrim")
+        && (!opts.when || opts.when()) ? e.touches[0].clientY : null;
+      pull = 0;
+    }, { passive: true });
+    document.addEventListener("touchmove", (e) => {
+      if (y0 == null) return;
+      const dy = e.touches[0].clientY - y0;
+      if (dy <= 0 || scrollY > 0) { if (pull) { pull = 0; reset(); } return; }
+      e.preventDefault();   // the page stays put while you pull
+      pull = Math.min(MAX, dy * 0.5);
+      ring.classList.add("drag");
+      show(pull);
+    }, { passive: false });
+    document.addEventListener("touchend", () => {
+      if (y0 == null) return;
+      y0 = null;
+      ring.classList.remove("drag");
+      if (pull < PULL) { reset(); return; }
+      busy = true;
+      ring.classList.add("spin");
+      ring.style.transform = "translateY(18px)";
+      ring.style.opacity = "1";
+      Promise.resolve().then(refresh).catch(() => {}).finally(() => { busy = false; reset(); });
+    });
+    return ring;
+  }
+
+  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh };
 })();

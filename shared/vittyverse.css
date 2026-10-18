@@ -131,11 +131,12 @@ html.vv-splashing { overflow: hidden; }   /* the splash isn't fixed (see vittyve
 [data-app="gymmer"] { --splash: #ff8a1f; }
 [data-app="mapper"] { --splash: #ffc222; }
 [data-app="chesser"] { --splash: #c8935a; }
-:root { --splitter: #c9f53b; --gymmer: #ff8a1f; --shiori: #ff86b4; --mapper: #ffc222; --chesser: #c8935a; --on-module: #111113; /* ink on a module colour, both themes */ }
+[data-app="watcher"] { --splash: #4cc2ff; }
+:root { --splitter: #c9f53b; --gymmer: #ff8a1f; --shiori: #ff86b4; --mapper: #ffc222; --chesser: #c8935a; --watcher: #4cc2ff; --on-module: #111113; /* ink on a module colour, both themes */ }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; --chesser: #d9a46a; }
+  :root:not([data-theme="light"]) { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; --chesser: #d9a46a; --watcher: #62ccff; }
 }
-:root[data-theme="dark"] { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; --chesser: #d9a46a; }
+:root[data-theme="dark"] { --splitter: #d4ff3a; --gymmer: #ff9b3d; --shiori: #ff9cc4; --mapper: #ffca3a; --chesser: #d9a46a; --watcher: #62ccff; }
 
 /* ---- each app's accent (and the few colours only one app needs) ---- */
 :root[data-app="splitter"] {
@@ -151,6 +152,7 @@ html.vv-splashing { overflow: hidden; }   /* the splash isn't fixed (see vittyve
 }
 :root[data-app="shiori"] { --accent: var(--shiori); /* sakura */ }
 :root[data-app="chesser"] { --accent: var(--chesser); /* walnut, like a wooden board */ }
+:root[data-app="watcher"] { --accent: var(--watcher); /* sky, like a screen lighting up a dark room */ }
 :root[data-app="mapper"] {
   --accent: var(--mapper); /* Mapstr yellow */
   /* tag colours: the data-viz reference palette's eight categorical hues, light steps; --pin-none for no tag */
@@ -409,6 +411,13 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 @keyframes vv-enter { from { opacity: 0; transform: translateY(8px); } }
 @keyframes vv-flash { from { background-color: color-mix(in srgb, var(--accent) 34%, var(--surface)); } }
 @keyframes vv-pulse { 40% { transform: scale(1.05); } }
+/* pull to refresh (VV.pullToRefresh): a round arrow that comes down with your finger and turns while it refreshes */
+.vv-ptr-host { position: relative; }
+.vv-ptr { position: absolute; left: 50%; top: 0; z-index: 40; width: 38px; height: 38px; margin-left: -19px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); box-shadow: var(--shadow-float); color: var(--muted); opacity: 0; transform: translateY(-52px); transition: transform .28s cubic-bezier(.2, .8, .2, 1), opacity .2s ease; pointer-events: none; }
+.vv-ptr.drag { transition: none; }
+.vv-ptr svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.vv-ptr.armed, .vv-ptr.spin { color: var(--accent); }
+.vv-ptr.spin svg { animation: spin .8s linear infinite; }
 :root { --spring: cubic-bezier(.3, 1.4, .5, 1); --glide: cubic-bezier(.2, .8, .2, 1); }
 /* the tab bar can be dragged along (vittyverse.js): it takes the finger's sideways moves, and the lens lifts while held */
 .tabbar { touch-action: none; }
@@ -1303,6 +1312,7 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="home"]) .module.shiori { --m: var(--shiori); }
 :where([data-app="home"]) .module.mapper { --m: var(--mapper); }
 :where([data-app="home"]) .module.chesser { --m: var(--chesser); }
+:where([data-app="home"]) .module.watcher { --m: var(--watcher); }
 :where([data-app="home"]) .module:active { transform: scale(0.98); }
 @media (hover: hover) { :where([data-app="home"]) a.module:hover { transform: translateY(-3px); } }
 :where([data-app="home"]) .module .glyph { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--on-module); color: var(--m); font: 700 28px/1 var(--display-font); }
@@ -1316,3 +1326,107 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="home"]) .brand-logo svg { width: auto; }
 :where([data-app="home"]) h1.tagline { font: 700 34px/1.12 var(--display-font); letter-spacing: -0.02em; margin: 0; padding: 26px 0 6px; }
 :where([data-app="home"]) .module .live { align-self: flex-start; max-width: 100%; margin-top: 14px; padding: 6px 12px; border-radius: 999px; background: color-mix(in srgb, var(--on-module) 10%, transparent); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* =====================================================================
+   11. Watcher.ino (the player draws its own subtitles, so they can be styled and tapped)
+   ===================================================================== */
+:where([data-app="watcher"]) body { padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 100px); }
+:where([data-app="watcher"]) .sheet-title { font: 700 22px/1.2 var(--display-font); letter-spacing: -0.02em; margin: 6px 0 10px; }
+:where([data-app="watcher"]) .w-note p { margin: 0; color: var(--muted); font-size: 15px; }
+:where([data-app="watcher"]) .w-note p + p { margin-top: 8px; }
+/* rows that scroll sideways (Continue watching, Recently added), reaching the screen's edges */
+:where([data-app="watcher"]) .w-row { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 6px; scroll-snap-type: x mandatory; scroll-padding: 0 16px; scrollbar-width: none; }
+:where([data-app="watcher"]) .w-row::-webkit-scrollbar { display: none; }
+:where([data-app="watcher"]) .w-row > * { scroll-snap-align: start; flex: none; }
+:where([data-app="watcher"]) .w-wide { width: 260px; display: flex; flex-direction: column; text-align: left; gap: 2px; }
+:where([data-app="watcher"]) .w-tile { display: flex; flex-direction: column; text-align: left; gap: 2px; min-width: 0; }
+:where([data-app="watcher"]) .w-row .w-tile { width: 118px; }
+:where([data-app="watcher"]) .w-wide .t, :where([data-app="watcher"]) .w-tile .t { margin-top: 6px; font-weight: 600; font-size: 15px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where([data-app="watcher"]) .w-wide .s, :where([data-app="watcher"]) .w-tile .s { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where([data-app="watcher"]) .w-still, :where([data-app="watcher"]) .w-poster, :where([data-app="watcher"]) .w-thumb { position: relative; display: block; overflow: hidden; border-radius: var(--r-md); background: var(--surface-2); }
+:where([data-app="watcher"]) .w-still { aspect-ratio: 16 / 9; }
+:where([data-app="watcher"]) .w-poster { aspect-ratio: 2 / 3; }
+:where([data-app="watcher"]) :is(.w-still, .w-poster, .w-thumb) img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* no picture yet (no TMDB key, or nothing found): the title on the app's colour */
+:where([data-app="watcher"]) :is(.w-still, .w-poster, .w-thumb).blank { display: grid; place-items: center; background: linear-gradient(150deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--surface-2))); color: var(--on-module); }
+:where([data-app="watcher"]) .w-poster.blank b { padding: 10px; font: 700 15px/1.2 var(--display-font); text-align: center; overflow-wrap: anywhere; }
+:where([data-app="watcher"]) .w-thumb.blank b { font: 700 20px var(--display-font); }
+:where([data-app="watcher"]) .w-play { position: absolute; left: 10px; bottom: 12px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--glass-thick); color: var(--text); -webkit-backdrop-filter: var(--glass-blur, blur(14px)); backdrop-filter: var(--glass-blur, blur(14px)); }
+:where([data-app="watcher"]) .w-play svg.i { width: 16px; height: 16px; fill: currentColor; margin-left: 2px; }
+:where([data-app="watcher"]) .w-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0, 0, 0, .35); }
+:where([data-app="watcher"]) .w-bar i { display: block; height: 100%; background: var(--accent); }
+:where([data-app="watcher"]) .w-detail > .w-bar { position: relative; margin-top: 10px; border-radius: 99px; overflow: hidden; background: var(--fill); }
+:where([data-app="watcher"]) .w-count { position: absolute; top: 6px; right: 6px; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font: 700 12px var(--font); }
+:where([data-app="watcher"]) .w-count.done svg.i { width: 14px; height: 14px; stroke-width: 3; }
+:where([data-app="watcher"]) .w-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 16px 12px; }
+/* a show's or film's page */
+:where([data-app="watcher"]) .w-detail .page-head { align-items: center; padding-top: 14px; }
+:where([data-app="watcher"]) .w-hero { margin-top: 8px; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; background: var(--surface-2); }
+:where([data-app="watcher"]) .w-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+:where([data-app="watcher"]) .w-title { padding-top: 16px; padding-bottom: 4px; }
+:where([data-app="watcher"]) .w-meta { margin: 0; color: var(--muted); font-size: 15px; }
+:where([data-app="watcher"]) .w-overview { margin: 10px 0 0; font-size: 15px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+:where([data-app="watcher"]) .w-overview.open { display: block; }
+:where([data-app="watcher"]) .w-eps { margin-top: 10px; padding: 0 6px 0 12px; }
+:where([data-app="watcher"]) .w-ep { gap: 4px; padding: 10px 0; }
+:where([data-app="watcher"]) .w-ep-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; text-align: left; }
+:where([data-app="watcher"]) .w-ep .grow { display: flex; flex-direction: column; min-width: 0; }
+:where([data-app="watcher"]) .w-ep .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where([data-app="watcher"]) .w-ep.done .t { color: var(--muted); }
+:where([data-app="watcher"]) .w-thumb { width: 112px; aspect-ratio: 16 / 9; flex: none; border-radius: var(--r-sm); }
+/* sheets: a show's settings, Settings' languages and keys */
+:where([data-app="watcher"]) .w-form { display: grid; gap: 14px; }
+:where([data-app="watcher"]) .w-form select, :where([data-app="watcher"]) .w-form input, :where([data-app="watcher"]) .w-folders, :where([data-app="watcher"]) .w-select { font: inherit; font-size: 16px; color: var(--text); background: var(--fill); border: 1.5px solid transparent; border-radius: var(--r-sm); padding: 9px 12px; width: 100%; min-width: 0; -webkit-appearance: none; appearance: none; }
+:where([data-app="watcher"]) .w-select { width: auto; max-width: 52%; padding: 6px 10px; font-size: 15px; }
+:where([data-app="watcher"]) .w-folders { resize: vertical; font-size: 15px; }
+:where([data-app="watcher"]) :is(.w-form select, .w-form input, .w-folders, .w-select):focus { outline: none; border-color: var(--focus); }
+:where([data-app="watcher"]) .w-check { padding: 0; min-height: 0; }
+:where([data-app="watcher"]) .w-search { margin-bottom: 8px; }
+:where([data-app="watcher"]) .w-results .li { align-items: flex-start; }
+:where([data-app="watcher"]) .w-results .s { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+:where([data-app="watcher"]) .w-mini { width: 44px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; flex: none; }
+/* the player: the whole screen, black, its controls fading in over the picture */
+:where([data-app="watcher"]) body.playing { padding: 0; }
+:where([data-app="watcher"]) body.playing .tabbar { display: none; }
+:where([data-app="watcher"]) .w-player { position: fixed; inset: 0; z-index: 45; background: #000; color: #fff; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+:where([data-app="watcher"]) .w-player video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+:where([data-app="watcher"]) .w-subs { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 6%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 max(16px, env(safe-area-inset-left)); pointer-events: none; transition: transform .25s cubic-bezier(.2, .8, .2, 1); text-align: center; }
+:where([data-app="watcher"]) .w-player.ui .w-subs { transform: translateY(-72px); }
+:where([data-app="watcher"]) .w-subs .l1, :where([data-app="watcher"]) .w-subs .l2 { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+:where([data-app="watcher"]) .w-subs span { display: inline-block; max-width: 92vw; padding: 1px 8px; border-radius: 6px; background: rgba(0, 0, 0, .55); font: 600 clamp(17px, 2.6vw, 30px)/1.3 var(--font); text-shadow: 0 1px 2px rgba(0, 0, 0, .6); white-space: pre-wrap; }
+:where([data-app="watcher"]) .w-subs .l2 span { font-size: clamp(14px, 2vw, 24px); font-weight: 500; color: rgba(255, 255, 255, .82); }
+:where([data-app="watcher"]) .w-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; opacity: 0; transition: opacity .22s ease; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, .6), transparent 22%, transparent 70%, rgba(0, 0, 0, .7)); }
+:where([data-app="watcher"]) .w-ui.show { opacity: 1; }
+:where([data-app="watcher"]) .w-ui.show button, :where([data-app="watcher"]) .w-ui.show input { pointer-events: auto; }
+:where([data-app="watcher"]) .w-top { display: flex; align-items: center; gap: 6px; padding: calc(env(safe-area-inset-top) + 8px) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left)); }
+:where([data-app="watcher"]) .w-ctl { color: #fff; width: 44px; height: 44px; }
+:where([data-app="watcher"]) .w-ctl svg.i { width: 24px; height: 24px; }
+:where([data-app="watcher"]) .w-head { flex: 1; min-width: 0; text-align: center; }
+:where([data-app="watcher"]) .w-ttl { font: 700 17px/1.2 var(--display-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where([data-app="watcher"]) .w-sub { font-size: 13px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where([data-app="watcher"]) .w-mid { display: flex; align-items: center; justify-content: center; gap: 44px; }
+:where([data-app="watcher"]) .w-big { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .16); color: #fff; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+:where([data-app="watcher"]) .w-big svg.i { width: 34px; height: 34px; fill: currentColor; }
+:where([data-app="watcher"]) .w-skip { width: 54px; height: 54px; display: grid; place-items: center; color: #fff; }
+:where([data-app="watcher"]) .w-skip svg.i { width: 30px; height: 30px; }
+:where([data-app="watcher"]) .w-big:active, :where([data-app="watcher"]) .w-skip:active { transform: scale(.9); }
+:where([data-app="watcher"]) .w-bottom { display: flex; align-items: center; gap: 12px; padding: 0 max(16px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 16px) max(16px, env(safe-area-inset-left)); }
+:where([data-app="watcher"]) .w-time { font: 600 13px var(--font); font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; opacity: .9; }
+:where([data-app="watcher"]) .w-bottom input[type=range] { flex: 1; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; --fill: 0%; }
+:where([data-app="watcher"]) .w-bottom input[type=range]::-webkit-slider-runnable-track { height: 5px; border-radius: 99px; background: linear-gradient(to right, var(--accent) var(--fill), rgba(255, 255, 255, .3) var(--fill)); }
+:where([data-app="watcher"]) .w-bottom input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6.5px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+:where([data-app="watcher"]) .w-bottom input[type=range]::-moz-range-track { height: 5px; border-radius: 99px; background: linear-gradient(to right, var(--accent) var(--fill), rgba(255, 255, 255, .3) var(--fill)); }
+:where([data-app="watcher"]) .w-next { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 70px); z-index: 2; background: #fff; color: #111113; font-weight: 700; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
+:where([data-app="watcher"]) .w-spin { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .25); border-top-color: #fff; animation: spin .8s linear infinite; pointer-events: none; }
+:where([data-app="watcher"]) .w-ui.show ~ .w-spin, :where([data-app="watcher"]) .w-spin[hidden] { display: none; }
+:where([data-app="watcher"]) .w-msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(86vw, 380px); padding: 18px; border-radius: var(--r-lg); background: rgba(28, 28, 30, .92); text-align: center; z-index: 3; }
+:where([data-app="watcher"]) .w-msg p { margin: 0 0 12px; }
+:where([data-app="watcher"]) .w-upnext { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 70px); z-index: 3; width: min(80vw, 300px); padding: 14px; border-radius: var(--r-lg); background: rgba(28, 28, 30, .92); }
+:where([data-app="watcher"]) .w-upnext .s { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
+:where([data-app="watcher"]) .w-upnext .t { font-weight: 700; margin: 2px 0 10px; }
+:where([data-app="watcher"]) .w-upnext-row { display: flex; gap: 8px; justify-content: flex-end; }
+:where([data-app="watcher"]) .sheet .li.on .t { font-weight: 700; }
+:where([data-app="watcher"]) .li .grow > :is(.t, .s) { display: block; }
+:where([data-app="watcher"]) .w-tick { color: var(--accent); display: grid; }
+:where([data-app="watcher"]) .w-tick svg.i { width: 20px; height: 20px; stroke-width: 3; }
