@@ -249,11 +249,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .badge.always, .badge.more { background: var(--good-bg); color: var(--good); }
 .badge.less, .badge.missing { background: var(--warn-bg); color: var(--warn); }
 .badge.never { background: var(--danger); color: #fff; }
-.search, .field input[type=text], .field input[type=url], .field input[type=password], .field select { font: inherit; font-size: 17px; color: var(--text); background: var(--fill); border: 1.5px solid transparent; border-radius: var(--r-sm); padding: 9px 12px; min-width: 0; width: 100%; -webkit-appearance: none; appearance: none; }
+.search, .field input[type=text], .field input[type=url], .field input[type=password], .field select, .field textarea { font: inherit; font-size: 17px; color: var(--text); background: var(--fill); border: 1.5px solid transparent; border-radius: var(--r-sm); padding: 9px 12px; min-width: 0; width: 100%; -webkit-appearance: none; appearance: none; }
 .search { background: var(--fill); box-shadow: none; padding: 9px 12px 9px 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8a8e' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 11px center; background-size: 17px; }
 .sheet .search { background-color: var(--fill); box-shadow: none; }
 .search[type=text] { padding-left: 12px; background-image: none; }   /* a name field, not a search */
-.search:focus, .field input:focus, .field select:focus { outline: none; border-color: var(--focus); }
+.search:focus, .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--focus); }
 .search::placeholder, .field input::placeholder { color: var(--muted); opacity: .7; }
 .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239b9ba3' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; padding-right: 32px; }
 .chips { display: flex; gap: 6px; overflow-x: auto; padding: 10px 0 2px; margin-top: 0; scrollbar-width: none; }
@@ -1331,7 +1331,6 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
    11. Watcher.ino (the player draws its own subtitles, so they can be styled and tapped)
    ===================================================================== */
 :where([data-app="watcher"]) body { padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 100px); }
-:where([data-app="watcher"]) .sheet-title { font: 700 22px/1.2 var(--display-font); letter-spacing: -0.02em; margin: 6px 0 10px; }
 :where([data-app="watcher"]) .w-note p { margin: 0; color: var(--muted); font-size: 15px; }
 :where([data-app="watcher"]) .w-note p + p { margin-top: 8px; }
 /* rows that scroll sideways (Continue watching, Recently added), reaching the screen's edges */
@@ -1375,15 +1374,6 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-ep.done .t { color: var(--muted); }
 :where([data-app="watcher"]) .w-thumb { width: 112px; aspect-ratio: 16 / 9; flex: none; border-radius: var(--r-sm); }
 /* sheets: a show's settings, Settings' languages and keys */
-:where([data-app="watcher"]) .w-form { display: grid; gap: 14px; }
-:where([data-app="watcher"]) .w-form select, :where([data-app="watcher"]) .w-form input, :where([data-app="watcher"]) .w-folders, :where([data-app="watcher"]) .w-select { font: inherit; font-size: 16px; color: var(--text); background: var(--fill); border: 1.5px solid transparent; border-radius: var(--r-sm); padding: 9px 12px; width: 100%; min-width: 0; -webkit-appearance: none; appearance: none; }
-:where([data-app="watcher"]) .w-select { width: auto; max-width: 52%; padding: 6px 10px; font-size: 15px; }
-:where([data-app="watcher"]) .w-folders { resize: vertical; font-size: 15px; }
-:where([data-app="watcher"]) :is(.w-form select, .w-form input, .w-folders, .w-select):focus { outline: none; border-color: var(--focus); }
-:where([data-app="watcher"]) .w-check { padding: 0; min-height: 0; }
-:where([data-app="watcher"]) .w-search { margin-bottom: 8px; }
-:where([data-app="watcher"]) .w-results .li { align-items: flex-start; }
-:where([data-app="watcher"]) .w-results .s { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 :where([data-app="watcher"]) .w-mini { width: 44px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; flex: none; }
 /* the player: the whole screen, black, its controls fading in over the picture */
 :where([data-app="watcher"]) body.playing { padding: 0; }
@@ -1455,8 +1445,33 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-player.looking .w-spin { display: none; }
 :where([data-app="watcher"]) .w-player .lookup { z-index: 8; }
 :where([data-app="watcher"]) .w-player .lookup .ocr-line { font-size: 20px; }
-:where([data-app="watcher"]) .w-timing { gap: 4px; }
-:where([data-app="watcher"]) .w-timing .icon-btn { font: 600 22px var(--font); background: var(--fill); }
-:where([data-app="watcher"]) .w-offset { min-width: 58px; text-align: center; font: 600 15px var(--font); font-variant-numeric: tabular-nums; }
 /* nothing behind the player scrolls or bounces */
 html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
+/* sheets and cards use the suite's components (h2, .sub, .field, .seg, .list, .menu): only spacing here */
+:where([data-app="watcher"]) .sheet .field, :where([data-app="watcher"]) .card .field + .field { margin-top: 14px; }
+:where([data-app="watcher"]) .sheet .field:first-of-type { margin-top: 10px; }
+:where([data-app="watcher"]) .sheet .field + .list, :where([data-app="watcher"]) .sheet .menu + .subhead { margin-top: 14px; }
+:where([data-app="watcher"]) .sheet .list + .field { margin-top: 18px; }
+:where([data-app="watcher"]) .sheet form { margin-bottom: 10px; }
+:where([data-app="watcher"]) .field textarea { resize: vertical; font-size: 15px; line-height: 1.4; }
+:where([data-app="watcher"]) .sheet .li .s { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+:where([data-app="watcher"]) .w-mini { width: 44px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; flex: none; }
+/* the subtitles' look (Subtitles, Look; kept per device) */
+:where([data-app="watcher"]) .w-player[data-size="s"] .w-subs .line { font-size: clamp(14px, 2.1vw, 24px); }
+:where([data-app="watcher"]) .w-player[data-size="l"] .w-subs .line { font-size: clamp(20px, 3.2vw, 38px); }
+:where([data-app="watcher"]) .w-player[data-size="xl"] .w-subs .line { font-size: clamp(24px, 4vw, 48px); }
+:where([data-app="watcher"]) .w-player[data-size="s"] .w-subs .l2 .line { font-size: clamp(12px, 1.7vw, 20px); }
+:where([data-app="watcher"]) .w-player[data-size="l"] .w-subs .l2 .line { font-size: clamp(17px, 2.5vw, 30px); }
+:where([data-app="watcher"]) .w-player[data-size="xl"] .w-subs .l2 .line { font-size: clamp(20px, 3.1vw, 38px); }
+:where([data-app="watcher"]) .w-player[data-bg="shadow"] .w-subs .line { background: none; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 4px rgba(0, 0, 0, .9); }
+/* timing while watching: a small bar at the top, over the picture */
+:where([data-app="watcher"]) .w-sync { position: absolute; top: calc(env(safe-area-inset-top) + 60px); left: 50%; transform: translateX(-50%); z-index: 6; width: min(92vw, 420px); padding: 10px; border-radius: var(--r-lg); background: rgba(28, 28, 30, .9); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: #fff; display: grid; gap: 8px; animation: vv-enter .2s ease both; }
+:where([data-app="watcher"]) .w-sync .seg { background: rgba(255, 255, 255, .12); }
+:where([data-app="watcher"]) .w-sync .seg button { color: #fff; }
+:where([data-app="watcher"]) .w-sync .seg button.on { background: rgba(255, 255, 255, .28); color: #fff; }
+:where([data-app="watcher"]) .w-sync-row { display: flex; align-items: center; gap: 6px; }
+:where([data-app="watcher"]) .w-sync-row > button { flex: 1; min-height: 40px; border-radius: 12px; background: rgba(255, 255, 255, .14); color: #fff; font: 700 15px var(--font); }
+:where([data-app="watcher"]) .w-sync-row > button:active { transform: scale(.95); }
+:where([data-app="watcher"]) .w-sync .w-offset { flex: 1.2; text-align: center; font: 700 17px var(--font); font-variant-numeric: tabular-nums; }
+:where([data-app="watcher"]) .w-sync-hint { flex: 1; font-size: 12.5px; opacity: .7; }
+:where([data-app="watcher"]) .w-sync-row > .w-sync-done { flex: 0 0 auto; padding: 0 16px; background: var(--accent); color: var(--on-accent); }
