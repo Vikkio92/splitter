@@ -264,6 +264,12 @@
       : "";
     return `<div class="vv-made"><span>Made with ♥︎ by</span>${LOGO}${coffee}</div>`;
   }
+  // In a page's own markup, <span data-vv="logo"></span> and <span data-vv="mark"></span> get the logo and the mark.
+  function fillLogos() {
+    document.querySelectorAll('[data-vv="logo"]').forEach((el) => { el.innerHTML = LOGO; });
+    document.querySelectorAll('[data-vv="mark"]').forEach((el) => { el.innerHTML = MARK; });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fillLogos); else fillLogos();
 
   // ---------- feedback: changes you can see ----------
   // When something changes, the thing that changed says so, briefly: VV.enter(el) for a new row (it rises in),
