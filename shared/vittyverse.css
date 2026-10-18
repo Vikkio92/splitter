@@ -432,7 +432,11 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 }
 :where([data-app="splitter"]) main { position: relative; }
 :where([data-app="splitter"]) body.home .title-row { position: absolute; top: 18px; right: 16px; }
+:where([data-app="splitter"]) #homeNew { margin-top: 28px; }   /* the two main buttons sit a little below the title */
 :where([data-app="splitter"]) #homeJoin { margin-top: 8px; }
+/* Add to Home Screen sits at the foot of the Bills screen, just above the reCAPTCHA notice */
+:where([data-app="splitter"]) #homeInstall { margin-top: auto; align-self: center; }
+:where([data-app="splitter"]) #homeInstall:not([hidden]) ~ .legal { margin-top: 0; padding-top: 14px; }
 :where([data-app="splitter"]) .grecaptcha-badge { visibility: hidden !important; }
 :where([data-app="splitter"]) .legal { margin: auto 4px 0; padding-top: 28px; font-size: 10px; line-height: 1.5; color: var(--muted); text-align: center; text-wrap: balance; }
 :where([data-app="splitter"]) .legal a { color: inherit; }

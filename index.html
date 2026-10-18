@@ -85,6 +85,7 @@
       <button class="btn add" id="homeJoin"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Join bill</button>
     </div>
     <div class="home-list" id="homeList"></div>
+    <button class="btn ghost" id="homeInstall" hidden><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg>Add to Home Screen</button>
     <p class="legal">Protected by reCAPTCHA. Google's <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Terms of Service</a> apply.</p>
   </section>
 
@@ -2109,6 +2110,30 @@
   $("#billSwitch").addEventListener("click", openBills);
   $("#homeNew").addEventListener("click", newBill);
   $("#homeJoin").addEventListener("click", joinBill);
+
+  // Add to Home Screen: Android and desktop Chrome can install the app straight away (the browser's own prompt);
+  // iPhone and iPad can't be asked from a page, so the button shows the two steps. Hidden once installed, and in
+  // browsers that can't add it.
+  (function addToHomeScreen() {
+    const btn = $("#homeInstall");
+    const installed = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+    const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    let prompt = null;
+    const show = () => { btn.hidden = installed() || !(prompt || ios); };
+    window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); prompt = e; show(); });
+    window.addEventListener("appinstalled", () => { prompt = null; show(); });
+    btn.addEventListener("click", async () => {
+      if (prompt) {
+        const p = prompt;
+        prompt = null;
+        p.prompt();
+        await p.userChoice.catch(() => null);
+        return show();
+      }
+      info("Add to Home Screen", "1. Tap Share (the square with the arrow). In Safari, it may be under the ••• button.\n2. Tap Add to Home Screen, then Add.");
+    });
+    show();
+  })();
   $("#codePill").addEventListener("click", () => copy(state.meta.code));
   $("#homeBtn").addEventListener("click", () => { if (!home) goHome(); });
   $("#homeList").addEventListener("click", (e) => {
