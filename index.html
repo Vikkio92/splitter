@@ -1183,12 +1183,19 @@
   }
   function syncList(box, list, make, update) {
     const existing = new Map(Array.from(box.children, (c) => [c.dataset.id, c]));
+    // feedback (VV.enter / VV.flash): only for changes to the bill already on screen, not when one opens
+    const bill = currentId(), live = loaded && box._bill === bill;
+    box._bill = loaded ? bill : null;
     let prev = null;
     list.forEach((obj) => {
       let row = existing.get(obj.id);
-      if (!row) { row = make(obj); row.dataset.id = obj.id; }
+      const added = !row;
+      if (added) { row = make(obj); row.dataset.id = obj.id; }
       existing.delete(obj.id);
+      const before = row.textContent;
       update(row, obj);
+      if (live && added) VV.enter(row);
+      else if (live && row.textContent !== before && !row.contains(document.activeElement)) VV.flash(row);   // not the row being typed in
       const want = prev ? prev.nextSibling : box.firstChild;
       if (row !== want) box.insertBefore(row, want);
       prev = row;
@@ -1500,6 +1507,9 @@
     const r = last;
     const tag = state.meta.locked ? '<span class="d-tag">Locked</span>' : "";
     const pct = r.totalC ? Math.min(100, Math.round((r.paidTotal / r.totalC) * 100)) : 0;
+    const total = bigMoney(r.totalC), bill = currentId();
+    const bump = box._bill === bill && box._total != null && box._total !== total;
+    box._bill = bill; box._total = total;
     setHTML(box,
       '<div class="d-top"><span class="d-label">Total</span>' + tag + "</div>" +
       '<div class="d-total">' + bigMoney(r.totalC) + "</div>" +
@@ -1507,6 +1517,7 @@
       '<div class="d-bar"><i style="width:' + pct + '%"></i></div>' +
       '<div class="d-paid"><span>Paid ' + money(r.paidTotal) + "</span><span>" +
       (r.totalC > r.paidTotal ? money(r.totalC - r.paidTotal) + " to go" : r.totalC ? "Fully paid" : "") + "</span></div>");
+    if (bump) VV.pulse(box.querySelector(".d-total"));
   }
 
   // Once the admin locks the bill, everyone sees their own receipt instead of the editor.
@@ -1583,6 +1594,10 @@
         '<button class="btn danger" data-act="settle">' + (billId ? "Settle &amp; delete" : "Delete bill") + "</button></div>";
     }
     box.innerHTML = h;
+    // the banner's amount bumps when it changes for the same person on the same bill (VV.pulse)
+    const amt = box.querySelector(".banner .amt"), sig = currentId() + "|" + who;
+    if (amt && box._sig === sig && box._amt !== amt.textContent) VV.pulse(amt);
+    box._sig = sig; box._amt = amt && amt.textContent;
     $("#receiptWho").value = who || "";
     $("#receiptWho").disabled = !admin && !!meId();
   }

@@ -267,7 +267,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
 .toggle.on { background: var(--accent); }
 .toggle.on::after { transform: translateX(20px); background: var(--on-accent); }
-.scrim { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0.45); animation: fade .18s ease; }
+/* The dimming stops at the status bar: iPhone Safari colours the status bar from a fixed element touching the top of the
+   screen, and a full-height dark backdrop turned it into a black bar whenever a sheet opened. The backdrop still covers
+   the whole screen, so a tap anywhere outside the sheet closes it. */
+.scrim { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: linear-gradient(to bottom, transparent env(safe-area-inset-top, 0px), rgba(0, 0, 0, 0.45) env(safe-area-inset-top, 0px)); animation: fade .18s ease; }
 .sheet::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 99px; background: var(--line); margin: 0 auto 16px; }
 .sheet h2 { font: 700 22px/1.2 var(--display-font); letter-spacing: -0.01em; margin: 0 0 6px; padding: 0; }
 .sheet .sub { color: var(--muted); margin: 0 0 16px; }
@@ -393,6 +396,14 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 @keyframes away { to { opacity: 0; } }
 @keyframes down { to { transform: translateY(calc(var(--swipe, 0px) + 40px)); opacity: 0; } }
 @keyframes rise { from { transform: translateY(10px); opacity: 0; } }
+/* Feedback that something changed (VV.enter, VV.flash, VV.pulse in vittyverse.js), on the thing that changed: a new row
+   rises in, a row whose contents changed glows briefly in the app's accent, a number that changed gives a small bump. */
+.vv-enter { animation: vv-enter .28s cubic-bezier(.2, .8, .2, 1) both; }
+.vv-flash { animation: vv-flash .9s ease-out; }
+.vv-pulse { animation: vv-pulse .34s cubic-bezier(.2, .8, .2, 1); transform-origin: left center; }
+@keyframes vv-enter { from { opacity: 0; transform: translateY(8px); } }
+@keyframes vv-flash { from { background-color: color-mix(in srgb, var(--accent) 34%, var(--surface)); } }
+@keyframes vv-pulse { 40% { transform: scale(1.05); } }
 :root { --spring: cubic-bezier(.3, 1.4, .5, 1); --glide: cubic-bezier(.2, .8, .2, 1); }
 /* the tab bar can be dragged along (vittyverse.js): it takes the finger's sideways moves, and the lens lifts while held */
 .tabbar { touch-action: none; }
@@ -678,7 +689,7 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 /* while a sheet is open the page behind stays still: no scrolling it through the sheet or the dimmed area */
 html:where([data-app="splitter"]).sheet-open, html:where([data-app="splitter"]).sheet-open body { overflow: hidden; }
 :where([data-app="splitter"]) .modal .scrim { touch-action: none; }
-:where([data-app="splitter"]) .scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); animation: fade .18s ease; }
+:where([data-app="splitter"]) .scrim { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent env(safe-area-inset-top, 0px), rgba(0, 0, 0, 0.45) env(safe-area-inset-top, 0px)); animation: fade .18s ease; }   /* not under the status bar: see .scrim */
 :where([data-app="splitter"]) .sheet h3 { font: 700 22px/1.2 var(--display-font); letter-spacing: -0.02em; margin: 0 0 8px; }
 :where([data-app="splitter"]) .sheet p { margin: 0 0 16px; color: var(--muted); white-space: pre-line; }
 :where([data-app="splitter"]) .sheet input { margin-bottom: 16px; font-size: 17px; padding: 14px; }

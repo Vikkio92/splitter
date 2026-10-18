@@ -265,5 +265,18 @@
     return `<div class="vv-made"><span>Made with ♥︎ by</span>${LOGO}${coffee}</div>`;
   }
 
-  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith };
+  // ---------- feedback: changes you can see ----------
+  // When something changes, the thing that changed says so, briefly: VV.enter(el) for a new row (it rises in),
+  // VV.flash(el) for a row whose contents changed (a short glow in the app's accent), VV.pulse(el) for a number that
+  // changed (a small bump). Calling one again restarts it; with "Reduce motion" nothing moves.
+  function play(el, cls) {
+    if (!el || reduced()) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;   // restart the animation if it's already running
+    el.classList.add(cls);
+    el.addEventListener("animationend", () => el.classList.remove(cls), { once: true });
+  }
+  const enter = (el) => play(el, "vv-enter"), flash = (el) => play(el, "vv-flash"), pulse = (el) => play(el, "vv-pulse");
+
+  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse };
 })();
