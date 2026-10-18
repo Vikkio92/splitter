@@ -247,6 +247,32 @@
   addEventListener("pageshow", applyTheme);
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 
+  // ---------- glass ----------
+  // How the suite's glass looks: the three kinds on liquid-glass.ybouane.com, "regular" (clear, barely blurred),
+  // "frosted" (the default) or "dark" (smoked, with light text on it). One setting for the whole suite, kept as
+  // "vittyverse-glass" like the theme and set on <html> as data-glass before the first paint (this script runs in
+  // <head>); the shared stylesheet does the rest, and Watcher's liquid glass reads it too. VV.appearanceControl() is an
+  // app's Settings > Appearance (theme and glass), and a change fires "vv-glass" on window.
+  const GLASS = "vittyverse-glass";
+  const glassNow = () => { try { const v = localStorage.getItem(GLASS); return v === "regular" || v === "dark" ? v : "frosted"; } catch (e) { return "frosted"; } };
+  function applyGlass() {
+    const v = glassNow();
+    if (v === "frosted") delete document.documentElement.dataset.glass; else document.documentElement.dataset.glass = v;
+    document.querySelectorAll("[data-vv-glass] button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+    dispatchEvent(new Event("vv-glass"));
+  }
+  function setGlass(v) {
+    try { v === "frosted" ? localStorage.removeItem(GLASS) : localStorage.setItem(GLASS, v); } catch (e) {}
+    applyGlass();
+  }
+  const glassControl = () => `<div class="seg" data-vv-glass role="radiogroup" aria-label="Glass">${
+    [["regular", "Regular"], ["frosted", "Frosted"], ["dark", "Dark"]].map(([v, l]) => `<button type="button" data-v="${v}" class="${glassNow() === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  const appearanceControl = () => `<div class="vv-appearance"><div class="field"><span>Theme</span>${themeControl()}</div><div class="field"><span>Glass</span>${glassControl()}</div></div>`;
+  document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-vv-glass] button"); if (b) setGlass(b.dataset.v); });
+  addEventListener("storage", (e) => { if (e.key === GLASS) applyGlass(); });
+  addEventListener("pageshow", applyGlass);
+  applyGlass();
+
   // ---------- the VittyVerse logo and signature ----------
   // The logo is built from its letters by tools/make_logo.py (between the markers): VV.logo() is the wordmark,
   // VV.mark() the square "vv" mark, both inline SVG in the text colour.
@@ -362,5 +388,5 @@
     return ring;
   }
 
-  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh, hold, state };
+  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, glassControl, appearanceControl, glass: glassNow, setGlass, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh, hold, state };
 })();
