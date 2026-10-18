@@ -108,8 +108,10 @@
 .vv-splash small { margin-top: 8px; font: 500 17px/1.3 var(--font); opacity: .72; animation: vv-splash-in .6s .16s cubic-bezier(.2,.9,.25,1) both; }
 /* every splash signs off at its foot, above the home indicator: "Made with ♥ by VITTYVERSE" (drawn here, so each app gets it) */
 .vv-splash::before, .vv-splash::after { position: absolute; left: 0; right: 0; text-align: center; animation: vv-splash-in .6s .24s cubic-bezier(.2,.9,.25,1) both; }
-.vv-splash::before { content: "Made with \2665\FE0E  by"; bottom: calc(env(safe-area-inset-bottom) + 50px); font: 500 15px/1.2 var(--font); opacity: .72; }
-.vv-splash::after { content: ""; bottom: calc(env(safe-area-inset-bottom) + 20px); height: 26px; background: center / contain no-repeat; }
+/* placed from the top of the visible screen (100svh), not from the splash's bottom: in an iPhone home-screen app the
+   splash runs on under the home indicator, past what's visible */
+.vv-splash::before { content: "Made with \2665\FE0E  by"; top: calc(100svh - env(safe-area-inset-bottom) - 82px); font: 500 15px/1.2 var(--font); opacity: .72; }
+.vv-splash::after { content: ""; top: calc(100svh - env(safe-area-inset-bottom) - 56px); height: 26px; background: center / contain no-repeat; }
 /* "Made with ¶5 by VittyVerse" (VV.madeWith()): the signature at the end of every app's Settings, above the credits */
 .vv-made { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 32px 0 14px; text-align: center; color: var(--text); }
 .vv-made > span { font-size: 13px; font-weight: 500; color: var(--muted); }
