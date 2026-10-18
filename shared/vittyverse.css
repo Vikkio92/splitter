@@ -1412,12 +1412,16 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
   background: linear-gradient(to bottom, rgba(0, 0, 0, .6), transparent 22%, transparent 70%, rgba(0, 0, 0, .7)); }
 :where([data-app="watcher"]) .w-ui.show { opacity: 1; }
 :where([data-app="watcher"]) .w-ui.show button, :where([data-app="watcher"]) .w-ui.show input { pointer-events: auto; }
-:where([data-app="watcher"]) .w-top { display: flex; align-items: center; gap: 6px; padding: calc(env(safe-area-inset-top) + 8px) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left)); }
+/* the top bar, as in Plex: the title and its details on the left, AirPlay, Picture in Picture and Close on the right */
+:where([data-app="watcher"]) .w-top { display: flex; align-items: flex-start; gap: 12px; padding: calc(env(safe-area-inset-top) + 14px) max(16px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left)); }
+:where([data-app="watcher"]) .w-top-btns { display: flex; align-items: center; gap: 2px; flex: none; margin-top: -6px; }
 :where([data-app="watcher"]) .w-ctl { color: #fff; width: 44px; height: 44px; }
 :where([data-app="watcher"]) .w-ctl svg.i { width: 24px; height: 24px; }
-:where([data-app="watcher"]) .w-head { flex: 1; min-width: 0; text-align: center; }
-:where([data-app="watcher"]) .w-ttl { font: 700 17px/1.2 var(--display-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:where([data-app="watcher"]) .w-sub { font-size: 13px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where([data-app="watcher"]) .w-head { flex: 1; min-width: 0; text-align: left; }
+:where([data-app="watcher"]) .w-ttl { font: 700 21px/1.2 var(--display-font); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where([data-app="watcher"]) .w-sub { margin-top: 3px; font-size: 14px; color: rgba(255, 255, 255, .78); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where([data-app="watcher"]) .w-badge { display: inline-block; margin-left: 8px; padding: 0 5px; border: 1.5px solid rgba(255, 255, 255, .7); border-radius: 4px; font: 700 11px/16px var(--font); letter-spacing: .04em; color: #fff; vertical-align: 1px; }
+:where([data-app="watcher"]) .w-badge + .w-badge { margin-left: 5px; }
 :where([data-app="watcher"]) .w-mid { display: flex; align-items: center; justify-content: center; gap: 44px; }
 :where([data-app="watcher"]) .w-big { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .16); color: #fff; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 :where([data-app="watcher"]) .w-big svg.i { width: 34px; height: 34px; fill: currentColor; }
