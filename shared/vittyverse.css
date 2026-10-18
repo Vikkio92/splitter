@@ -411,6 +411,13 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 @keyframes vv-enter { from { opacity: 0; transform: translateY(8px); } }
 @keyframes vv-flash { from { background-color: color-mix(in srgb, var(--accent) 34%, var(--surface)); } }
 @keyframes vv-pulse { 40% { transform: scale(1.05); } }
+/* progress (house rule 17): a thin rounded track with a fill in the app's colour, under what it's the progress of (a
+   book read so far, an episode or film half-watched) or for a download or import. Never thinner, never inside a picture;
+   a fill that has started shows at least a sliver. Shior.ino's, Mapper's and Gymmer's older class names share it; Splitter's
+   paid-so-far bar sits on the bill's coloured card and takes that card's colours instead. */
+.vv-progress, :where([data-app="shiori"]) .book-tile .bar, :where([data-app="shiori"]) .progress, :where([data-app="mapper"]) .import-progress .bar, :where([data-app="gymmer"]) .split-bar { display: block; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+:is(.vv-progress, :where([data-app="shiori"]) .book-tile .bar, :where([data-app="shiori"]) .progress, :where([data-app="mapper"]) .import-progress .bar, :where([data-app="gymmer"]) .split-bar) > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.vv-progress > i:not([style*="width: 0"]) { min-width: 6px; }
 /* where something stands (VV.state): a pill (done, off, needs you, under way), then the detail in the usual grey */
 .vv-state { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 7px; margin-right: 6px; border-radius: 999px; font: 600 12px/1.5 var(--font); letter-spacing: .01em; vertical-align: 1px; white-space: nowrap; }
 .vv-state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
@@ -765,8 +772,7 @@ html:where([data-app="gymmer"]) { -webkit-text-size-adjust: 100%; scrollbar-gutt
 :where([data-app="gymmer"]) .split-arrow svg { width: 14px; height: 14px; }
 :where([data-app="gymmer"]) .split-ready { margin-left: auto; font-size: 13px; color: var(--muted); }
 :where([data-app="gymmer"]) .split-ready b { font-size: 20px; color: var(--text); margin-right: 2px; }
-:where([data-app="gymmer"]) .split-bar { height: 6px; border-radius: 999px; background: var(--surface-2); margin-top: 10px; overflow: hidden; }
-:where([data-app="gymmer"]) .split-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+:where([data-app="gymmer"]) .split-bar { margin-top: 10px; }   /* the shared progress bar (.vv-progress) */
 :where([data-app="gymmer"]) .bill-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface); cursor: pointer; text-align: left; }
 :where([data-app="gymmer"]) .row { display: flex; gap: 10px; align-items: center; }
 :where([data-app="gymmer"]) .row > .grow { flex: 1; min-width: 0; }
@@ -877,8 +883,7 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) .book-tile .s .done { color: var(--good); font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
 :where([data-app="shiori"]) .book-tile .s .done svg.i { width: 14px; height: 14px; stroke-width: 2.6; }
 :where([data-app="shiori"]) .book-tile .s .new { color: var(--text); font-weight: 600; }
-:where([data-app="shiori"]) .book-tile .bar { height: 6px; border-radius: 999px; background: var(--surface-2); margin-top: 7px; overflow: hidden; }
-:where([data-app="shiori"]) .book-tile .bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+:where([data-app="shiori"]) .book-tile .bar { margin-top: 7px; }   /* the shared progress bar (.vv-progress) */
 :where([data-app="shiori"]) .book-tile .bar.blank { visibility: hidden; } /* keeps the space on books without progress */
 /* a novel's difficulty, 0-100 (difficulty.js): a pink pill at the top right (finished books say so under the cover) */
 :where([data-app="shiori"]) .cover .diff { position: absolute; top: 6px; right: 6px; z-index: 2; min-width: 28px; height: 24px; padding: 0 8px; border-radius: 999px; display: grid; place-items: center; background: var(--shiori); color: var(--on-module); font: 700 13px/1 var(--display-font); font-variant-numeric: tabular-nums; box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
@@ -958,8 +963,8 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) .li .word { font-weight: 600; }
 :where([data-app="shiori"]) .li .word small { color: var(--muted); font-weight: 500; margin-left: 6px; }
 :where([data-app="shiori"]) .li .btn.small { flex: none; }
-:where([data-app="shiori"]) .progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 2px 2px 12px; }
-:where([data-app="shiori"]) .progress i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width .2s; }
+:where([data-app="shiori"]) .progress { margin: 2px 2px 12px; }   /* the shared progress bar (.vv-progress) */
+:where([data-app="shiori"]) .progress i { width: 0; transition: width .2s; }
 :where([data-app="shiori"]) .drop-hint { position: fixed; inset: 12px; z-index: 80; border: 2px dashed var(--text); border-radius: 28px; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 80%, transparent); pointer-events: none; font: 700 22px var(--display-font); }
 :where([data-app="shiori"]) #view-reader { position: fixed; inset: 0; z-index: 20; overflow: hidden; background: var(--r-bg); color: var(--text); }
 :where([data-app="shiori"]) #view-reader[data-theme="white"] { --r-bg: #ffffff; --text: #1a1a1c; --surface: #ffffff; --surface-2: #f2f2f4; --muted: #6b6b74; --line: rgba(0, 0, 0, .08); --key: #1a1a1c; --on-key: #ffffff; color-scheme: light; }
@@ -1193,8 +1198,8 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .usage { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 :where([data-app="mapper"]) .usage .v { font-size: 20px; }
 :where([data-app="mapper"]) .import-progress { background: var(--surface-2); box-shadow: none; margin: 14px 0 0; }
-:where([data-app="mapper"]) .import-progress .bar { height: 8px; border-radius: 999px; background: var(--line); margin: 10px 0 0; overflow: hidden; }
-:where([data-app="mapper"]) .import-progress .bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .3s ease; }
+:where([data-app="mapper"]) .import-progress .bar { margin: 10px 0 0; }   /* the shared progress bar (.vv-progress) */
+:where([data-app="mapper"]) .import-progress .bar i { transition: width .3s ease; }
 
 /* =====================================================================
    9. Chesser.ino (the board is drawn by js/board.js; the pieces are the cburnett set)
@@ -1367,9 +1372,10 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-thumb.blank b { font: 700 20px var(--display-font); }
 :where([data-app="watcher"]) .w-play { position: absolute; left: 10px; bottom: 12px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--glass-thick); color: var(--text); -webkit-backdrop-filter: var(--glass-blur, blur(14px)); backdrop-filter: var(--glass-blur, blur(14px)); }
 :where([data-app="watcher"]) .w-play svg.i { width: 16px; height: 16px; fill: currentColor; margin-left: 2px; }
-:where([data-app="watcher"]) .w-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0, 0, 0, .35); }
-:where([data-app="watcher"]) .w-bar i { display: block; height: 100%; background: var(--accent); }
-:where([data-app="watcher"]) .w-detail > .w-bar { position: relative; margin-top: 10px; border-radius: 99px; overflow: hidden; background: var(--fill); }
+/* how far you are (the shared .vv-progress), under the picture or the episode's name */
+:where([data-app="watcher"]) .w-wide .vv-progress, :where([data-app="watcher"]) .w-tile .vv-progress { margin-top: 7px; }
+:where([data-app="watcher"]) .w-ep .vv-progress { margin-top: 6px; max-width: 240px; }
+:where([data-app="watcher"]) .w-side > .vv-progress { margin-top: 12px; }
 :where([data-app="watcher"]) .w-count { position: absolute; top: 6px; right: 6px; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font: 700 12px var(--font); }
 :where([data-app="watcher"]) .w-count.done svg.i { width: 14px; height: 14px; stroke-width: 3; }
 :where([data-app="watcher"]) .w-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 16px 12px; }
