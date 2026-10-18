@@ -1499,3 +1499,4 @@ html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
   :where([data-app="watcher"]) .w-main > .subhead:first-child { margin-top: 0; }
   :where([data-app="watcher"]) .w-thumb { width: 150px; }
 }
+:where([data-app="watcher"]) .sheet .sub a, :where([data-app="watcher"]) p.hint a { color: var(--accent); font-weight: 600; text-decoration: none; }
