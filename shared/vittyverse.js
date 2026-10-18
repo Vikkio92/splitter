@@ -241,7 +241,7 @@
     applyTheme();
   }
   const themeControl = () => `<div class="seg" data-vv-theme role="radiogroup" aria-label="Appearance">${
-    [["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"]].map(([v, l]) => `<button type="button" data-v="${v}" class="${themeNow() === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
+    [["auto", "System"], ["light", "Light"], ["dark", "Dark"]].map(([v, l]) => `<button type="button" data-v="${v}" class="${themeNow() === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
   document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-vv-theme] button"); if (b) setTheme(b.dataset.v); });
   addEventListener("storage", (e) => { if (e.key === THEME) applyTheme(); });
   addEventListener("pageshow", applyTheme);
