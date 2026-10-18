@@ -411,6 +411,17 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 @keyframes vv-enter { from { opacity: 0; transform: translateY(8px); } }
 @keyframes vv-flash { from { background-color: color-mix(in srgb, var(--accent) 34%, var(--surface)); } }
 @keyframes vv-pulse { 40% { transform: scale(1.05); } }
+/* where something stands (VV.state): a pill (done, off, needs you, under way), then the detail in the usual grey */
+.vv-state { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 7px; margin-right: 6px; border-radius: 999px; font: 600 12px/1.5 var(--font); letter-spacing: .01em; vertical-align: 1px; white-space: nowrap; }
+.vv-state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.vv-state.ok { background: var(--good-bg); color: var(--good); }
+.vv-state.off { background: var(--fill); color: var(--muted); }
+.vv-state.warn { background: var(--warn-bg); color: var(--warn); }
+.vv-state.busy { background: var(--fill); color: var(--text); }
+.vv-state.busy::before { animation: vv-state-busy 1s ease-in-out infinite; }
+@keyframes vv-state-busy { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .vv-state.busy::before { animation: none; } }
+.vv-state-detail { color: var(--muted); }
 /* hold for options (VV.hold): no picture menu or text selection on the item, and a little give while it's held */
 .vv-holdable, .vv-holdable * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
 .vv-holdable { transition: transform .2s var(--spring, ease); }

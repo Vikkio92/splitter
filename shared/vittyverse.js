@@ -284,6 +284,15 @@
   }
   const enter = (el) => play(el, "vv-enter"), flash = (el) => play(el, "vv-flash"), pulse = (el) => play(el, "vv-pulse");
 
+  // ---------- where something stands ----------
+  // Every status in every app's Settings reads the same way: a small coloured pill saying where it stands, then the
+  // detail. VV.state(kind, label, detail) -> HTML. Kinds: "ok" (done: connected, ready, downloaded, synced), "off" (not
+  // set up yet, by choice: not set, not downloaded), "warn" (needs you: not working, unreachable, not set up) and
+  // "busy" (under way: checking, syncing, downloading).
+  const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const state = (kind, label, detail = "") =>
+    `<span class="vv-state ${escapeHtml(kind)}">${escapeHtml(label)}</span>${detail ? `<span class="vv-state-detail">${escapeHtml(detail)}</span>` : ""}`;
+
   // ---------- hold for options ----------
   // Holding an item (a show, an episode) opens its own options, never the browser's menu for its picture (Share, Save
   // to Photos): VV.hold(el, fn). A right-click does the same with a mouse. The tap that ends a hold doesn't also count.
@@ -353,5 +362,5 @@
     return ring;
   }
 
-  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh, hold };
+  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh, hold, state };
 })();
