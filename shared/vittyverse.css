@@ -170,9 +170,12 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .num { font-family: var(--display-font); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .subhead { font: 500 13px var(--font); letter-spacing: .02em; text-transform: uppercase; color: var(--muted); margin: 24px 16px 7px; }
 p.hint { color: var(--muted); font-size: 14px; margin: 10px 4px 0; }
-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 14px; }
+/* pages with a header row (the root page, Splitter's bill) get the same air above it as the large titles */
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 28px 0 14px; }
 /* a screen's title: large and bold, as in Apple's own apps, with its actions to the right */
-.large-title, .page-head h2 { font: 700 34px/1.15 var(--display-font); letter-spacing: -0.01em; margin: 0; padding: 16px 0 14px; }
+/* Every screen's title, in every app: one style. It sits 26px below the status bar, so it doesn't crowd the top edge.
+   Use .large-title on the title element (a .page-head row's h2 is one too, beside its actions). */
+.large-title, .page-head h2 { font: 700 34px/1.15 var(--display-font); letter-spacing: -0.01em; margin: 0; padding: 26px 0 14px; }
 .page-head { align-items: center; }
 .page-head .actions { display: flex; gap: 4px; padding-top: 4px; }
 /* back to a list (Splitter's bill to its bills): a plain chevron and the list's name, as on iOS */
@@ -183,8 +186,6 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 .brand .dot-ino { color: var(--muted); font-weight: 500; }
 .head-actions { display: flex; gap: 8px; }
 .home-hero { padding: 0; }
-.home-hero h1 { font: 700 34px/1.15 var(--display-font); letter-spacing: -0.01em; margin: 0; padding: 16px 0 16px; }
-.home-hero h1 span { color: var(--muted); }
 .home-list { margin-top: 28px; }
 .role { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
 .role.admin { background: var(--accent); color: var(--on-accent); }
@@ -689,7 +690,6 @@ html:where([data-app="splitter"]).sheet-open, html:where([data-app="splitter"]).
    ===================================================================== */
 html:where([data-app="gymmer"]) { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
 :where([data-app="gymmer"]) body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 var(--font); -webkit-font-smoothing: antialiased; padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 96px); }
-:where([data-app="gymmer"]) h2 { font: 700 34px/1.15 var(--display-font); letter-spacing: -0.01em; margin: 0; padding: 16px 0 14px; }
 :where([data-app="gymmer"]) h3 { font: 600 13px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 4px 6px; }
 :where([data-app="gymmer"]) .legal { margin: 28px 4px 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
 :where([data-app="gymmer"]) .brand .mark svg { width: 22px; height: 22px; stroke-width: 2.4; }
@@ -1032,7 +1032,6 @@ html.r-turning::view-transition-new(r-page) { animation: r-fade-in .15s ease-out
    ===================================================================== */
 html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) body { padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 96px); }
-:where([data-app="mapper"]) h2 { font: 700 34px/1.15 var(--display-font); letter-spacing: -0.01em; margin: 0; padding: 16px 0 14px; }
 /* the map's search field, floating over the top of the map */
 :where([data-app="mapper"]) .map-search { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); height: 46px; margin: 0 12px 8px; padding: 0 16px; border-radius: 999px; font-size: 17px; color: var(--muted); text-align: left; background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 :where([data-app="mapper"]) .map-search svg.i { width: 18px; height: 18px; }
