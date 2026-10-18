@@ -284,6 +284,28 @@
   }
   const enter = (el) => play(el, "vv-enter"), flash = (el) => play(el, "vv-flash"), pulse = (el) => play(el, "vv-pulse");
 
+  // ---------- hold for options ----------
+  // Holding an item (a show, an episode) opens its own options, never the browser's menu for its picture (Share, Save
+  // to Photos): VV.hold(el, fn). A right-click does the same with a mouse. The tap that ends a hold doesn't also count.
+  function hold(el, fn, ms = 480) {
+    el.classList.add("vv-holdable");
+    let timer = 0, x = 0, y = 0, held = false;
+    const cancel = () => { clearTimeout(timer); el.classList.remove("vv-holding"); };
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button) return;
+      held = false;
+      x = e.clientX; y = e.clientY;
+      el.classList.add("vv-holding");
+      timer = setTimeout(() => { held = true; el.classList.remove("vv-holding"); fn(e); }, ms);
+    });
+    el.addEventListener("pointermove", (e) => { if (Math.hypot(e.clientX - x, e.clientY - y) > 10) cancel(); });
+    el.addEventListener("pointerup", cancel);
+    el.addEventListener("pointercancel", cancel);
+    el.addEventListener("pointerleave", cancel);
+    el.addEventListener("click", (e) => { if (held) { e.preventDefault(); e.stopImmediatePropagation(); held = false; } }, true);
+    el.addEventListener("contextmenu", (e) => { e.preventDefault(); if (!held) { cancel(); fn(e); } });
+  }
+
   // ---------- pull to refresh ----------
   // A screen whose contents come from somewhere else refreshes when you pull it down from the top, as lists do on
   // iPhone: VV.pullToRefresh(el, refresh, { when }). `refresh` returns a promise, and the spinner turns until it
@@ -331,5 +353,5 @@
     return ring;
   }
 
-  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh };
+  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh, hold };
 })();
