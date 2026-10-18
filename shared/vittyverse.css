@@ -1006,43 +1006,43 @@ html.r-turning::view-transition-new(r-page) { animation: r-fade-in .15s ease-out
 :where([data-app="shiori"]) .toc-list button { display: block; width: 100%; text-align: left; padding: 10px 10px; border-radius: 12px; font-size: 15px; line-height: 1.35; }
 :where([data-app="shiori"]) .toc-list button.current { font-weight: 700; background: var(--surface-2); }
 :where([data-app="shiori"]) .toc-list ul { list-style: none; padding-left: 14px; margin: 0; }
-:where([data-app="shiori"]) .lookup { position: absolute; z-index: 8; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 24px)); max-height: 46%; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); color: var(--text); border-radius: 24px; box-shadow: var(--shadow-float); animation: up .22s cubic-bezier(.2, .8, .2, 1); }
-:where([data-app="shiori"]) .lookup.bottom { bottom: calc(env(safe-area-inset-bottom) + 24px); }
-:where([data-app="shiori"]) .lookup.top { top: calc(env(safe-area-inset-top) + 16px); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup { position: absolute; z-index: 8; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 24px)); max-height: 46%; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); color: var(--text); border-radius: 24px; box-shadow: var(--shadow-float); animation: up .22s cubic-bezier(.2, .8, .2, 1); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup.bottom { bottom: calc(env(safe-area-inset-bottom) + 24px); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup.top { top: calc(env(safe-area-inset-top) + 16px); }
 /* placed next to the word (placeCard): grows out from it */
-:where([data-app="shiori"]) .lookup.anchored { transform: none; animation: card-in .2s var(--glide); }
-:where([data-app="shiori"]) .lookup.anchored.under { transform-origin: 50% 0; }
-:where([data-app="shiori"]) .lookup.anchored.over { transform-origin: 50% 100%; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup.anchored { transform: none; animation: card-in .2s var(--glide); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup.anchored.under { transform-origin: 50% 0; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup.anchored.over { transform-origin: 50% 100%; }
 @keyframes card-in { from { opacity: 0; transform: scale(.96); } }
-:where([data-app="shiori"]) .lookup .lk-scroll { overflow: auto; padding: 16px 18px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
-:where([data-app="shiori"]) .lookup .lk-head { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
-:where([data-app="shiori"]) .lookup .hw { font: 700 30px/1.15 var(--font); }
-:where([data-app="shiori"]) .lookup .hw ruby rt { font: 600 12.5px var(--font); color: var(--muted); letter-spacing: .06em; padding-bottom: 2px; }
-:where([data-app="shiori"]) .lookup .lk-head .badge { margin-bottom: 6px; }
-:where([data-app="shiori"]) .lookup .deinf { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 500; }
-:where([data-app="shiori"]) .lookup .deinf .emph { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); font-size: 11px; font-weight: 600; letter-spacing: .02em; vertical-align: 1px; }
-:where([data-app="shiori"]) .lookup ol { margin: 12px 0 6px; padding-left: 22px; }
-:where([data-app="shiori"]) .lookup li { margin: 0 0 8px; line-height: 1.45; font-size: 15px; }
-:where([data-app="shiori"]) .lookup li::marker { color: var(--muted); font: 600 13px var(--display-font); }
-:where([data-app="shiori"]) .lookup .pos { display: block; margin-bottom: 1px; font: 600 11px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-:where([data-app="shiori"]) .lookup .misc { font-size: 12px; color: var(--muted); margin-left: 5px; }
-:where([data-app="shiori"]) .lookup .forms { font-size: 13px; color: var(--muted); margin: 6px 0 4px; }
-:where([data-app="shiori"]) .lookup .more-entry { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 10px; }
-:where([data-app="shiori"]) .lookup .more-entry .hw { font-size: 21px; }
-:where([data-app="shiori"]) .lookup .none { color: var(--muted); font-size: 14px; margin: 12px 0; }
-:where([data-app="shiori"]) .lookup .lk-actions { display: flex; gap: 8px; padding: 10px 14px 14px; }
-:where([data-app="shiori"]) .lookup .lk-actions .btn { flex: 1; }
-:where([data-app="shiori"]) .lookup .spinner { padding: 22px; display: grid; place-items: center; }
-:where([data-app="shiori"]) .lookup .spinner::after { content: ""; width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--text); animation: spin .8s linear infinite; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-scroll { overflow: auto; padding: 16px 18px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-head { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .hw { font: 700 30px/1.15 var(--font); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .hw ruby rt { font: 600 12.5px var(--font); color: var(--muted); letter-spacing: .06em; padding-bottom: 2px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-head .badge { margin-bottom: 6px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .deinf { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 500; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .deinf .emph { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); font-size: 11px; font-weight: 600; letter-spacing: .02em; vertical-align: 1px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup ol { margin: 12px 0 6px; padding-left: 22px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup li { margin: 0 0 8px; line-height: 1.45; font-size: 15px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup li::marker { color: var(--muted); font: 600 13px var(--display-font); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .pos { display: block; margin-bottom: 1px; font: 600 11px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .misc { font-size: 12px; color: var(--muted); margin-left: 5px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .forms { font-size: 13px; color: var(--muted); margin: 6px 0 4px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .more-entry { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 10px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .more-entry .hw { font-size: 21px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .none { color: var(--muted); font-size: 14px; margin: 12px 0; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-actions { display: flex; gap: 8px; padding: 10px 14px 14px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-actions .btn { flex: 1; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .spinner { padding: 22px; display: grid; place-items: center; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .spinner::after { content: ""; width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--text); animation: spin .8s linear infinite; }
 :where([data-app="shiori"]) a { color: inherit; text-decoration: none; }
 :where([data-app="shiori"]) p.hint a { text-decoration: underline; text-decoration-color: var(--line); }
 :where([data-app="shiori"]) .font-mincho { font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif; }
 :where([data-app="shiori"]) .font-gothic { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif; }
 :where([data-app="shiori"]) .r-panel .btn.block { margin-top: 4px; }
-:where([data-app="shiori"]) .lookup .lk-head .badge + .badge { margin-left: 4px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-head .badge + .badge { margin-left: 4px; }
 /* Shior.ino: "Not right?" on a lookup card, and dragging across the right word */
-:where([data-app="shiori"]) .lookup .lk-actions .not-right { flex: 0 0 auto; color: var(--muted); }
-:where([data-app="shiori"]) .lookup .picked-note { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-actions .not-right { flex: 0 0 auto; color: var(--muted); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .picked-note { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
 :where([data-app="shiori"]) .r-pick { position: absolute; z-index: 9; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 18px; border-radius: 999px; font-weight: 600; font-size: 15px; background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-shadow); animation: pick-in .25s ease-out both; }
 @keyframes pick-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 /* Shior.ino: manga lookups (hold on a bubble, or hold and drag a box) */
@@ -1051,24 +1051,24 @@ html.r-turning::view-transition-new(r-page) { animation: r-fade-in .15s ease-out
 :where([data-app="shiori"]) .ocr-mark.busy { animation: ocr-pulse 1.1s ease-in-out infinite; }
 @keyframes ocr-ring { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes ocr-pulse { 50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 8%, transparent); } }
-:where([data-app="shiori"]) .lookup .ocr-status { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 18px 0; color: var(--muted); font-weight: 500; }
-:where([data-app="shiori"]) .lookup .ocr-status .spinner { padding: 0; }
-:where([data-app="shiori"]) .lookup .ocr-line { margin: 0 0 4px; font: 500 22px/2.1 var(--font); letter-spacing: .02em; }
-:where([data-app="shiori"]) .lookup .ocr-line rt { font: 600 11px var(--font); color: var(--muted); letter-spacing: .04em; }
-:where([data-app="shiori"]) .lookup .ocr-line .w { font: inherit; color: inherit; background: none; border: 0; padding: 0 1px; margin: 0; border-radius: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-:where([data-app="shiori"]) .lookup .ocr-line .w.on { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: 0 2px 0 var(--accent); }
-:where([data-app="shiori"]) .lookup .ocr-note { color: var(--muted); font-size: 14px; line-height: 1.45; margin: 6px 0 10px; }
-:where([data-app="shiori"]) .lookup .ocr-hint { color: var(--muted); font-size: 14px; margin: 8px 0; }
-:where([data-app="shiori"]) .lookup .ocr-entries { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 6px; }
-:where([data-app="shiori"]) .lookup .ocr-buttons { display: flex; gap: 8px; margin: 12px 0 8px; }
-:where([data-app="shiori"]) .lookup .ocr-buttons .btn { flex: 1; }
-:where([data-app="shiori"]) .lookup .progress { margin: 4px 0 8px; }
-/* Shior.ino: the translation inside a lookup card */
-:where([data-app="shiori"]) .lookup .lk-translation { margin: 6px 0 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 14px; font-size: 15px; line-height: 1.45; }
-:where([data-app="shiori"]) .lookup .lk-translation p { margin: 0; }
-:where([data-app="shiori"]) .lookup .lk-translation .src { display: block; margin-top: 4px; font: 600 10.5px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-:where([data-app="shiori"]) .lookup .lk-translation .muted { color: var(--muted); }
-:where([data-app="shiori"]) .lookup .lk-translation.error p { color: var(--danger); font-size: 14px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-status { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 18px 0; color: var(--muted); font-weight: 500; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-status .spinner { padding: 0; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-line { margin: 0 0 4px; font: 500 22px/2.1 var(--font); letter-spacing: .02em; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-line rt { font: 600 11px var(--font); color: var(--muted); letter-spacing: .04em; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-line .w { font: inherit; color: inherit; background: none; border: 0; padding: 0 1px; margin: 0; border-radius: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-line .w.on { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: 0 2px 0 var(--accent); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-note { color: var(--muted); font-size: 14px; line-height: 1.45; margin: 6px 0 10px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-hint { color: var(--muted); font-size: 14px; margin: 8px 0; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-entries { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 6px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-buttons { display: flex; gap: 8px; margin: 12px 0 8px; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .ocr-buttons .btn { flex: 1; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .progress { margin: 4px 0 8px; }
+/* the translation inside a lookup card (the lookup card is Shior.ino's, and Watcher.ino's for its subtitles) */
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-translation { margin: 6px 0 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 14px; font-size: 15px; line-height: 1.45; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-translation p { margin: 0; }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-translation .src { display: block; margin-top: 4px; font: 600 10.5px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-translation .muted { color: var(--muted); }
+:where([data-app="shiori"], [data-app="watcher"]) .lookup .lk-translation.error p { color: var(--danger); font-size: 14px; }
 :where([data-app="shiori"]) .page-head .subhead { margin-top: 18px; }
 
 :where([data-app="shiori"]) .sheet .progress { margin: 12px 0 0; }
@@ -1391,10 +1391,12 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-player { position: fixed; inset: 0; z-index: 45; background: #000; color: #fff; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 :where([data-app="watcher"]) .w-player video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
 :where([data-app="watcher"]) .w-subs { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 6%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 max(16px, env(safe-area-inset-left)); pointer-events: none; transition: transform .25s cubic-bezier(.2, .8, .2, 1); text-align: center; }
-:where([data-app="watcher"]) .w-player.ui .w-subs { transform: translateY(-72px); }
+:where([data-app="watcher"]) .w-player.ui .w-subs { transform: translateY(-92px); }
+/* a phone on its side: the middle buttons sit a little higher and smaller, clear of the raised subtitles */
+@media (max-height: 480px) { :where([data-app="watcher"]) .w-mid { transform: translateY(-34px); gap: 36px; } :where([data-app="watcher"]) .w-big { width: 62px; height: 62px; } :where([data-app="watcher"]) .w-big svg.i { width: 28px; height: 28px; } }
 :where([data-app="watcher"]) .w-subs .l1, :where([data-app="watcher"]) .w-subs .l2 { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-:where([data-app="watcher"]) .w-subs span { display: inline-block; max-width: 92vw; padding: 1px 8px; border-radius: 6px; background: rgba(0, 0, 0, .55); font: 600 clamp(17px, 2.6vw, 30px)/1.3 var(--font); text-shadow: 0 1px 2px rgba(0, 0, 0, .6); white-space: pre-wrap; }
-:where([data-app="watcher"]) .w-subs .l2 span { font-size: clamp(14px, 2vw, 24px); font-weight: 500; color: rgba(255, 255, 255, .82); }
+:where([data-app="watcher"]) .w-subs .line { pointer-events: auto; display: inline-block; max-width: 92vw; padding: 1px 8px; border-radius: 6px; background: rgba(0, 0, 0, .55); font: 600 clamp(17px, 2.6vw, 30px)/1.3 var(--font); text-shadow: 0 1px 2px rgba(0, 0, 0, .6); white-space: pre-wrap; }
+:where([data-app="watcher"]) .w-subs .l2 .line { font-size: clamp(14px, 2vw, 24px); font-weight: 500; color: rgba(255, 255, 255, .82); }
 :where([data-app="watcher"]) .w-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; opacity: 0; transition: opacity .22s ease; pointer-events: none;
   background: linear-gradient(to bottom, rgba(0, 0, 0, .6), transparent 22%, transparent 70%, rgba(0, 0, 0, .7)); }
 :where([data-app="watcher"]) .w-ui.show { opacity: 1; }
@@ -1411,18 +1413,26 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-skip { width: 54px; height: 54px; display: grid; place-items: center; color: #fff; }
 :where([data-app="watcher"]) .w-skip svg.i { width: 30px; height: 30px; }
 :where([data-app="watcher"]) .w-big:active, :where([data-app="watcher"]) .w-skip:active { transform: scale(.9); }
-:where([data-app="watcher"]) .w-bottom { display: flex; align-items: center; gap: 12px; padding: 0 max(16px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 16px) max(16px, env(safe-area-inset-left)); }
+:where([data-app="watcher"]) .w-bottom { display: flex; flex-direction: column; gap: 10px; padding: 0 max(16px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 16px) max(16px, env(safe-area-inset-left)); }
 :where([data-app="watcher"]) .w-time { font: 600 13px var(--font); font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; opacity: .9; }
+:where([data-app="watcher"]) .w-track { display: flex; align-items: center; gap: 12px; }
+/* the player's tools, bottom right above the progress bar: Audio, Subtitles, AirPlay */
+:where([data-app="watcher"]) .w-tools { display: flex; justify-content: flex-end; gap: 8px; }
+:where([data-app="watcher"]) .w-tool { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 13px 0 10px; border-radius: 999px; background: rgba(255, 255, 255, .16); color: #fff; font: 600 13px var(--font); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+:where([data-app="watcher"]) .w-tool.icon { width: 36px; padding: 0; justify-content: center; }
+:where([data-app="watcher"]) .w-tool svg.i { width: 19px; height: 19px; }
+:where([data-app="watcher"]) .w-tool:active { transform: scale(.94); }
+:where([data-app="watcher"]) .w-tool[hidden] { display: none; }
 :where([data-app="watcher"]) .w-bottom input[type=range] { flex: 1; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; --fill: 0%; }
 :where([data-app="watcher"]) .w-bottom input[type=range]::-webkit-slider-runnable-track { height: 5px; border-radius: 99px; background: linear-gradient(to right, var(--accent) var(--fill), rgba(255, 255, 255, .3) var(--fill)); }
 :where([data-app="watcher"]) .w-bottom input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6.5px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
 :where([data-app="watcher"]) .w-bottom input[type=range]::-moz-range-track { height: 5px; border-radius: 99px; background: linear-gradient(to right, var(--accent) var(--fill), rgba(255, 255, 255, .3) var(--fill)); }
-:where([data-app="watcher"]) .w-next { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 70px); z-index: 2; background: #fff; color: #111113; font-weight: 700; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
+:where([data-app="watcher"]) .w-next { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 116px); z-index: 2; background: #fff; color: #111113; font-weight: 700; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
 :where([data-app="watcher"]) .w-spin { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .25); border-top-color: #fff; animation: spin .8s linear infinite; pointer-events: none; }
 :where([data-app="watcher"]) .w-ui.show ~ .w-spin, :where([data-app="watcher"]) .w-spin[hidden] { display: none; }
 :where([data-app="watcher"]) .w-msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(86vw, 380px); padding: 18px; border-radius: var(--r-lg); background: rgba(28, 28, 30, .92); text-align: center; z-index: 3; }
 :where([data-app="watcher"]) .w-msg p { margin: 0 0 12px; }
-:where([data-app="watcher"]) .w-upnext { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 70px); z-index: 3; width: min(80vw, 300px); padding: 14px; border-radius: var(--r-lg); background: rgba(28, 28, 30, .92); }
+:where([data-app="watcher"]) .w-upnext { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 116px); z-index: 3; width: min(80vw, 300px); padding: 14px; border-radius: var(--r-lg); background: rgba(28, 28, 30, .92); }
 :where([data-app="watcher"]) .w-upnext .s { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
 :where([data-app="watcher"]) .w-upnext .t { font-weight: 700; margin: 2px 0 10px; }
 :where([data-app="watcher"]) .w-upnext-row { display: flex; gap: 8px; justify-content: flex-end; }
@@ -1430,3 +1440,23 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .li .grow > :is(.t, .s) { display: block; }
 :where([data-app="watcher"]) .w-tick { color: var(--accent); display: grid; }
 :where([data-app="watcher"]) .w-tick svg.i { width: 20px; height: 20px; stroke-width: 3; }
+/* double-tap a side: how far it's skipping, growing with every tap */
+:where([data-app="watcher"]) .w-seek { position: absolute; top: 50%; z-index: 2; width: 112px; height: 112px; margin-top: -56px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: rgba(255, 255, 255, .16); color: #fff; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); pointer-events: none; animation: vv-enter .2s ease both; }
+:where([data-app="watcher"]) .w-seek.left { left: 10%; }
+:where([data-app="watcher"]) .w-seek.right { right: 10%; }
+:where([data-app="watcher"]) .w-seek[hidden] { display: none; }
+:where([data-app="watcher"]) .w-seek svg.i { width: 30px; height: 30px; }
+:where([data-app="watcher"]) .w-seek b { font: 700 16px var(--font); font-variant-numeric: tabular-nums; }
+/* Japanese subtitles: every word can be tapped for the dictionary (Shior.ino's card), a held line is translated */
+:where([data-app="watcher"]) .w-subs .w { border-radius: 4px; cursor: pointer; transition: background-color .15s; }
+:where([data-app="watcher"]) .w-subs .w.on { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+:where([data-app="watcher"]) .w-player.looking .w-ui { opacity: 0; pointer-events: none; }
+:where([data-app="watcher"]) .w-player.looking .w-subs { transform: none; }
+:where([data-app="watcher"]) .w-player.looking .w-spin { display: none; }
+:where([data-app="watcher"]) .w-player .lookup { z-index: 8; }
+:where([data-app="watcher"]) .w-player .lookup .ocr-line { font-size: 20px; }
+:where([data-app="watcher"]) .w-timing { gap: 4px; }
+:where([data-app="watcher"]) .w-timing .icon-btn { font: 600 22px var(--font); background: var(--fill); }
+:where([data-app="watcher"]) .w-offset { min-width: 58px; text-align: center; font: 600 15px var(--font); font-variant-numeric: tabular-nums; }
+/* nothing behind the player scrolls or bounces */
+html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
