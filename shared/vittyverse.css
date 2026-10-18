@@ -196,7 +196,7 @@ header { display: flex; align-items: center; justify-content: space-between; gap
 .page-head { align-items: center; }
 .page-head .actions { display: flex; gap: 4px; padding-top: 4px; }
 /* back to a list (Splitter's bill to its bills): a plain chevron and the list's name, as on iOS */
-.back-btn { display: inline-flex; align-items: center; gap: 2px; margin-left: -6px; padding: 6px 6px 6px 0; font-size: 17px; font-weight: 500; color: var(--text); }
+.back-btn { display: inline-flex; align-items: center; gap: 2px; margin-left: -6px; padding: 6px 6px 6px 0; font-size: 17px; font-weight: 500; color: var(--text); text-decoration: none; }   /* a button or a link, it looks the same */
 .back-btn svg.i { width: 22px; height: 22px; stroke-width: 2.4; }
 .brand { display: flex; align-items: center; gap: 10px; font: 700 21px/1 var(--display-font); letter-spacing: -0.02em; cursor: pointer; }
 .brand .mark { width: 34px; height: 34px; border-radius: 11px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 22px; font-weight: 700; }
