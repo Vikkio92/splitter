@@ -819,8 +819,8 @@ html:where([data-app="shiori"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="shiori"]) .book-tile .bar { height: 6px; border-radius: 999px; background: var(--surface-2); margin-top: 7px; overflow: hidden; }
 :where([data-app="shiori"]) .book-tile .bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 :where([data-app="shiori"]) .book-tile .bar.blank { visibility: hidden; } /* keeps the space on books without progress */
-:where([data-app="shiori"]) .cover .tick { position: absolute; top: 6px; right: 6px; z-index: 2; width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); }
-:where([data-app="shiori"]) .cover .tick svg.i { width: 15px; height: 15px; stroke-width: 3; }
+/* a novel's difficulty, 0-100 (difficulty.js): a pink pill at the top right (finished books say so under the cover) */
+:where([data-app="shiori"]) .cover .diff { position: absolute; top: 6px; right: 6px; z-index: 2; min-width: 28px; height: 24px; padding: 0 8px; border-radius: 999px; display: grid; place-items: center; background: var(--shiori); color: var(--on-module); font: 700 13px/1 var(--display-font); font-variant-numeric: tabular-nums; box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
 :where([data-app="shiori"]) .row-actions { display: flex; gap: 6px; flex: none; }
 /* Shior.ino: the "Show all / Show fewer" row at the end of a shortened list */
 :where([data-app="shiori"]) .list .li.more { justify-content: center; gap: 6px; color: var(--accent); font-weight: 600; font-size: 14px; min-height: 46px; }
