@@ -1574,10 +1574,14 @@ html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
 :where([data-app="watcher"]) .w-qr svg { width: 100%; height: 100%; display: block; }
 :where([data-app="watcher"]) .w-pair-code { font: 700 34px/1.2 var(--display-font); letter-spacing: .08em; margin: 4px 0; }
 /* TV mode (the Fire Stick's remote): what has focus is plain to see from the sofa */
-[data-app="watcher"][data-tv] :focus { outline: 4px solid var(--accent); outline-offset: 4px; border-radius: 14px; }   /* over the suite's thinner focus ring */
+[data-app="watcher"][data-tv] :focus { outline: 6px solid var(--accent); outline-offset: 5px; border-radius: 16px; }   /* over the suite's thinner focus ring */
 :where([data-app="watcher"][data-tv]) .w-row { padding-top: 16px; padding-bottom: 16px; margin-top: -10px; }   /* room for a focused card to grow */
 :where([data-app="watcher"][data-tv]) .w-tile:focus, :where([data-app="watcher"][data-tv]) .w-wide:focus { transform: scale(1.05); }
 :where([data-app="watcher"][data-tv]) .w-tile, :where([data-app="watcher"][data-tv]) .w-wide { transition: transform .2s ease; }
-:where([data-app="watcher"][data-tv]) .tabbar { position: static; transform: none; margin: 18px auto 0; }
-:where([data-app="watcher"][data-tv]) body { padding-bottom: 24px; }
+/* the Fire Stick tells pages its screen is 960 wide (it doubles everything), so TV mode draws at 60%: a page about
+   1,600 wide, like a laptop's, with room for a row of posters and the tab bar floating at the bottom as on a phone */
+[data-app="watcher"][data-tv] { zoom: .6; }
+:where([data-app="watcher"][data-tv]) main.wide { max-width: none; padding: 0 64px; }   /* the whole width of the TV */
+/* a focused card scrolls fully into view, clear of the title and the floating tab bar */
+:where([data-app="watcher"][data-tv]) main :focus { scroll-margin: 90px 0 160px; }
 :where([data-app="watcher"]) .w-remote .menu { margin-top: 22px; }

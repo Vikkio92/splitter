@@ -1,6 +1,6 @@
 // Offline support: network first (so updates show up straight away), cache as fallback.
 // Only the app's own files, the Firebase SDK and the fonts are cached; live database traffic is left alone.
-const CACHE = "splitter-v97";
+const CACHE = "splitter-v98";
 const ASSETS = ["./", "./index.html", "./firebase-config.js", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./mark.png",
   // the shared VittyVerse stylesheet and its fonts (same site, in ../shared)
   "./shared/vittyverse.css", "./shared/vittyverse.js", "./shared/fonts/inter-latin.woff2", "./shared/fonts/inter-latin-ext.woff2",
