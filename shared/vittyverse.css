@@ -1555,7 +1555,9 @@ html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
 :where([data-app="watcher"]) .page-head .w-tv-btn { margin-top: 18px; }
 :where([data-app="watcher"]) .w-tv-btn.on { background: var(--accent); color: var(--on-accent); }
 :where([data-app="watcher"]) .w-code { font: 600 28px var(--display-font); letter-spacing: .12em; text-align: center; padding: 12px; }
-:where([data-app="watcher"]) .w-scan { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-lg); background: #000; }
+:where([data-app="watcher"]) .w-scan-frame { overflow: hidden; aspect-ratio: 1; border-radius: var(--r-lg); background: #000; }
+:where([data-app="watcher"]) .w-scan { display: block; width: 100%; height: 100%; object-fit: cover; transform-origin: center; transition: transform .2s ease; }
+:where([data-app="watcher"]) .w-scan-zoom { margin-top: 12px; }
 :where([data-app="watcher"]) .w-remote-now { display: flex; align-items: center; gap: 14px; margin: 4px 0 18px; }
 :where([data-app="watcher"]) .w-remote-now img { width: 132px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-md); flex: none; }
 :where([data-app="watcher"]) .w-remote-now .t { font: 600 18px/1.25 var(--display-font); }
@@ -1582,6 +1584,8 @@ html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
    1,600 wide, like a laptop's, with room for a row of posters and the tab bar floating at the bottom as on a phone */
 [data-app="watcher"][data-tv] { zoom: .6; }
 :where([data-app="watcher"][data-tv]) main.wide { max-width: none; padding: 0 64px; }   /* the whole width of the TV */
+:where([data-app="watcher"][data-tv]) .w-qr { width: 320px; height: 320px; padding: 12px; }   /* big enough to scan from the sofa */
+:where([data-app="watcher"][data-tv]) .w-pair-code { font-size: 64px; }
 /* a focused card scrolls fully into view, clear of the title and the floating tab bar */
 :where([data-app="watcher"][data-tv]) main :focus { scroll-margin: 90px 0 160px; }
 :where([data-app="watcher"]) .w-remote .menu { margin-top: 22px; }
