@@ -1,6 +1,7 @@
 // Shared VittyVerse behaviour, loaded by every page (home, Splitter.ino, Gymmer.ino, Shior.ino) before the app's own code.
-// - No zooming anywhere: no pinch, no double-tap. iPhone Safari ignores the viewport's user-scalable=no,
-//   so its pinch gestures are stopped here; double-tap zoom is off through touch-action in the stylesheet.
+// - No zooming anywhere: no spreading two fingers, no double-tap. iPhone Safari ignores the viewport's
+//   user-scalable=no, so spreading fingers is stopped here; double-tap zoom is off through touch-action in the
+//   stylesheet. Pinching in is left alone: the page is already at its smallest, and in Safari it shows your tabs.
 // - Motion: the floating tab bar's pill slides to the tab you pick, views cross-fade when you change section,
 //   and sheets slide away instead of vanishing. All of it stays still with "Reduce motion" on.
 // - The tab bar can be dragged: slide a finger along it and the lens follows, and the section under the finger opens
@@ -14,9 +15,22 @@
   const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ---------- no zoom ----------
+  // Only zooming in is stopped: two fingers moving apart. Fingers moving together are left alone, because the page
+  // can't get any smaller than it is (initial-scale=1), and at that size Safari turns a pinch in into its own
+  // gesture: showing all your tabs. Stopping every two-finger move (as this once did) took that away too.
   function noZoom(doc) {
-    ["gesturestart", "gesturechange", "gestureend"].forEach((t) => doc.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
-    doc.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    const apart = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    let last = 0;
+    doc.addEventListener("touchstart", (e) => { if (e.touches.length === 2) last = apart(e.touches); }, { passive: true });
+    doc.addEventListener("touchmove", (e) => {
+      if (e.touches.length !== 2) return;
+      const d = apart(e.touches);
+      if (d > last + 1) e.preventDefault();   // spreading: that's a zoom in
+      last = d;
+    }, { passive: false });
+    // Safari's own pinch events: scale above 1 is zooming in (gesturestart is left alone, or the whole pinch, tabs
+    // gesture included, would be cancelled)
+    doc.addEventListener("gesturechange", (e) => { if (e.scale > 1) e.preventDefault(); }, { passive: false });
   }
   noZoom(document);
 

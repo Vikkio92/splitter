@@ -467,7 +467,7 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 .tabbar.dragging > .tab-thumb { scale: 1.12; background: color-mix(in srgb, var(--text) 14%, transparent); }
 
 /* No zooming anywhere in the suite (house rule): no pinch, no double-tap. vittyverse.js stops iPhone Safari's pinch. */
-html { touch-action: pan-x pan-y; }
+html { touch-action: manipulation; }   /* no double-tap zoom; pinching stays Safari's (vittyverse.js stops zooming in) */
 
 /* press feedback: things you tap give a little under your finger and settle back */
 .chip, .seg button, .bill-row, a.li, button.li, .li[role="button"] { transition: transform .28s var(--spring), background-color .2s ease, color .2s ease, box-shadow .2s ease; }
