@@ -1551,3 +1551,32 @@ html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
   :where([data-app="watcher"]) .w-thumb { width: 150px; }
 }
 :where([data-app="watcher"]) .sheet .sub a, :where([data-app="watcher"]) p.hint a { color: var(--accent); font-weight: 600; text-decoration: none; }
+/* Watcher.ino and a TV: the TV button, pairing (the code, the camera), the phone's remote, and TV mode on the Fire Stick */
+:where([data-app="watcher"]) .page-head .w-tv-btn { margin-top: 18px; }
+:where([data-app="watcher"]) .w-tv-btn.on { background: var(--accent); color: var(--on-accent); }
+:where([data-app="watcher"]) .w-code { font: 600 28px var(--display-font); letter-spacing: .12em; text-align: center; padding: 12px; }
+:where([data-app="watcher"]) .w-scan { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-lg); background: #000; }
+:where([data-app="watcher"]) .w-remote-now { display: flex; align-items: center; gap: 14px; margin: 4px 0 18px; }
+:where([data-app="watcher"]) .w-remote-now img { width: 132px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-md); flex: none; }
+:where([data-app="watcher"]) .w-remote-now .t { font: 600 18px/1.25 var(--display-font); }
+:where([data-app="watcher"]) .w-remote-now .s { color: var(--muted); font-size: 14px; margin-top: 2px; }
+:where([data-app="watcher"]) .w-remote-seek { width: 100%; accent-color: var(--accent); }
+:where([data-app="watcher"]) .w-remote-times { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; margin-top: 2px; }
+:where([data-app="watcher"]) .w-remote-keys { display: flex; justify-content: center; align-items: center; gap: 22px; margin: 18px 0 6px; }
+:where([data-app="watcher"]) .w-key { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; background: var(--fill); color: var(--text); transition: transform .28s var(--spring); }
+:where([data-app="watcher"]) .w-key svg.i { width: 26px; height: 26px; }
+:where([data-app="watcher"]) .w-key.big { width: 78px; height: 78px; background: var(--accent); color: var(--on-accent); }
+:where([data-app="watcher"]) .w-key.big svg.i { width: 32px; height: 32px; }
+:where([data-app="watcher"]) .w-key:active { transform: scale(.9); transition-duration: .07s; }
+:where([data-app="watcher"]) .w-pair { display: flex; align-items: center; gap: 22px; }
+:where([data-app="watcher"]) .w-pair .t { font: 600 18px var(--display-font); margin-bottom: 4px; }
+:where([data-app="watcher"]) .w-qr { width: 132px; height: 132px; flex: none; background: #fff; border-radius: 12px; padding: 6px; }
+:where([data-app="watcher"]) .w-qr svg { width: 100%; height: 100%; display: block; }
+:where([data-app="watcher"]) .w-pair-code { font: 700 34px/1.2 var(--display-font); letter-spacing: .08em; margin: 4px 0; }
+/* TV mode (the Fire Stick's remote): what has focus is plain to see from the sofa */
+:where([data-app="watcher"][data-tv]) :focus { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 14px; }
+:where([data-app="watcher"][data-tv]) .w-tile:focus, :where([data-app="watcher"][data-tv]) .w-wide:focus { transform: scale(1.05); }
+:where([data-app="watcher"][data-tv]) .w-tile, :where([data-app="watcher"][data-tv]) .w-wide { transition: transform .2s ease; }
+:where([data-app="watcher"][data-tv]) .tabbar { position: static; transform: none; margin: 18px auto 0; }
+:where([data-app="watcher"][data-tv]) body { padding-bottom: 24px; }
+:where([data-app="watcher"]) .w-remote .menu { margin-top: 22px; }
