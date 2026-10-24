@@ -207,6 +207,12 @@
   // Guests' items are theirs alone unless they choose to split; this remembers "Split with others"
   // being open on an item before anyone else has been ticked.
   const splitOpen = new Set();
+  // A payment being added or edited, like an item, only counts once Confirm is tapped. Until then it stays on this
+  // device ({id: {personId, amount, note, order}}), so the bill (and anyone else looking at it) never sees a half-typed
+  // payment; editing a confirmed one leaves the confirmed amount counting until the change is confirmed. "Pay the
+  // rest" skips this: it's confirmed the moment you pick who paid.
+  let payDrafts = {};
+  const payDraftOpen = () => Object.keys(payDrafts)[0];
 
   // In a shared bill you have to pick who you are before you can edit anything.
   function picked() { return !billId || !!meId(); }
@@ -450,7 +456,7 @@
   function closeCurrent(nextId) {
     if (localId && localId !== nextId && isEmptyBill(state)) dropBill(localId);
     if (remote) leaveShared();
-    localId = null; receiptWho = null;
+    localId = null; receiptWho = null; payDrafts = {};
   }
   function switchTo(id, key) {
     closeCurrent(id);
@@ -1281,7 +1287,7 @@
     if (home) return renderHome();
     const people = sorted(state.people);
     const items = sorted(state.items);
-    const payments = sorted(state.payments);
+    const payments = sorted(Object.assign({}, state.payments, payDrafts));
 
     const admin = canAdmin();
     document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !admin; });
@@ -1500,15 +1506,24 @@
       () => el('<div class="payrow"><select data-f="personId"></select>' +
         '<input data-f="note" placeholder="Note" maxlength="40">' +
         '<label class="money"><span class="cur"></span><input data-f="amount" placeholder="0.00" inputmode="decimal" maxlength="12"></label>' +
-        '<button class="icon-btn" data-act="delPayment" aria-label="Remove">' + ICON.x + "</button></div>"),
+        '<button class="icon-btn" data-act="delPayment" aria-label="Remove">' + ICON.x + "</button>" +
+        '<button class="icon-btn" data-act="editPayment" aria-label="Edit">' + ICON.edit + "</button>" +
+        '<button class="btn confirm" data-act="confirmPayment">Confirm</button></div>'),
       (row, pm) => {
+        const open = admin && own(payDrafts, pm.id);
+        row.classList.toggle("draft", open);
+        row.classList.toggle("locked", !open);
         const sel = row.firstChild;
         setHTML(sel, opts);
         if (document.activeElement !== sel) sel.value = pm.personId;
         row.querySelector(".cur").textContent = state.meta.currency;
         row.querySelectorAll("input[data-f]").forEach((i) => setVal(i, pm[i.dataset.f]));
-        row.querySelectorAll("[data-f]").forEach((i) => { i.disabled = !admin; });
-        row.lastChild.hidden = !admin;
+        row.querySelectorAll("[data-f]").forEach((i) => { i.disabled = !open; });
+        row.querySelector('[data-act="delPayment"]').hidden = !open;
+        row.querySelector('[data-act="confirmPayment"]').hidden = !open;
+        const pencil = row.querySelector('[data-act="editPayment"]');
+        pencil.hidden = open;
+        pencil.style.visibility = admin ? "" : "hidden";   // keeps its column, so amounts line up
       });
 
     renderResults();
@@ -1669,7 +1684,9 @@
     // Payments cover what the receipt says (once it's typed in), even while items are still being added.
     const target = r.billC !== null ? r.billC : r.totalC, rem = target - r.paidTotal, me = myself();
     const paid = { key: "paid", label: "Payments total", value: money(r.paidTotal) };
-    if (!target) paid.ok = null;
+    const payOpen = Object.keys(payDrafts).length;
+    if (payOpen) Object.assign(paid, { ok: false, note: payOpen + (payOpen === 1 ? " payment" : " payments") + " not confirmed yet" });
+    else if (!target) paid.ok = null;
     else if (rem === 0) paid.ok = true;
     else if (rem > 0) Object.assign(paid, { ok: false, note: money(rem) + " to go", action: admin && { act: "paidRest", label: "Pay the rest" } });
     else Object.assign(paid, { ok: false, note: money(-rem) + " too much" });
@@ -1763,6 +1780,7 @@
     if (NUMERIC[f]) { const c = cleanNumber(t.value, NUMERIC[f]); if (c !== t.value) t.value = c; }
     const sec = t.closest("[data-sec]").dataset.sec;
     if (sec === "meta") write({ ["meta/" + f]: t.value });
+    else if (sec === "payments" && own(payDrafts, t.closest("[data-id]").dataset.id)) payDrafts[t.closest("[data-id]").dataset.id][f] = t.value;
     else {
       const rowId = t.closest("[data-id]").dataset.id;
       write({ [sec + "/" + rowId + "/" + f]: t.value });
@@ -1910,11 +1928,32 @@
       }
       case "delPayment": {
         const pm = state.payments[id];
-        if (!pm) return;
+        if (!pm) { delete payDrafts[id]; return render(); }   // a new payment never confirmed: just gone
         const amt = num(pm.amount) > 0 ? money(Math.round(num(pm.amount) * 100)) + " " : "";
         const who = state.people[pm.personId] ? " by " + personName(pm.personId) : "";
         if (!(await ask("Delete this payment?", "The " + amt + "payment" + who + " is removed from the bill.", "Delete", "danger"))) return;
+        delete payDrafts[id];
         return write({ ["payments/" + id]: null });
+      }
+      case "editPayment": {
+        if (!canAdmin() || !state.payments[id]) return;
+        const other = payDraftOpen();
+        if (other && other !== id) return showPayDraft(other, "Confirm the payment you're editing first");
+        const pm = state.payments[id];
+        payDrafts[id] = { personId: pm.personId, amount: pm.amount, note: pm.note || "", order: pm.order };
+        render();
+        return row.querySelector('[data-f="amount"]').focus();
+      }
+      case "confirmPayment": {
+        const pm = payDrafts[id];
+        if (!pm) return;
+        if (!state.people[pm.personId]) { row.querySelector('[data-f="personId"]').focus(); return toast("Pick who paid first"); }
+        if (!(num(pm.amount) > 0)) { row.querySelector('[data-f="amount"]').focus(); return toast("Add the amount first"); }
+        if (document.activeElement) document.activeElement.blur();
+        const was = !!state.payments[id];
+        delete payDrafts[id];
+        write({ ["payments/" + id]: { personId: pm.personId, amount: String(pm.amount), note: String(pm.note || "").trim().slice(0, 40), order: pm.order || Date.now() } });
+        return toast((was ? "Payment updated: " : "Payment added: ") + money(Math.round(num(pm.amount) * 100)) + " by " + personName(pm.personId));
       }
       case "paidRest": return paidTheRest();
       case "setTotal": {
@@ -2086,10 +2125,22 @@
     if (receiptPreview) $("#receipt").scrollIntoView({ behavior: "smooth", block: "start" });
   });
   $("#addPayment").addEventListener("click", () => {
+    const open = payDraftOpen();
+    if (open) return showPayDraft(open, "Confirm this payment first");
     const first = sorted(state.people)[0];
-    write({ ["payments/" + uid()]: { personId: meId() || (first ? first.id : ""), amount: "", note: "Deposit", order: Date.now() } });
+    payDrafts[uid()] = { personId: meId() || (first ? first.id : ""), amount: "", note: "Deposit", order: Date.now() };
+    render();
     focusLast($("#payments"), '[data-f="amount"]');
   });
+  // Point at the payment waiting for its Confirm.
+  function showPayDraft(id, msg) {
+    const row = $("#payments").querySelector('[data-id="' + id + '"]');
+    if (row) {
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash");
+    }
+    toast(msg);
+  }
   $("#shareLink").addEventListener("click", shareLink);
   $("#adminLink").addEventListener("click", () => linkSheet("Admin link",
     "Opening this link makes that device an admin of this bill, able to change everything. Use it for your own other devices, or to make someone co-admin. Don't post it in the group chat.",

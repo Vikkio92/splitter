@@ -597,6 +597,11 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="splitter"]) .item.locked .qty:placeholder-shown { visibility: hidden; }
 :where([data-app="splitter"]) .payrow { display: grid; grid-template-columns: 1fr 1fr 104px 32px; gap: 6px; align-items: center; }
 :where([data-app="splitter"]) .payrow + .payrow { margin-top: 8px; }
+/* a payment being added or edited: outlined like a draft item, with its Confirm underneath; a confirmed one is
+   read-only, with the pencil where the remove button was */
+:where([data-app="splitter"]) .payrow.draft { box-shadow: inset 0 0 0 1.5px var(--warn); border-radius: 14px; padding: 6px; }
+:where([data-app="splitter"]) .payrow .btn.confirm { grid-column: 1 / -1; justify-self: end; width: 90px; min-height: 34px; padding: 4px; }
+:where([data-app="splitter"]) .payrow .icon-btn[hidden], :where([data-app="splitter"]) .payrow .btn.confirm[hidden] { display: none; }
 :where([data-app="splitter"]) .warn { display: flex; gap: 10px; align-items: flex-start; background: var(--warn-bg); color: var(--warn); border-radius: 16px; padding: 12px 14px; font-size: 14px; margin: 0 0 8px; }
 :where([data-app="splitter"]) .warn > svg { margin-top: 1px; }
 :where([data-app="splitter"]) .warn .row { display: flex; gap: 8px; margin-top: 10px; }
