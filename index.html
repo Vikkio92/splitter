@@ -1062,13 +1062,26 @@
     return out;
   }
 
+  // An item's price split between people in whole pennies that add up to the price exactly: £3.95 two ways is £1.98 and
+  // £1.97. The odd pennies go to whoever has had fewest of them on this bill so far (`extra`), so they even out.
+  function splitPennies(c, who, extra) {
+    const each = Math.floor(c / who.length);
+    let left = c - each * who.length;
+    const out = {}; who.forEach((id) => { out[id] = each; });
+    [...who].sort((a, b) => (extra[a] || 0) - (extra[b] || 0)).forEach((id) => {
+      if (left > 0) { out[id]++; extra[id] = (extra[id] || 0) + 1; left--; }
+    });
+    return out;
+  }
+  function itemShare(c, n) { return n ? splitPennies(Math.round(c), Array.from({ length: n }, (_, i) => i), {}) : {}; }
+
   function compute() {
     const people = sorted(state.people);
     const rate = num(state.meta.service) / 100;
     const base = {}, lines = {};
     people.forEach((p) => { base[p.id] = 0; lines[p.id] = []; });
     let subtotal = 0, unassigned = 0, total = 0, unassignedWithService = 0;
-    const scan = scanMode(), over = [], unclaimed = [], raw = {};
+    const scan = scanMode(), over = [], unclaimed = [], raw = {}, extra = {};
     people.forEach((p) => { raw[p.id] = 0; });
 
     sorted(state.items).forEach((it) => {
@@ -1086,10 +1099,11 @@
           if (!own(base, pid) || !(u.n > 0)) return;
           claimed += u.n;
           const who = [pid].concat(Object.keys(u.with || {}).filter((w) => w !== pid && own(base, w)));
+          const part = splitPennies(Math.round(unit * u.n), who, extra);
           who.forEach((id) => {
-            base[id] += (unit * u.n) / who.length;
-            raw[id] += ((unit * u.n) / who.length) * f;
-            lines[id].push({ name, amt: (unit * u.n) / who.length, n: who.length, q: u.n, ns });
+            base[id] += part[id];
+            raw[id] += part[id] * f;
+            lines[id].push({ name, amt: part[id], n: who.length, q: u.n, ns });
           });
         });
         if (claimed < qty(it.qty)) {
@@ -1101,10 +1115,11 @@
       }
       const who = Object.keys(it.people || {}).filter((id) => own(base, id));
       if (!who.length) { unassigned += c; unassignedWithService += c * f; return; }
+      const part = splitPennies(Math.round(c), who, extra);
       who.forEach((id) => {
-        base[id] += c / who.length;
-        raw[id] += (c / who.length) * f;
-        lines[id].push({ name: String(it.name || "").trim() || "Item", amt: c / who.length, n: who.length, q: qty(it.qty), ns });
+        base[id] += part[id];
+        raw[id] += part[id] * f;
+        lines[id].push({ name: String(it.name || "").trim() || "Item", amt: part[id], n: who.length, q: qty(it.qty), ns });
       });
     });
 
@@ -1113,10 +1128,10 @@
     // Over-claimed items mean people's shares add up to more than the items; count what was claimed.
     const assignedC = scan ? Math.round(Object.values(raw).reduce((t, v) => t + v, 0)) : Math.round(total - unassignedWithService);
     const share = allocate(raw, assignedC);
-    // Each person's service charge; the odd penny from rounding their share stays with the food, so it
-    // never shows up as a "-£0.01 service" on a bill without service.
+    // Each person's service charge: their share less their food, which is their items' pennies exactly (so their lines
+    // add up to their Food & drinks). Without service, share and food are the same and service is 0.
     const svc = {};
-    Object.keys(raw).forEach((id) => { svc[id] = Math.round(raw[id] - base[id]); });
+    Object.keys(raw).forEach((id) => { svc[id] = share[id] - base[id]; });
 
     const paid = {}, payLines = {}; people.forEach((p) => { paid[p.id] = 0; payLines[p.id] = []; });
     let paidTotal = 0;
@@ -1389,8 +1404,10 @@
         if (scan) return updateScanItem(row, it, open);
         // While editing, show what each person will pay for it (the bill only counts it once it's confirmed).
         const n = Object.keys(it.people || {}).filter((p) => state.people[p]).length;
-        const each = n ? Math.round((price(it.price) * qty(it.qty) * 100) / n) : 0;
-        row.querySelector(".units-left").textContent = open && each > 0 ? (n > 1 ? money(each) + " each" : money(each)) : "";
+        const parts = Object.values(itemShare(price(it.price) * qty(it.qty) * 100, n)).sort((a, b) => b - a);
+        const each = parts.length ? parts[0] : 0;
+        row.querySelector(".units-left").textContent = !open || !(each > 0) ? "" : n < 2 ? money(each)
+          : parts[0] === parts[parts.length - 1] ? money(each) + " each" : [...new Set(parts)].map(money).join(" or ") + " each";
         row.querySelector(".chips").classList.remove("pick");
         // confirmed = read-only, priced and assigned to someone
         row.classList.toggle("ok", !open && price(it.price) > 0 && qty(it.qty) > 0 && Object.keys(it.people || {}).some((id) => state.people[id]));
