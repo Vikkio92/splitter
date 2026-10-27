@@ -64,12 +64,24 @@
   // ---------- view changes: a short cross-fade with a small rise, tab bar and header held still ----------
   // `update` changes the page (it may return a promise); without View Transitions it simply runs.
   let dragging = false;   // a finger dragging along a tab bar: sections switch instantly, without fading
+  // A fade that iPhone pauses half-way (the app opening, going to the background or coming back) can stay stuck: the page
+  // under it invisible and out of reach, only the tab bar showing. So a fade that hasn't finished in 1.5 seconds, or
+  // that the app leaves or returns during, is cut short (the new page shows at once).
+  let fading = null;
+  const cutShort = () => { if (fading) { try { fading.skipTransition(); } catch (e) {} fading = null; } };
+  document.addEventListener("visibilitychange", cutShort);
+  addEventListener("pageshow", cutShort);
+  addEventListener("pagehide", cutShort);
   function swap(update) {
     if (!document.startViewTransition || reduced() || document.hidden || dragging) return Promise.resolve(update());
+    cutShort();   // one at a time
     let result;
     // don't hold the old picture for long if the new view is slow to draw
     const t = document.startViewTransition(() => Promise.race([result = Promise.resolve(update()), new Promise((r) => setTimeout(r, 350))]));
+    fading = t;
+    const guard = setTimeout(() => { if (fading === t) cutShort(); }, 1500);
     t.ready.catch(() => {});
+    t.finished.catch(() => {}).then(() => { clearTimeout(guard); if (fading === t) fading = null; });
     return t.updateCallbackDone.then(() => result);
   }
 
