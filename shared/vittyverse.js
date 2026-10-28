@@ -8,6 +8,7 @@
 //   as you go, like the tab bars in Apple's own apps.
 // - Every bottom sheet (.sheet) swipes down to close, in every app.
 // - A list row can carry one action (Delete, say) that a swipe to the left uncovers: VV.swipe(row, label, fn).
+// - A button pressed over and over (play and pause) acts as the finger lifts, not on the late click: VV.press(el, fn).
 // - Opening an app shows its splash (.vv-splash: the icon's mark on the icon's colour, the name and its line) for
 //   about a second, once per launch; a reload in the same session goes straight in.
 // Exposed as window.VV for the apps: VV.swap(update), VV.dismiss(el, done), VV.keep(el), VV.noZoom(doc).
@@ -408,6 +409,24 @@
     el.addEventListener("contextmenu", (e) => { e.preventDefault(); if (!held) { cancel(); fn(e); } });
   }
 
+  // ---------- press: a button that acts as the finger lifts ----------
+  // A button pressed over and over (play and pause over a video) acts on the touch itself, as the finger lifts on it:
+  // VV.press(el, fn). iPhone and iPad send their click a moment after the tap, and while the page has just changed
+  // (play turning into pause) they hold it back or drop it, so quick presses went missing. The click that follows a
+  // press is ignored; a click with no touch or mouse behind it (a keyboard, el.click()) still presses.
+  function press(el, fn) {
+    let down = null;
+    el.addEventListener("pointerdown", (e) => { down = e.isPrimary && !e.button ? { x: e.clientX, y: e.clientY } : null; });
+    el.addEventListener("pointercancel", () => { down = null; });
+    el.addEventListener("pointerup", (e) => {
+      const d = down;
+      down = null;
+      if (!d || el.disabled || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 24) return;   // moved off: not a press
+      fn(e);
+    });
+    el.addEventListener("click", (e) => { if (e.detail) e.stopImmediatePropagation(); else fn(e); });
+  }
+
   // ---------- pull to refresh ----------
   // A screen whose contents come from somewhere else refreshes when you pull it down from the top, as lists do on
   // iPhone: VV.pullToRefresh(el, refresh, { when }). `refresh` returns a promise, and the spinner turns until it
@@ -455,5 +474,5 @@
     return ring;
   }
 
-  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh, hold, swipe, state };
+  window.VV = { swap, dismiss, keep, noZoom, reduced, themeControl, setTheme, isDark, logo: () => LOGO, mark: () => MARK, madeWith, enter, flash, pulse, pullToRefresh, hold, press, swipe, state };
 })();
