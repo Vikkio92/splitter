@@ -98,23 +98,6 @@
   --glass-blur: blur(14px) saturate(1.6) brightness(0.92); --glass-rim: rgba(255, 255, 255, 0.16); --glass-line: rgba(255, 255, 255, 0.06);
   --glass-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-line), 0 1px 2px rgba(0, 0, 0, 0.4), 0 14px 36px -12px rgba(0, 0, 0, 0.75);
 }
-/* The glass style (Settings > Appearance, set on <html> as data-glass by vittyverse.js), the three kinds on
-   liquid-glass.ybouane.com: Frosted is the default above; Regular is clear glass, barely blurred; Dark is smoked glass,
-   with light text on it in either theme. */
-:root[data-glass="regular"] {
-  --glass: color-mix(in srgb, var(--surface) 22%, transparent); --glass-thick: color-mix(in srgb, var(--surface) 60%, transparent);
-  --glass-blur: blur(3px) saturate(1.8);
-}
-:root[data-glass="dark"] {
-  --glass: rgba(16, 16, 18, 0.56); --glass-thick: rgba(16, 16, 18, 0.8);
-  --glass-blur: blur(14px) saturate(1.5) brightness(0.85); --glass-rim: rgba(255, 255, 255, 0.2); --glass-line: rgba(255, 255, 255, 0.08);
-}
-:root[data-glass="dark"] :is(.tabbar, .toast, .glass, [data-app="shiori"] .r-bar, [data-app="shiori"] .r-pick, [data-app="mapper"] .map-search,
-  [data-app="mapper"] .map-top .chip:not(.on), [data-app="mapper"] .map-btn, [data-app="mapper"] .map-count, [data-app="watcher"] .w-play) {
-  --text: #f5f5f7; --muted: rgba(235, 235, 245, 0.62); --key: #f5f5f7; --on-key: #0b0b0c; --fill: rgba(118, 118, 128, 0.3); color: var(--text);
-}
-/* Settings > Appearance: the theme, then the glass */
-.vv-appearance { display: grid; gap: 14px; }
 
 /* ---- module accents: one colour per app, usable anywhere (the home page shows them all) ---- */
 /* the opening splash: each app's icon, full screen (the mark on the icon's own colour), with its name and line */
@@ -389,10 +372,7 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
    tokens: a see-through fill, a blur that brightens what's behind, a bright rim along the top edge and a soft shadow.
    Content (cards, lists, sheets, the lookup card) stays solid so text stays easy to read; bars over reading text use
    --glass-thick. Never on things that come in their hundreds (map pins, list rows): every blur costs on each frame.
-   With Reduce Transparency on, or in a browser that can't blur, glass turns solid. .glass applies the recipe.
-   Settings > Appearance picks Regular, Frosted or Dark glass (data-glass, above). Real refracting glass (LiquidGlass,
-   shared/vendor) goes only where there's a picture under the controls, like Watcher's player: over a page it has to
-   photograph the page whenever it changes, which on a phone means seconds of blank bars. */
+   With Reduce Transparency on, or in a browser that can't blur, glass turns solid. .glass applies the recipe. */
 .glass { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root, :root[data-theme] { --glass: var(--surface) !important; --glass-thick: var(--surface) !important; }
@@ -1428,13 +1408,13 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-stage { position: absolute; inset: 0; }
 :where([data-app="watcher"]) .w-player video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
 :where([data-app="watcher"]) .w-subs { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 6%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 max(16px, env(safe-area-inset-left)); pointer-events: none; transition: transform .25s cubic-bezier(.2, .8, .2, 1); text-align: center; }
-:where([data-app="watcher"]) .w-player.ui .w-subs { transform: translateY(calc(-76px - var(--pic-y, 0px))); }   /* above the bar, which sits on the picture */
+:where([data-app="watcher"]) .w-player.ui .w-subs { transform: translateY(-76px); }   /* above the bar */
 /* a phone on its side: the middle buttons sit a little higher and smaller, clear of the raised subtitles */
 @media (max-height: 480px) { :where([data-app="watcher"]) .w-mid { transform: translateY(-34px); gap: 36px; } :where([data-app="watcher"]) .w-big { width: 62px; height: 62px; } :where([data-app="watcher"]) .w-big svg.i { width: 28px; height: 28px; } }
 :where([data-app="watcher"]) .w-subs .l1, :where([data-app="watcher"]) .w-subs .l2 { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 :where([data-app="watcher"]) .w-subs .line { pointer-events: auto; display: inline-block; max-width: 92vw; padding: 1px 8px; border-radius: 6px; background: rgba(0, 0, 0, .55); font: 600 clamp(17px, 2.6vw, 30px)/1.3 var(--font); text-shadow: 0 1px 2px rgba(0, 0, 0, .6); white-space: pre-wrap; }
 :where([data-app="watcher"]) .w-subs .l2 .line { font-size: clamp(14px, 2vw, 24px); font-weight: 500; color: rgba(255, 255, 255, .82); }
-:where([data-app="watcher"]) .w-ui { position: absolute; inset: var(--pic-y, 0px) var(--pic-x, 0px); display: flex; flex-direction: column; justify-content: space-between; opacity: 0; transition: opacity .22s ease; pointer-events: none;
+:where([data-app="watcher"]) .w-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; opacity: 0; transition: opacity .22s ease; pointer-events: none;
   background: linear-gradient(to bottom, rgba(0, 0, 0, .6), transparent 22%, transparent 70%, rgba(0, 0, 0, .7)); }
 :where([data-app="watcher"]) .w-ui.show { opacity: 1; }
 :where([data-app="watcher"]) .w-ui.show button, :where([data-app="watcher"]) .w-ui.show input { pointer-events: auto; }
@@ -1455,7 +1435,7 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-skip svg.i { width: 30px; height: 30px; }
 :where([data-app="watcher"]) .w-big:active, :where([data-app="watcher"]) .w-skip:active { transform: scale(.9); }
 :where([data-app="watcher"]) .w-bottom { padding: 0 max(12px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 12px) max(12px, env(safe-area-inset-left)); }
-/* the bottom bar, as in the LiquidGlass demo's video player: where you are, then Audio and Subtitles */
+/* the bottom bar: where you are, then Audio and Subtitles */
 :where([data-app="watcher"]) .w-bar { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 8px 0 16px; border-radius: 20px; background: rgba(22, 22, 24, .42); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); }
 :where([data-app="watcher"]) .w-time { font: 600 13px var(--font); font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; opacity: .9; }
 /* the player's tools, bottom right above the progress bar: Audio, Subtitles, AirPlay */
@@ -1495,15 +1475,9 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 /* Japanese subtitles: every word can be tapped for the dictionary (Shior.ino's card), a held line is translated */
 :where([data-app="watcher"]) .w-subs .w { border-radius: 4px; cursor: pointer; transition: background-color .15s; }
 :where([data-app="watcher"]) .w-subs .w.on { background: color-mix(in srgb, var(--accent) 45%, transparent); }
-/* liquid glass behind the controls (watcher/js/glass.js): empty shapes over the picture, under the subtitles and
-   controls; while it runs (.lg) the buttons drop their own frosted look */
-:where([data-app="watcher"]) .w-glass { position: absolute; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .22s ease, transform .2s var(--spring); }
-:where([data-app="watcher"]) .w-glass.on { opacity: 1; }
-:where([data-app="watcher"]) .w-glass.down { transform: scale(.9); }
-/* white icons and text keep a soft dark halo, as the demo's labels do, so they read over a bright picture */
+/* white icons and text keep a soft dark halo, so they read over a bright picture */
 :where([data-app="watcher"]) .w-player :is(.w-mid button, .w-top-btns button, .w-bar) { filter: drop-shadow(0 0 5px rgba(0, 0, 0, .45)); }
 :where([data-app="watcher"]) .w-player > .w-subs, :where([data-app="watcher"]) .w-player > .w-ui, :where([data-app="watcher"]) .w-player > .w-spin { z-index: 2; }
-:where([data-app="watcher"]) .w-player.lg .w-bar, :where([data-app="watcher"]) .w-player.lg .w-top-btns, :where([data-app="watcher"]) .w-player.lg .w-big { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 :where([data-app="watcher"]) .w-player.looking .w-ui { opacity: 0; pointer-events: none; }
 :where([data-app="watcher"]) .w-player.looking .w-subs { transform: none; }
 :where([data-app="watcher"]) .w-player.looking .w-spin { display: none; }
