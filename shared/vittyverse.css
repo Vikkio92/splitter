@@ -449,6 +449,13 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 .vv-swipe.dragging > .li, .vv-swipe.dragging > .vv-swipe-act { transition: none; }
 .vv-swipe + .li, .li + .vv-swipe > .li, .vv-swipe + .vv-swipe > .li { border-top: 0.5px solid var(--line); }
 @media (prefers-reduced-motion: reduce) { .vv-swipe > .li, .vv-swipe-act { transition: none; } }
+/* A fold: a list whose first row (its name, what's chosen, a chevron) opens the rest, for choices seldom wanted */
+.vv-fold > summary { list-style: none; cursor: pointer; }
+.vv-fold > summary::-webkit-details-marker { display: none; }
+.vv-fold > summary svg.i { display: block; width: 18px; height: 18px; color: var(--muted); transition: transform .25s var(--glide); }
+.vv-fold[open] > summary svg.i { transform: rotate(90deg); }
+.vv-fold[open] > :not(summary) { animation: vv-enter .22s ease both; }
+@media (prefers-reduced-motion: reduce) { .vv-fold > summary svg.i { transition: none; } .vv-fold[open] > :not(summary) { animation: none; } }
 :root { --spring: cubic-bezier(.3, 1.4, .5, 1); --glide: cubic-bezier(.2, .8, .2, 1); }
 /* the tab bar can be dragged along (vittyverse.js): it takes the finger's sideways moves, and the lens lifts while held */
 .tabbar { touch-action: none; }
@@ -1427,9 +1434,11 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-subs .l1, :where([data-app="watcher"]) .w-subs .l2 { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 :where([data-app="watcher"]) .w-subs .line { pointer-events: auto; display: inline-block; max-width: 92vw; padding: 1px 8px; border-radius: 6px; background: rgba(0, 0, 0, .55); font: 600 clamp(17px, 2.6vw, 30px)/1.3 var(--font); text-shadow: 0 1px 2px rgba(0, 0, 0, .6); white-space: pre-wrap; }
 :where([data-app="watcher"]) .w-subs .l2 .line { font-size: clamp(14px, 2vw, 24px); font-weight: 500; color: rgba(255, 255, 255, .82); }
-:where([data-app="watcher"]) .w-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; opacity: 0; transition: opacity .22s ease; pointer-events: none;
+:where([data-app="watcher"]) .w-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; opacity: 0; visibility: hidden; transition: opacity .22s ease, visibility 0s linear .22s; pointer-events: none;
   background: linear-gradient(to bottom, rgba(0, 0, 0, .6), transparent 22%, transparent 70%, rgba(0, 0, 0, .7)); }
-:where([data-app="watcher"]) .w-ui.show { opacity: 1; }
+/* hidden controls are hidden outright once they've faded (visibility): their blurred glass isn't worked out again for
+   every frame of the picture under them */
+:where([data-app="watcher"]) .w-ui.show { opacity: 1; visibility: visible; transition: opacity .22s ease; }
 :where([data-app="watcher"]) .w-ui.show button, :where([data-app="watcher"]) .w-ui.show input { pointer-events: auto; }
 /* the top bar, as in Plex: the title and its details on the left, AirPlay, Picture in Picture and Close on the right */
 :where([data-app="watcher"]) .w-top { display: flex; align-items: flex-start; gap: 12px; padding: calc(env(safe-area-inset-top) + 14px) max(16px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left)); }
@@ -1458,8 +1467,6 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 @media (max-width: 600px) { :where([data-app="watcher"]) .w-tool span { display: none; } :where([data-app="watcher"]) .w-tool { padding: 0 8px; } }
 :where([data-app="watcher"]) .w-tool[hidden] { display: none; }
 /* 勉強 (Japanese study), on or off for the show: its name is the button, lit in the accent while it's on */
-:where([data-app="watcher"]) .w-study { font-size: 15px; color: rgba(255, 255, 255, .72); }
-:where([data-app="watcher"]) .w-study.on { background: var(--accent); color: var(--on-accent); }
 :where([data-app="watcher"]) .w-bar input[type=range] { flex: 1; min-width: 0; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; --fill: 0%; }
 :where([data-app="watcher"]) .w-bar input[type=range]::-webkit-slider-runnable-track { height: 5px; border-radius: 99px; background: linear-gradient(to right, var(--accent) var(--fill), rgba(255, 255, 255, .3) var(--fill)); }
 :where([data-app="watcher"]) .w-bar input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6.5px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
@@ -1494,7 +1501,7 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 /* white icons and text keep a soft dark halo, so they read over a bright picture */
 :where([data-app="watcher"]) .w-player :is(.w-mid button, .w-top-btns button, .w-bar) { filter: drop-shadow(0 0 5px rgba(0, 0, 0, .45)); }
 :where([data-app="watcher"]) .w-player > .w-subs, :where([data-app="watcher"]) .w-player > .w-ui, :where([data-app="watcher"]) .w-player > .w-spin { z-index: 2; }
-:where([data-app="watcher"]) .w-player.looking .w-ui { opacity: 0; pointer-events: none; }
+:where([data-app="watcher"]) .w-player.looking .w-ui { opacity: 0; visibility: hidden; pointer-events: none; }
 :where([data-app="watcher"]) .w-player.looking .w-subs { transform: none; }
 :where([data-app="watcher"]) .w-player.looking .w-spin { display: none; }
 :where([data-app="watcher"]) .w-player .lookup { z-index: 8; }
@@ -1506,6 +1513,7 @@ html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
 :where([data-app="watcher"]) .sheet .field:first-of-type { margin-top: 10px; }
 :where([data-app="watcher"]) .sheet .field + .list, :where([data-app="watcher"]) .sheet .menu + .subhead { margin-top: 14px; }
 :where([data-app="watcher"]) .sheet .list + .field { margin-top: 18px; }
+:where([data-app="watcher"]) .sheet .list + .list { margin-top: 14px; }
 :where([data-app="watcher"]) .sheet form { margin-bottom: 10px; }
 :where([data-app="watcher"]) .field textarea { resize: vertical; font-size: 15px; line-height: 1.4; }
 :where([data-app="watcher"]) .sheet .li .s { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
