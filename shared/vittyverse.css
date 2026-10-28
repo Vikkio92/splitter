@@ -458,6 +458,10 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 /* No zooming anywhere in the suite (house rule): no pinch, no double-tap. vittyverse.js stops iPhone Safari's pinch. */
 html { touch-action: manipulation; }   /* no double-tap zoom; pinching stays Safari's (vittyverse.js stops zooming in) */
 
+/* A tap on a button's icon is a tap on the button. An icon redrawn while a finger is on it (play turning to pause)
+   would otherwise take the tap with it, and on iPhone and iPad the button never hears of it. */
+button svg, a svg, [role="button"] svg { pointer-events: none; }
+
 /* press feedback: things you tap give a little under your finger and settle back */
 .chip, .seg button, .bill-row, a.li, button.li, .li[role="button"] { transition: transform .28s var(--spring), background-color .2s ease, color .2s ease, box-shadow .2s ease; }
 .chip:active, .seg button:active { transform: scale(0.95); transition-duration: .07s; }
@@ -1453,6 +1457,9 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="watcher"]) .w-tool:active { background: rgba(255, 255, 255, .14); }
 @media (max-width: 600px) { :where([data-app="watcher"]) .w-tool span { display: none; } :where([data-app="watcher"]) .w-tool { padding: 0 8px; } }
 :where([data-app="watcher"]) .w-tool[hidden] { display: none; }
+/* 勉強 (Japanese study), on or off for the show: its name is the button, lit in the accent while it's on */
+:where([data-app="watcher"]) .w-study { font-size: 15px; color: rgba(255, 255, 255, .72); }
+:where([data-app="watcher"]) .w-study.on { background: var(--accent); color: var(--on-accent); }
 :where([data-app="watcher"]) .w-bar input[type=range] { flex: 1; min-width: 0; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; --fill: 0%; }
 :where([data-app="watcher"]) .w-bar input[type=range]::-webkit-slider-runnable-track { height: 5px; border-radius: 99px; background: linear-gradient(to right, var(--accent) var(--fill), rgba(255, 255, 255, .3) var(--fill)); }
 :where([data-app="watcher"]) .w-bar input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6.5px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
