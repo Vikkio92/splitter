@@ -415,8 +415,8 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
    book read so far, an episode or film half-watched) or for a download or import. Never thinner, never inside a picture;
    a fill that has started shows at least a sliver. Shior.ino's, Mapper's and Gymmer's older class names share it; Splitter's
    paid-so-far bar sits on the bill's coloured card and takes that card's colours instead. */
-.vv-progress, :where([data-app="shiori"]) .book-tile .bar, :where([data-app="shiori"]) .progress, :where([data-app="mapper"]) .import-progress .bar, :where([data-app="gymmer"]) .split-bar { display: block; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
-:is(.vv-progress, :where([data-app="shiori"]) .book-tile .bar, :where([data-app="shiori"]) .progress, :where([data-app="mapper"]) .import-progress .bar, :where([data-app="gymmer"]) .split-bar) > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.vv-progress, :where([data-app="shiori"]) .book-tile .bar, :where([data-app="shiori"]) .progress, :where([data-app="gymmer"]) .split-bar { display: block; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+:is(.vv-progress, :where([data-app="shiori"]) .book-tile .bar, :where([data-app="shiori"]) .progress, :where([data-app="gymmer"]) .split-bar) > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .vv-progress > i:not([style*="width: 0"]) { min-width: 6px; }
 /* where something stands (VV.state): a pill (done, off, needs you, under way), then the detail in the usual grey */
 .vv-state { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 7px; margin-right: 6px; border-radius: 999px; font: 600 12px/1.5 var(--font); letter-spacing: .01em; vertical-align: 1px; white-space: nowrap; }
@@ -1141,7 +1141,7 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .map-top .chips { padding: 0 12px 10px; }
 :where([data-app="mapper"]) .map-top .chip:not(.on) { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 :where([data-app="mapper"]) .map-top .chip.on { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 1px 2px rgba(0, 0, 0, .12), 0 6px 16px -6px rgba(0, 0, 0, .3); }
-:where([data-app="mapper"]) .map-btns { position: absolute; z-index: 2; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 92px); display: grid; gap: 8px; }
+:where([data-app="mapper"]) .map-btns { position: absolute; z-index: 2; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 128px); display: grid; gap: 8px; }
 :where([data-app="mapper"]) .map-btn { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; color: var(--text); transition: transform .28s var(--spring); background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 0; box-shadow: var(--glass-shadow); }
 :where([data-app="mapper"]) .map-btn:active { transform: scale(0.9); transition-duration: .07s; }
 :where([data-app="mapper"]) .map-btn svg.i { width: 20px; height: 20px; }
@@ -1185,18 +1185,8 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .tags-view .list .li .r { margin-left: auto; }
 :where([data-app="mapper"]) .tags-view .list .li .chev { color: var(--muted); display: grid; }
 :where([data-app="mapper"]) .sheet .field { margin-top: 4px; }
-/* pins: a yellow drop with an ink dot; the one you're looking at stands a little bigger */
-/* no shadow: with hundreds of pins on a phone, every shadow is repainted on each frame of a zoom */
-:where([data-app="mapper"]) .pin { width: 28px; height: 28px; margin-bottom: 4px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--pin, var(--mapper)); border: 2.5px solid #111113; display: grid; place-items: center; cursor: pointer; }
-:where([data-app="mapper"]) .pin::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #111113; }
-/* still to try: a hollow pin in the same colour */
-:where([data-app="mapper"]) .pin.try { background: #fff; border-color: var(--pin, var(--mapper)); border-width: 3px; }
-:where([data-app="mapper"]) .pin.try::after { background: var(--pin, var(--mapper)); }
-:where([data-app="mapper"]) .pin.sel { transform: rotate(-45deg) scale(1.3); transition: transform .2s var(--spring); }
-/* zoomed out, pins close together become one numbered bubble; tap it to zoom in */
-:where([data-app="mapper"]) .cluster { min-width: 34px; height: 34px; padding: 0 8px; border-radius: 999px; display: grid; place-items: center; background: #111113; color: #fff; border: 3px solid var(--mapper); font: 700 13px/1 var(--font); font-variant-numeric: tabular-nums; cursor: pointer; }
-:where([data-app="mapper"]) .cluster.mid { min-width: 40px; height: 40px; font-size: 14px; }
-:where([data-app="mapper"]) .cluster.big { min-width: 48px; height: 48px; font-size: 15px; }
+/* pins and their numbered bubbles are drawn by the map itself (js/maps.js), in the --tag colours; only you are a dot
+   on the page */
 :where([data-app="mapper"]) .you { width: 18px; height: 18px; border-radius: 50%; background: var(--info); border: 3px solid #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--info) 25%, transparent); }
 /* a place: its tags to tick, a new tag, and Google Maps for directions */
 :where([data-app="mapper"]) .sheet .sub { margin-bottom: 12px; }
@@ -1219,12 +1209,10 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="mapper"]) .places-search { margin-bottom: 2px; }
 :where([data-app="mapper"]) .places .list { margin-top: 12px; }
 :where([data-app="mapper"]) .settings .card .row + .row { margin-top: 10px; }
-/* this month's Google calls, and the Mapstr import's progress */
-:where([data-app="mapper"]) .usage { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-:where([data-app="mapper"]) .usage .v { font-size: 20px; }
-:where([data-app="mapper"]) .import-progress { background: var(--surface-2); box-shadow: none; margin: 14px 0 0; }
-:where([data-app="mapper"]) .import-progress .bar { margin: 10px 0 0; }   /* the shared progress bar (.vv-progress) */
-:where([data-app="mapper"]) .import-progress .bar i { transition: width .3s ease; }
+/* the map's credits (OpenStreetMap and friends): a small (i) above the tab bar, opening to the full line */
+:where([data-app="mapper"]) .maplibregl-ctrl-bottom-right { bottom: calc(env(safe-area-inset-bottom) + 84px); }
+:where([data-app="mapper"]) .maplibregl-ctrl-attrib.maplibregl-compact { background: var(--glass); color: var(--text); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
+:where([data-app="mapper"]) .maplibregl-ctrl-attrib a { color: inherit; }
 
 /* =====================================================================
    9. Chesser.ino (the board is drawn by js/board.js; the pieces are the cburnett set)
