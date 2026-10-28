@@ -440,11 +440,12 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 .vv-ptr svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .vv-ptr.armed, .vv-ptr.spin { color: var(--accent); }
 .vv-ptr.spin svg { animation: spin .8s linear infinite; }
-/* swipe a row for its action (VV.swipe): the row slides right and its one action grows in red from the list's edge, as
-   in Mail. The row moves with `translate`, so a tap's little give (transform) still works on it. */
+/* swipe a row for its action (VV.swipe): the row slides left and its one action grows in red from the list's right edge,
+   as in Mail, with the list's padding left between them. The row moves with `translate`, so a tap's little give
+   (transform) still works on it. */
 .vv-swipe { position: relative; margin: 0 -16px; padding: 0 16px; overflow: hidden; }
-.vv-swipe > .li { translate: var(--open, 0px) 0; touch-action: pan-y; transition: translate .32s var(--glide), transform .28s var(--spring), background-color .2s ease; }
-.vv-swipe-act { position: absolute; inset: 0 auto 0 0; width: var(--act, 0px); min-width: 0; padding: 0; border: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; background: var(--danger); color: #fff; font-weight: 600; font-size: 15px; transition: width .32s var(--glide); }
+.vv-swipe > .li { translate: calc(-1 * var(--open, 0px)) 0; touch-action: pan-y; transition: translate .32s var(--glide), transform .28s var(--spring), background-color .2s ease; }
+.vv-swipe-act { position: absolute; inset: 0 0 0 auto; width: var(--open, 0px); min-width: 0; padding: 0; border: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; background: var(--danger); color: #fff; font-weight: 600; font-size: 15px; transition: width .32s var(--glide); }
 .vv-swipe.dragging > .li, .vv-swipe.dragging > .vv-swipe-act { transition: none; }
 .vv-swipe + .li, .li + .vv-swipe > .li, .vv-swipe + .vv-swipe > .li { border-top: 0.5px solid var(--line); }
 @media (prefers-reduced-motion: reduce) { .vv-swipe > .li, .vv-swipe-act { transition: none; } }

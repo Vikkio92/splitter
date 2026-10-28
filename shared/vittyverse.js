@@ -7,7 +7,7 @@
 // - The tab bar can be dragged: slide a finger along it and the lens follows, and the section under the finger opens
 //   as you go, like the tab bars in Apple's own apps.
 // - Every bottom sheet (.sheet) swipes down to close, in every app.
-// - A list row can carry one action (Delete, say) that a swipe to the right uncovers: VV.swipe(row, label, fn).
+// - A list row can carry one action (Delete, say) that a swipe to the left uncovers: VV.swipe(row, label, fn).
 // - Opening an app shows its splash (.vv-splash: the icon's mark on the icon's colour, the name and its line) for
 //   about a second, once per launch; a reload in the same session goes straight in.
 // Exposed as window.VV for the apps: VV.swap(update), VV.dismiss(el, done), VV.keep(el), VV.noZoom(doc).
@@ -248,15 +248,16 @@
   })();
 
   // ---------- swipe a row for its action ----------
-  // A list row (.li) can carry one action, uncovered by swiping the row to the right: VV.swipe(row, label, fn) wraps the
-  // row and returns the wrapper to put in the list. The button grows in red from the list's edge as the row slides; let
-  // go past halfway and it stays open, short of that the row slides back. The button runs fn; a tap on the row or
+  // A list row (.li) can carry one action, uncovered by swiping the row to the left, as in Mail: VV.swipe(row, label, fn)
+  // wraps the row and returns the wrapper to put in the list. The button grows in red from the list's right edge as the
+  // row slides, with the list's padding kept between them; let go past halfway and it stays open, short of that the row
+  // slides back. The button runs fn; a tap on the row or
   // anywhere else closes it. One row is open at a time, and up-and-down moves still scroll the list and swipe the sheet.
   let sideways = false;   // a row is being swiped, so the sheet it's in stays where it is
   let opened = null;      // the open row: { wrap, close }
   document.addEventListener("pointerdown", (e) => { if (opened && !opened.wrap.contains(e.target)) opened.close(); }, true);
   function swipe(row, label, fn) {
-    const W = 96, PAD = 16;   // the open button's width; the list's own padding, which the button reaches across
+    const W = 96;   // the open button's width
     const wrap = document.createElement("div");
     wrap.className = "vv-swipe";
     const act = document.createElement("button");
@@ -264,13 +265,9 @@
     act.className = "vv-swipe-act";
     act.tabIndex = -1;
     act.textContent = label;
-    wrap.append(act, row);
+    wrap.append(row, act);
     let x0 = null, y0 = 0, from = 0, x = 0, way = "";   // way: "" until the finger has gone far enough to tell, then "x" or "y"
-    const set = (v) => {
-      x = v;
-      wrap.style.setProperty("--open", v + "px");
-      wrap.style.setProperty("--act", (v ? v + PAD : 0) + "px");
-    };
+    const set = (v) => { x = v; wrap.style.setProperty("--open", v + "px"); };   // how far open: the row moves left by as much
     const close = () => {
       from = 0;
       set(0);
@@ -290,7 +287,7 @@
         if (way === "x") { sideways = true; wrap.classList.add("dragging"); row.setPointerCapture(e.pointerId); }
       }
       if (way !== "x") return;
-      const v = from + dx;
+      const v = from - dx;
       set(v <= 0 ? 0 : v > W ? W + (v - W) / 3 : v);   // past the button it still gives, grudgingly
     });
     const end = () => {
