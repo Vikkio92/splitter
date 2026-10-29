@@ -1467,10 +1467,23 @@ html:where([data-app="mapper"]) { -webkit-text-size-adjust: 100%; }
 /* Up next: the end of an episode, a page over the picture with the next one's picture, name and countdown */
 :where([data-app="watcher"]) .w-upnext { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left)); background: rgba(0, 0, 0, .82); }
 :where([data-app="watcher"]) .w-upnext-box { display: flex; align-items: center; gap: 24px; max-width: 760px; width: 100%; }
-:where([data-app="watcher"]) .w-upnext-box img { width: min(46%, 340px); aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-lg); flex: none; }
+:where([data-app="watcher"]) .w-upnext-pic { position: relative; width: min(46%, 340px); aspect-ratio: 16 / 9; flex: none; padding: 0; border-radius: var(--r-lg); overflow: hidden; background: #1c1c1e; box-shadow: 0 0 0 3px #fff; }
+:where([data-app="watcher"]) .w-upnext-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+:where([data-app="watcher"]) .w-upnext-about { margin: 0 0 4px; font-size: 14px; line-height: 1.4; color: rgba(255, 255, 255, .72); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+/* Up next's countdown: a ring emptying over the next episode's picture, the seconds in it; a play button once stopped */
+:where([data-app="watcher"]) .w-ring { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(0, 0, 0, .7); display: grid; place-items: center; color: #fff; }
+:where([data-app="watcher"]) .w-ring svg:not(.i) { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); fill: none; stroke-width: 2.5; }
+:where([data-app="watcher"]) .w-ring circle { stroke: rgba(255, 255, 255, .35); }
+:where([data-app="watcher"]) .w-ring circle.arc { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: 106.8; stroke-dashoffset: 106.8; }
+:where([data-app="watcher"]) .w-ring.counting circle.arc { animation: w-ring var(--secs, 5s) linear forwards; }
+@keyframes w-ring { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 106.8; } }
+:where([data-app="watcher"]) .w-ring b { font: 700 18px var(--font); font-variant-numeric: tabular-nums; }
+:where([data-app="watcher"]) .w-ring svg.i { width: 22px; height: 22px; fill: currentColor; display: none; }
+:where([data-app="watcher"]) .w-ring:not(.counting) svg.i { display: block; }
+:where([data-app="watcher"]) .w-ring:not(.counting) b { display: none; }
 :where([data-app="watcher"]) .w-upnext .s { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
 :where([data-app="watcher"]) .w-upnext .t { font: 700 22px/1.25 var(--display-font); margin: 4px 0 6px; }
-@media (max-width: 560px) { :where([data-app="watcher"]) .w-upnext-box { flex-direction: column; align-items: stretch; text-align: left; } :where([data-app="watcher"]) .w-upnext-box img { width: 100%; } }
+@media (max-width: 560px) { :where([data-app="watcher"]) .w-upnext-box { flex-direction: column; align-items: stretch; text-align: left; } :where([data-app="watcher"]) .w-upnext-pic { width: 100%; } }
 :where([data-app="watcher"]) .w-upnext-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
 :where([data-app="watcher"]) .sheet .li.on .t { font-weight: 700; }
 :where([data-app="watcher"]) .li .grow > :is(.t, .s) { display: block; }
