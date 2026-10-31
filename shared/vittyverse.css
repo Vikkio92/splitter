@@ -1603,7 +1603,7 @@ html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
 :where([data-app="watcher"]) .w-link { display: flex; align-items: center; gap: 14px; margin: 26px 0 4px; padding: 12px 14px; border-radius: var(--r-lg); background: var(--accent); color: var(--on-accent); text-decoration: none; transition: transform .2s var(--spring); }
 :where([data-app="watcher"]) .w-link[hidden] { display: none; }
 /* the bar takes the title's place below the status bar (house rule 5), so the title under it closes up */
-:where([data-app="watcher"]) main:has(> .w-link:not([hidden])) #view .large-title { padding-top: 14px; }
+:where([data-app="watcher"]) main:has(> .w-link:not([hidden], .w-link-pill)) #view .large-title { padding-top: 14px; }
 :where([data-app="watcher"]) .w-link:active { transform: scale(.98); transition-duration: .07s; }
 :where([data-app="watcher"]) .w-link .grow { flex: 1; min-width: 0; }
 :where([data-app="watcher"]) .w-link .t { display: block; font: 700 17px/1.2 var(--display-font); }
@@ -1615,6 +1615,9 @@ html:has(body.playing) { overflow: hidden; overscroll-behavior: none; }
 :where([data-app="watcher"][data-tv]) .w-link { margin-top: 24px; padding: 18px 22px; }
 :where([data-app="watcher"][data-tv]) .w-link .t { font-size: 24px; }
 :where([data-app="watcher"][data-tv]) .w-link .s { font-size: 17px; }
+/* on the TV, a phone steering it is a round pill in the top right corner, not a bar: the library keeps its room */
+:where([data-app="watcher"][data-tv]) .w-link.w-link-pill { position: fixed; top: 40px; right: 64px; z-index: 30; width: 96px; height: 96px; margin: 0; padding: 0; border-radius: 50%; justify-content: center; box-shadow: 0 8px 28px rgba(0, 0, 0, .35); }
+:where([data-app="watcher"][data-tv]) .w-link-pill svg.i { width: 48px; height: 48px; }
 /* the remote, while the TV shows Up next */
 :where([data-app="watcher"]) .w-remote-upnext img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-lg); margin-bottom: 12px; }
 :where([data-app="watcher"]) .w-remote-upnext .s { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
