@@ -667,10 +667,7 @@
   // Older bills have no mode saved: if they already have items (or are locked), they're manual.
   function modeChosen() { return !!state.meta.mode || Object.keys(state.items).length > 0 || !!state.meta.locked; }
   // Units of an item claimed so far, counting only people still on the bill.
-  function claimedOf(it) {
-    const u = it.units || {};
-    return Object.keys(u).reduce((s, pid) => s + (state.people[pid] && u[pid].n > 0 ? u[pid].n : 0), 0);
-  }
+  function claimedOf(it) { return claimsOf(it).reduce((t, g) => t + g.n, 0); }
   function canClaim() { return !state.meta.locked && (billId ? !!meId() : true); }
   // A single item (one burrata, one bottle) that more than one person claims is shared, not claimed too many times:
   // everyone on any of its claims, and anyone they shared theirs with, pays an equal part. Each phone only ever
@@ -684,21 +681,37 @@
     const u = it.units || {};
     return Object.keys(u).some((x) => state.people[x] && !(u[x].n > 0) && u[x].in === POOL);
   }
+  // The shares of an item: [{c: whose claim, key: what someone joining it writes, n: units, who: [...]}].
+  // - Someone who joined a claim ("Which one did you share?": in = the claimer) shares ONE of that claimer's units; any
+  //   more the claimer has are the claimer's own. So the claimer tapping again (one more for me) doesn't change what
+  //   the others pay.
+  // - If the claimer takes themselves off, the people who joined keep that unit between them: nobody is taken off an
+  //   item by someone else leaving it.
+  // - Pooled ("All N", or the admin's Everyone on a bigger item: in = "all"): the whole item, shared equally by
+  //   everyone on it, whoever of them leaves.
+  // - Bills from before: a claim's `with` shares all of its units with the people ticked.
   function claimsOf(it) {
-    const u = it.units || {};
-    const claimers = Object.keys(u).filter((c) => state.people[c] && u[c].n > 0);
-    if (claimers.length && pooled(it)) {
+    const u = it.units || {}, on = (x) => !!state.people[x];
+    const claimers = Object.keys(u).filter((c) => on(c) && u[c].n > 0);
+    const joiners = Object.keys(u).filter((x) => on(x) && !(u[x].n > 0) && u[x].in);
+    const withOf = (c) => [c].concat(Object.keys(u[c].with || {}).filter((x) => on(x) && x !== c));
+    if (joiners.some((x) => u[x].in === POOL)) {
       const who = [];
-      claimers.forEach((c) => [c].concat(Object.keys(u[c].with || {})).forEach((x) => { if (state.people[x] && !who.includes(x)) who.push(x); }));
-      Object.keys(u).forEach((x) => { if (state.people[x] && !(u[x].n > 0) && u[x].in && !who.includes(x)) who.push(x); });
-      return [{ c: claimers[0], n: claimers.reduce((t, c) => t + u[c].n, 0), who }];
+      claimers.forEach((c) => withOf(c).forEach((x) => { if (!who.includes(x)) who.push(x); }));
+      joiners.forEach((x) => { if (!who.includes(x)) who.push(x); });
+      return [{ c: who[0], key: POOL, n: qty(it.qty), who }];
     }
-    return claimers.map((c) => {
-      const who = [c];
-      Object.keys(u[c].with || {}).concat(Object.keys(u).filter((x) => !(u[x].n > 0) && u[x].in === c))
-        .forEach((x) => { if (state.people[x] && !who.includes(x)) who.push(x); });
-      return { c, n: u[c].n, who };
+    const out = [];
+    claimers.forEach((c) => {
+      const joined = joiners.filter((x) => u[x].in === c && !withOf(c).includes(x));
+      if (!joined.length) return out.push({ c, key: c, n: u[c].n, who: withOf(c) });
+      out.push({ c, key: c, n: 1, who: withOf(c).concat(joined) });
+      if (u[c].n > 1) out.push({ c, key: c, n: u[c].n - 1, who: withOf(c) });
     });
+    const left = {};   // shares whose claimer has gone: still one unit, between the people who joined it
+    joiners.forEach((x) => { if (!claimers.includes(u[x].in)) (left[u[x].in] = left[u[x].in] || []).push(x); });
+    Object.keys(left).forEach((k) => out.push({ c: left[k][0], key: k, n: 1, who: left[k] }));
+    return out;
   }
   function sharersOf(it) {
     const out = [];
@@ -751,14 +764,14 @@
     // all of a bigger item claimed already: you shared one of them, so say whose
     if (!cur && !single(it) && claimedOf(it) >= qty(it.qty)) {
       if (portionOf(it, pid)[0]) return toast((tickedBy().join(" and ") || "Someone") + " shared this with you: only they can take you off it");
-      const groups = claimsOf(it);
-      const label = (g) => { const names = g.who.map(personName); return (names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0]) + (g.n > 1 ? " (" + g.n + ")" : ""); };
+      const groups = claimsOf(it).filter((g, i, all) => all.findIndex((x) => x.key === g.key) === i);   // a claimer's shared one, not their others
+      const label = (g) => { const names = g.who.map(personName); return names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0]; };
       // or all of them: everyone on the item, and you, share the lot equally
       const everyone = sharersOf(it).length + 1;
-      const c = pooled(it) ? POOL : groups.length === 1 ? groups[0].c : await sheet({
+      const c = pooled(it) ? POOL : groups.length === 1 ? groups[0].key : await sheet({
         title: pid === myself() ? "Which one did you share?" : "Which one did " + personName(pid) + " share?",
         text: "All " + qty(it.qty) + " have been claimed. Pick the one that was shared, and it's split with them.",
-        buttons: groups.map((g) => ({ label: label(g), value: g.c })).concat([{ label: "All " + everyone, value: POOL }, { label: "Cancel", value: null }]),
+        buttons: groups.map((g) => ({ label: label(g), value: g.key })).concat([{ label: "All " + everyone, value: POOL }, { label: "Cancel", value: null }]),
       });
       if (!c) return;
       splitOpen.delete(id);
@@ -1497,7 +1510,7 @@
         '<input class="name" data-f="name" placeholder="What was it?" autocomplete="off" maxlength="60">' +
         '<span class="name-text"></span><span class="who"></span>' +
         '<input class="qty" data-f="qty" placeholder="×1" inputmode="numeric" aria-label="Quantity" maxlength="6">' +
-        '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"></label>' +
+        '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"><small class="each" hidden>each</small></label>' +
         '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button>' +
         '<button class="icon-btn" data-act="editItem" aria-label="Edit">' + ICON.edit + "</button></div>" +
         '<div class="item-foot"><button class="btn split" data-act="split"></button><button class="btn split" data-act="everyone">Everyone</button><div class="chips"></div><span class="units-left"></span>' +
@@ -1520,6 +1533,7 @@
         pencil.style.visibility = mine ? "" : "hidden";
         row.querySelector(".who").hidden = open;
         setNameText(row, it, "");
+        row.querySelector(".each").hidden = !(qty(it.qty) > 1);   // the price is for one of them
         row.classList.toggle("locked", !open);
         // Only worth showing when there is a service charge (or the item is already marked).
         const svcSwitch = row.querySelector('[data-act="noService"]');
