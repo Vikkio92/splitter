@@ -283,7 +283,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .sheet .sub { color: var(--muted); margin: 0 0 16px; }
 @media (min-width: 640px) {
   .scrim { align-items: center; }
-  .sheet { border-radius: 28px; padding-bottom: 20px; }
+  .sheet { border-radius: 28px; padding: 20px; }   /* a dialog, without the handle: the same room on every side */
   .sheet::before { display: none; }
 }
 .sheet .list { box-shadow: none; background: var(--fill); }
@@ -313,6 +313,11 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 var
    same look through its ::-webkit-scrollbar pseudo-elements (other browsers ignore those once scrollbar-color is set). */
 html { scrollbar-color: var(--scroll) transparent; }
 :where(*) { scrollbar-width: thin; }
+/* The page keeps the scrollbar's room whether or not it scrolls, so nothing shifts sideways when one view is long and
+   the next is short (Splitter's Items tab beside its others, on a computer; phones' scrollbars take no room anyway).
+   Not on the screens that fill the window edge to edge (Mapper's map, Watcher's player, Shior.ino's reader). */
+html { scrollbar-gutter: stable; }
+html:has(body.on-map), html:has(body.playing), html:has(body.reading) { scrollbar-gutter: auto; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
@@ -362,6 +367,8 @@ main.wide { max-width: 1120px; padding: 0 clamp(16px, 4vw, 32px); }
 .tabbar > * > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .tabbar > .on { background: var(--key); color: var(--on-key); }
 .tabbar > .on svg.i { stroke-width: 2.4; }
+/* a count on a tab (what's left to do there): a small pill at the icon's top right */
+.tabbar .tab-badge { position: absolute; top: 5px; left: calc(50% + 5px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--accent); color: var(--on-accent); font: 700 10px/16px var(--font); text-align: center; }
 /* vittyverse.js adds one pill (.tab-thumb) that glides to the current tab instead of each tab lighting up on its own */
 .tabbar.has-thumb > .on { background: transparent; color: var(--text); }
 /* the current tab sits under a lens of clearer glass */
@@ -591,15 +598,19 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="splitter"]) .chip.on .av { opacity: 1; }
 :where([data-app="splitter"]) .chip.all { padding: 4px 11px; color: var(--muted); font-weight: 600; }
 :where([data-app="splitter"]) .chip:disabled { cursor: default; }
-:where([data-app="splitter"]) .item.unassigned { box-shadow: inset 3px 0 0 var(--warn); }
+/* What still needs doing stands out, not what's done: an item nobody (or not everybody) has claimed yet, or one nobody
+   has been ticked for, is outlined in dashed amber, its "2 left" in amber too; a finished one is a plain tile. An
+   outline takes no room, so nothing moves when it goes. */
+:where([data-app="splitter"]) .item.locked.missing, :where([data-app="splitter"]) .item.locked.unassigned { outline: 1.5px dashed var(--warn); outline-offset: -1.5px; }
+:where([data-app="splitter"]) .item.locked.missing .name-text small { color: var(--warn); }
 :where([data-app="splitter"]) .item.locked .chip:not(.on) { display: none; }
-:where([data-app="splitter"]) .item.locked .chip.on { border-color: transparent; }
+:where([data-app="splitter"]) .item.locked .chip.on { border-color: transparent; color: var(--text); }   /* not the shared chip's on-key ink: on a confirmed item's dark card it vanished */
 :where([data-app="splitter"]) .item.locked .qty:placeholder-shown { visibility: hidden; }
 :where([data-app="splitter"]) .payrow { display: grid; grid-template-columns: 1fr 1fr 104px 32px; gap: 6px; align-items: center; }
 :where([data-app="splitter"]) .payrow + .payrow { margin-top: 8px; }
 /* a payment being added or edited: outlined like a draft item, with its Confirm underneath; a confirmed one is
    read-only, with the pencil where the remove button was */
-:where([data-app="splitter"]) .payrow.draft { box-shadow: inset 0 0 0 1.5px var(--warn); border-radius: 14px; padding: 6px; }
+:where([data-app="splitter"]) .payrow.draft { box-shadow: inset 0 0 0 1.5px var(--text); border-radius: 14px; padding: 6px; }
 :where([data-app="splitter"]) .payrow .btn.confirm { grid-column: 1 / -1; justify-self: end; width: 90px; min-height: 34px; padding: 4px; }
 :where([data-app="splitter"]) .payrow .icon-btn[hidden], :where([data-app="splitter"]) .payrow .btn.confirm[hidden] { display: none; }
 :where([data-app="splitter"]) .warn { display: flex; gap: 10px; align-items: flex-start; background: var(--warn-bg); color: var(--warn); border-radius: 16px; padding: 12px 14px; font-size: 14px; margin: 0 0 8px; }
@@ -670,15 +681,49 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="splitter"]) .check.noact .cv { grid-column: 2 / 4; }
 :where([data-app="splitter"]) #checks.flash { animation: flash .9s ease 2; }
 :where([data-app="splitter"]) #modeSeg { margin: 0 0 12px; }
-:where([data-app="splitter"]) #previewReceipt { margin-top: 8px; }
+/* a bill in tabs: only the open tab's sections show, with room under them for the tab bar */
+:where([data-app="splitter"]) .off-tab { display: none !important; }
+:where([data-app="splitter"]) body.tabbed { padding-bottom: calc(env(safe-area-inset-bottom) + 96px); }
+:where([data-app="splitter"]) #foodWait .empty { margin: 0; }
+:where([data-app="splitter"]) body.guest #joinBill, :where([data-app="splitter"]) body.guest #newBill { display: none; }   /* mid-bill a guest needs neither: they're on the Bills page */
+:where([data-app="splitter"]) .check-note { margin: 12px 4px 0; font-size: 13px; font-weight: 600; color: var(--warn); }
+/* How to claim: an item's row, tapped, on a loop. The finger comes in, presses the box, and the row changes; then back. */
+:where([data-app="splitter"]) .how-demo { position: relative; margin: 6px 0 14px; }
+:where([data-app="splitter"]) .how-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--fill); outline: 1.5px dashed transparent; outline-offset: -1.5px; }
+:where([data-app="splitter"]) .how-row .claim { position: relative; animation: how-box 4s infinite; }
+:where([data-app="splitter"]) .how-row .claim b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; letter-spacing: -.02em; }
+:where([data-app="splitter"]) .how-claim .claim b { font-size: 16px; }
+:where([data-app="splitter"]) .how-a { animation: how-before 4s infinite; }
+:where([data-app="splitter"]) .how-b { animation: how-after 4s infinite; }
+:where([data-app="splitter"]) .how-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:where([data-app="splitter"]) .how-price { font: 600 17px var(--display-font); font-variant-numeric: tabular-nums; }
+:where([data-app="splitter"]) .how-row .who { display: flex; }
+:where([data-app="splitter"]) .how-row .who .av { margin-left: -7px; box-shadow: 0 0 0 2px var(--fill); }
+:where([data-app="splitter"]) .how-me { animation: how-after 4s infinite; }
+:where([data-app="splitter"]) .how-claim .how-row { animation: how-missing 4s infinite; }
+:where([data-app="splitter"]) .how-leave .claim { animation-name: how-box-off; }
+:where([data-app="splitter"]) .how-leave .how-me { animation-name: how-before; }
+:where([data-app="splitter"]) .how-tap { position: absolute; left: 30px; top: 28px; width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, var(--text) 35%, transparent); border: 2px solid var(--text); box-shadow: 0 2px 10px rgba(0, 0, 0, .45); pointer-events: none; animation: how-finger 4s infinite; }
+:where([data-app="splitter"]) .how-step p { margin: 0 0 14px; color: var(--text); min-height: 3.2em; }
+:where([data-app="splitter"]) .how-dots { display: flex; justify-content: center; gap: 4px; margin: 0 0 14px; }
+:where([data-app="splitter"]) .how-dots button { width: 22px; height: 22px; display: grid; place-items: center; }
+:where([data-app="splitter"]) .how-dots button::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--line); transition: background-color .2s, scale .2s; }
+:where([data-app="splitter"]) .how-dots button.on::before { background: var(--text); scale: 1.25; }
+@keyframes how-finger { 0%, 14% { opacity: 0; transform: translate(70px, 46px); } 34% { opacity: 1; transform: none; } 38% { opacity: 1; transform: scale(.78); } 44% { opacity: 1; transform: none; } 56%, 100% { opacity: 0; transform: none; } }
+@keyframes how-box { 0%, 38% { background: var(--surface); border-color: color-mix(in srgb, var(--text) 25%, transparent); } 42%, 92% { background: var(--accent); border-color: var(--accent); } 97%, 100% { background: var(--surface); border-color: color-mix(in srgb, var(--text) 25%, transparent); } }
+@keyframes how-box-off { 0%, 38% { background: var(--accent); border-color: var(--accent); } 42%, 92% { background: var(--surface); border-color: color-mix(in srgb, var(--text) 25%, transparent); } 97%, 100% { background: var(--accent); border-color: var(--accent); } }
+@keyframes how-before { 0%, 38% { opacity: 1; } 42%, 92% { opacity: 0; } 97%, 100% { opacity: 1; } }
+@keyframes how-after { 0%, 38% { opacity: 0; } 42%, 92% { opacity: 1; } 97%, 100% { opacity: 0; } }
+@keyframes how-missing { 0%, 38% { outline-color: var(--warn); } 42%, 92% { outline-color: transparent; } 97%, 100% { outline-color: var(--warn); } }
 :where([data-app="splitter"]) .btn.small.on { color: var(--owed); }
 :where([data-app="splitter"]) .banner.owed { background: var(--owed-bg); color: var(--owed); }
 :where([data-app="splitter"]) .banner.settled { background: var(--surface-2); color: var(--text); }
 :where([data-app="splitter"]) body.is-locked .edit { display: none !important; }
 :where([data-app="splitter"]) body.guest .admin-card, :where([data-app="splitter"]) body.guest #shareLink, :where([data-app="splitter"]) body.guest #display, :where([data-app="splitter"]) body.guest #results { display: none !important; }
 :where([data-app="splitter"]) body.guest.unpicked .edit { display: none !important; }
-:where([data-app="splitter"]) .item.locked { background: none; border-radius: 0; padding: 10px 2px; border-bottom: 1px solid var(--line); }
-:where([data-app="splitter"]) .item.locked, :where([data-app="splitter"]) .item + .item.locked { margin-top: 0; }
+/* a confirmed item is a tile like the rest, the same size whatever state it's in, so the text never moves */
+:where([data-app="splitter"]) .item.locked { border-radius: 14px; padding: 10px 12px; }
+:where([data-app="splitter"]) .item.locked, :where([data-app="splitter"]) .item + .item.locked { margin-top: 6px; }
 :where([data-app="splitter"]) .item.locked + .item:not(.locked) { margin-top: 10px; }
 :where([data-app="splitter"]) .item.locked .item-row { grid-template-columns: minmax(0, 1fr) 52px 84px 24px; }
 :where([data-app="splitter"]) .item.locked .qty { display: none; }
@@ -686,7 +731,7 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="splitter"]) .item.locked .money input { padding-left: 12px; padding-right: 0; }
 :where([data-app="splitter"]) .item .who { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 :where([data-app="splitter"]) .item .who .stack { display: flex; padding-left: 7px; }
-:where([data-app="splitter"]) .item .who .av { margin-left: -7px; box-shadow: 0 0 0 2px var(--surface); }
+:where([data-app="splitter"]) .item .who .av { margin-left: -7px; box-shadow: 0 0 0 2px var(--surface-2); }   /* ringed in the tile's own colour */
 :where([data-app="splitter"]) .item .who { gap: 3px; }
 :where([data-app="splitter"]) .item.locked .item-foot:not([hidden]) { margin-top: 4px; }
 :where([data-app="splitter"]) .item.locked input { padding-top: 2px; padding-bottom: 2px; }
@@ -704,20 +749,15 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="splitter"]) .item.locked .item-foot { margin-top: 2px; }
 :where([data-app="splitter"]) .btn.edit { min-height: 34px; padding: 6px 14px; border-radius: 11px; font-size: 14px; }
 :where([data-app="splitter"]) .item.locked .item-foot { justify-content: space-between; }
-:where([data-app="splitter"]) .item.locked.ok { box-shadow: inset 3px 0 0 var(--owed); padding-left: 12px; }
 :where([data-app="splitter"]) .item .name-text { display: none; }
 :where([data-app="splitter"]) .item.locked .name { display: none; }
 :where([data-app="splitter"]) .item.locked .name-text { display: block; font-weight: 600; line-height: 1.25; min-width: 0; }
 :where([data-app="splitter"]) .item.locked .name-text .nt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
 :where([data-app="splitter"]) .item.locked .name-text small { display: block; font-size: 12px; font-weight: 600; color: var(--muted); }
-:where([data-app="splitter"]) .item.locked.ok .name-text { padding-left: 22px; background: var(--tick) no-repeat 0 .2em / 15px; }
-:where([data-app="splitter"]) .item.locked.unassigned { padding-left: 12px; }
-:where([data-app="splitter"]) .prow.ok { box-shadow: inset 3px 0 0 var(--owed); padding: 6px 0 6px 12px; }
-:where([data-app="splitter"]) .prow.ok + .prow.ok { margin-top: 0; border-top: 1px solid var(--line); }
-:where([data-app="splitter"]) .prow.ok input:disabled { padding-left: 22px; background: var(--tick) no-repeat 0 50% / 15px; }
+
 :where([data-app="splitter"]) .btn.confirm { min-height: 36px; padding: 6px 14px; border-radius: 11px; font-size: 14px; background: var(--key); color: var(--on-key); }
 :where([data-app="splitter"]) .item:not(.locked) .btn.confirm { width: 90px; min-height: 34px; padding: 4px; border-radius: 11px; margin: 0 29px 0 auto; }
-:where([data-app="splitter"]) .item.draft { box-shadow: inset 0 0 0 1.5px var(--warn); }
+:where([data-app="splitter"]) .item.draft { box-shadow: inset 0 0 0 1.5px var(--text); }   /* being edited: outlined in the ink, so amber only ever means "still to claim" */
 :where([data-app="splitter"]) .item.flash { animation: flash .9s ease 2; }
 :where([data-app="splitter"]) #addItem { margin-top: 20px; }
 :where([data-app="splitter"]) .item.locked .chip { background: none; padding: 2px 6px 2px 0; font-size: 13px; }
@@ -727,13 +767,16 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="splitter"]) .seg button:disabled { cursor: default; }
 :where([data-app="splitter"]) .claim { width: 34px; height: 34px; border-radius: 10px; border: 2px solid color-mix(in srgb, var(--text) 25%, transparent); background: var(--surface); color: var(--on-accent); font: 700 16px/1 var(--display-font); display: grid; place-items: center; padding: 0; }
 :where([data-app="splitter"]) .claim.on { background: var(--accent); border-color: var(--accent); }
+:where([data-app="splitter"]) .claim.frac { font-size: 12px; letter-spacing: -.02em; }   /* your share, as 1/2 or 2/3 */
 :where([data-app="splitter"]) .claim:disabled { opacity: .3; cursor: default; }
 :where([data-app="splitter"]) body.scan .item-row { grid-template-columns: 34px 1fr 38px 90px 24px; }
 :where([data-app="splitter"]) body.scan .item.locked .item-row { grid-template-columns: 34px minmax(0, 1fr) 52px 84px 24px; }
 :where([data-app="splitter"]) .units-left { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 :where([data-app="splitter"]) .item.unassigned .units-left { color: var(--warn); }
 :where([data-app="splitter"]) .item.locked .chips.pick .chip { display: inline-flex; background: var(--surface); padding: 4px 11px 4px 4px; font-size: 14px; border: 1.5px solid transparent; }
-:where([data-app="splitter"]) .item.locked .chips.pick .chip.on { border-color: var(--text); }
+:where([data-app="splitter"]) .item.locked .chips.pick .chip.on { border-color: var(--text); color: var(--text); }
+:where([data-app="splitter"]) .btn.split.on { color: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
+:where([data-app="splitter"]) .btn.split + .btn.split { margin-right: auto; }   /* Everyone, right beside Just me */
 :where([data-app="splitter"]) body.scan .item-foot .chips { order: -2; flex: 1 1 calc(100% - 80px); }
 :where([data-app="splitter"]) body.scan .item-foot .units-left { order: -1; flex: 0 0 72px; text-align: right; }
 :where([data-app="splitter"]) body.scan .item-foot .units-left:empty, :where([data-app="splitter"]) body.scan .item-foot .chips:empty { display: none; }

@@ -58,6 +58,7 @@
   <header>
     <button class="back-btn" id="homeBtn" aria-label="All bills"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Bills</button>
     <div class="head-actions">
+    <button class="icon-btn" id="helpBtn" aria-label="Tutorial" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 16.5v.01"/></svg></button>
       <button class="icon-btn" id="shareLink" aria-label="Share this bill"><svg class="i" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
       <button class="icon-btn" id="joinBill" aria-label="Join a bill"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></button>
       <button class="icon-btn" id="newBill" aria-label="New bill"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -90,11 +91,11 @@
     <p class="legal">Protected by reCAPTCHA. Google's <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Terms of Service</a> apply.</p>
   </section>
 
-  <section class="display" id="display"></section>
+  <section class="display" id="display" data-tab="setup"></section>
 
-  <section class="card" id="receipt" hidden></section>
+  <section class="card" id="receipt" data-tab="split" data-gtab="receipt" hidden></section>
 
-  <section class="card edit admin-card" data-sec="meta" id="billCard">
+  <section class="card edit admin-card" data-sec="meta" id="billCard" data-tab="setup">
     <div class="card-head"><h2>Bill</h2></div>
     <div class="tiles">
       <label class="tile wide"><span>Bill name</span><input data-f="name" placeholder="e.g. Friday at Dishoom" autocomplete="off" maxlength="60"></label>
@@ -103,7 +104,7 @@
     </div>
   </section>
 
-  <section class="card edit admin-card">
+  <section class="card edit admin-card" data-tab="setup">
     <div class="card-head"><h2>People</h2><span class="count" id="peopleCount"></span></div>
     <p class="empty" id="peopleEmpty">No one yet. Add everyone at the table.</p>
     <div id="people" data-sec="people"></div>
@@ -113,18 +114,18 @@
     </div>
   </section>
 
-  <section class="card edit" id="itemsCard">
-    <div class="card-head"><h2 id="itemsHead">Food &amp; drinks</h2><span class="count" id="itemsCount"></span></div>
-    <div class="btn-row" id="modeSeg" data-admin><button class="btn add dark" data-mode="manual">Manual</button><button class="btn add dark" data-mode="scan">Scan receipt</button></div>
-    <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
-    <div id="items" data-sec="items"></div>
+  <section class="card" id="foodWait" data-tab="food" hidden><p class="empty">Confirm everyone at the table under Setup first.</p></section>
+
+  <section class="card edit" id="itemsCard" data-tab="food">
+    <div class="card-head"><h2 id="itemsHead">Items</h2><span class="count" id="itemsCount"></span></div>
     <button class="btn add primary" id="scanBtn" hidden><svg class="i" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 9h8M8 12h8M8 15h5"/></svg>Scan receipt</button>
     <input type="file" id="scanFile" accept="image/*" hidden>
+    <p class="empty" id="itemsEmpty">Nothing yet. Add what was ordered.</p>
+    <div id="items" data-sec="items"></div>
     <button class="btn add primary" id="addItem"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add new item</button>
-    <button class="btn add dark" id="previewReceipt" hidden>See my receipt</button>
   </section>
 
-  <section class="card edit admin-card" id="paymentsCard">
+  <section class="card edit admin-card" id="paymentsCard" data-tab="payments">
     <div class="card-head"><h2>Payments</h2></div>
     <p class="empty" id="paymentsEmpty">No payments yet.</p>
     <div id="payments" data-sec="payments"></div>
@@ -134,10 +135,18 @@
     </div>
   </section>
 
-  <section class="card" id="checks" hidden></section>
+  <section class="card" id="checks" data-tab="split" data-gtab="food" hidden></section>
 
-  <section class="card" id="results"></section>
+  <section class="card" id="results" data-tab="split"></section>
 </main>
+
+<nav class="tabbar" id="tabs" aria-label="Sections" hidden>
+  <button data-tab="setup"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg><span>Setup</span></button>
+  <button data-tab="food"><svg class="i" viewBox="0 0 24 24"><path d="M7 3v7a2 2 0 0 0 4 0V3M9 12v9M17 3c-1.7 1.2-2.5 3.2-2.5 6v4H17m0-10v18"/></svg><b class="tab-badge" hidden></b><span>Items</span></button>
+  <button data-tab="payments"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 14.5h3"/></svg><span>Payments</span></button>
+  <button data-tab="split"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.4 6.4"/></svg><b class="tab-badge" hidden></b><span>Split</span></button>
+  <button data-tab="receipt"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg><span>Receipt</span></button>
+</nav>
 
 <div class="modal" id="modal" hidden>
   <div class="scrim" id="scrim"></div>
@@ -192,6 +201,7 @@
   //   items:    { id: {name, price, qty, order, people: {personId: true}} },
   //   In scan mode (meta.mode "scan") items are claimed unit by unit instead of ticked:
   //   items.units: { personId: {n, with: {personId: true}} } — n of the item, shared with `with`;
+  //   or { personId: {in: claimerId} }: sharing someone else's claim (one of their n), written by the person joining;
   //   items.rev counts claim changes, so two phones can't both take the last one.
   //   payments: { id: {personId, amount, note, order} } }
   //   items also carry createdBy (device uid) once the bill is shared,
@@ -267,7 +277,8 @@
       }), payments: cleanMap(v.payments),
       items: cleanMap(v.items, (it) => Object.assign({}, it, {
         people: cleanMap(it && it.people),
-        units: cleanMap(it && it.units, (u) => ({ n: Math.max(0, Math.min(999, Math.floor(Number(u && u.n) || 0))), with: cleanMap(u && u.with) })),
+        units: cleanMap(it && it.units, (u) => ({ n: Math.max(0, Math.min(999, Math.floor(Number(u && u.n) || 0))), with: cleanMap(u && u.with),
+          ...(u && SAFE_ID.test(String(u.in || "")) ? { in: String(u.in) } : {}) })),
       })),
       claims: cleanMap(v.claims), devices: cleanMap(v.devices),
     };
@@ -456,7 +467,7 @@
   function closeCurrent(nextId) {
     if (localId && localId !== nextId && isEmptyBill(state)) dropBill(localId);
     if (remote) leaveShared();
-    localId = null; receiptWho = null; payDrafts = {};
+    localId = null; receiptWho = null; payDrafts = {}; tab = null;
   }
   function switchTo(id, key) {
     closeCurrent(id);
@@ -471,6 +482,17 @@
   }
   // The home page: no bill open, just "New bill" and the list of bills on this phone.
   let home = false;
+  // A bill is in tabs (the suite's tab bar). The admin's: Setup (the total, the bill, the people), Items, Payments, and
+  // Split (the checklist, who pays what, who pays whom); it opens on Setup until the people are confirmed, then on
+  // Items. A guest's, once they've said who they are: Items and Receipt (theirs so far). `tab` is the one you picked
+  // since the bill opened. A locked bill is one page.
+  let tab = null;
+  const guestTabs = () => !!billId && !isAdmin;
+  const tabbed = () => !home && loaded && !state.meta.locked && (isAdmin || !!meId());
+  const tabsFor = () => (guestTabs() ? ["food", "receipt"] : ["setup", "food", "payments", "split"]);
+  const tabNow = () => (tab && tabsFor().includes(tab) ? tab : guestTabs() || state.meta.peopleLocked ? "food" : "setup");
+  // Something on another tab needs looking at (an item still being edited, the bill total): go there first.
+  function goTab(t) { if (tabbed() && tabNow() !== t) { tab = t; render(); } }
   function goHome() {
     closeCurrent(null);
     home = true; billId = null; loaded = true; isAdmin = true;
@@ -639,7 +661,9 @@
   }
 
   // ---------- scan mode ----------
-  function scanMode() { return state.meta.mode === "scan"; }
+  // Every new bill works one way: the admin scans the receipt and adds anything it missed, and everyone claims what
+  // they had. Bills from before that keep the way they were made ("manual": everyone added their own items).
+  function scanMode() { return state.meta.mode === "scan" || !modeChosen(); }
   // Older bills have no mode saved: if they already have items (or are locked), they're manual.
   function modeChosen() { return !!state.meta.mode || Object.keys(state.items).length > 0 || !!state.meta.locked; }
   // Units of an item claimed so far, counting only people still on the bill.
@@ -648,6 +672,59 @@
     return Object.keys(u).reduce((s, pid) => s + (state.people[pid] && u[pid].n > 0 ? u[pid].n : 0), 0);
   }
   function canClaim() { return !state.meta.locked && (billId ? !!meId() : true); }
+  // A single item (one burrata, one bottle) that more than one person claims is shared, not claimed too many times:
+  // everyone on any of its claims, and anyone they shared theirs with, pays an equal part. Each phone only ever
+  // writes its own claim, so tapping someone else's single item joins it without touching theirs.
+  // Each claim with the people sharing it: the claimer, whoever they ticked, and whoever joined it themselves (a tap on
+  // an item that's all claimed: "Which one did you share?"). [{c: claimer, n, who: [...]}]
+  // "All N" pools it: once anyone says they all shared equally (in: "all"), every claim on the item is one share, split
+  // equally by everyone on it.
+  const POOL = "all";
+  function pooled(it) {
+    const u = it.units || {};
+    return Object.keys(u).some((x) => state.people[x] && !(u[x].n > 0) && u[x].in === POOL);
+  }
+  function claimsOf(it) {
+    const u = it.units || {};
+    const claimers = Object.keys(u).filter((c) => state.people[c] && u[c].n > 0);
+    if (claimers.length && pooled(it)) {
+      const who = [];
+      claimers.forEach((c) => [c].concat(Object.keys(u[c].with || {})).forEach((x) => { if (state.people[x] && !who.includes(x)) who.push(x); }));
+      Object.keys(u).forEach((x) => { if (state.people[x] && !(u[x].n > 0) && u[x].in && !who.includes(x)) who.push(x); });
+      return [{ c: claimers[0], n: claimers.reduce((t, c) => t + u[c].n, 0), who }];
+    }
+    return claimers.map((c) => {
+      const who = [c];
+      Object.keys(u[c].with || {}).concat(Object.keys(u).filter((x) => !(u[x].n > 0) && u[x].in === c))
+        .forEach((x) => { if (state.people[x] && !who.includes(x)) who.push(x); });
+      return { c, n: u[c].n, who };
+    });
+  }
+  function sharersOf(it) {
+    const out = [];
+    claimsOf(it).forEach((g) => g.who.forEach((x) => { if (!out.includes(x)) out.push(x); }));
+    return out;
+  }
+  const single = (it) => qty(it.qty) === 1;
+  // How much of an item someone is paying for, as [numerator, denominator]: a single item shared three ways is 1/3,
+  // and of a bigger one, each claim they're on counts its units over the people sharing it (1 of 2 pizzas, shared
+  // with one other: 1/2).
+  function portionOf(it, pid) {
+    const u = it.units || {}, gcd = (a, b) => (b ? gcd(b, a % b) : a);
+    if (single(it)) { const all = sharersOf(it); return all.includes(pid) ? [1, all.length] : [0, 1]; }
+    let num = 0, den = 1;
+    claimsOf(it).forEach(({ n, who: group }) => {
+      if (!group.includes(pid)) return;
+      num = num * group.length + n * den; den *= group.length;
+      const g = gcd(num, den); num /= g; den /= g;
+    });
+    return [num, den];
+  }
+  function portionText([num, den]) {
+    if (!num) return "";
+    if (den === 1) return String(num);
+    return num < den ? num + "/" + den : (num / den).toFixed(1).replace(/\.0$/, "");
+  }
 
   // Tap the box: claim one more, and after the last one available go back to none.
   // `pid` is set when the admin taps someone else's name while editing the item.
@@ -665,11 +742,33 @@
     const it = state.items[id];
     if (!it || !pid) return;
     const u = (it.units || {})[pid], cur = u && u.n > 0 ? u.n : 0;
+    const base = "items/" + id + "/", rev = { [base + "rev"]: (it.rev || 0) + 1 };
+    // sharing someone's claim you joined: a tap leaves it
+    if (!cur && u && u.in) { splitOpen.delete(id); return write({ ...rev, [base + "units/" + pid]: null }); }
+    const tickedBy = () => Object.keys(it.units || {}).filter((c) => c !== pid && ((it.units[c].with || {})[pid])).map(personName);
+    if (!cur && single(it) && portionOf(it, pid)[0])
+      return toast((tickedBy().join(" and ") || "Someone") + " shared this with you: only they can take you off it");
+    // all of a bigger item claimed already: you shared one of them, so say whose
+    if (!cur && !single(it) && claimedOf(it) >= qty(it.qty)) {
+      if (portionOf(it, pid)[0]) return toast((tickedBy().join(" and ") || "Someone") + " shared this with you: only they can take you off it");
+      const groups = claimsOf(it);
+      const label = (g) => { const names = g.who.map(personName); return (names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0]) + (g.n > 1 ? " (" + g.n + ")" : ""); };
+      // or all of them: everyone on the item, and you, share the lot equally
+      const everyone = sharersOf(it).length + 1;
+      const c = pooled(it) ? POOL : groups.length === 1 ? groups[0].c : await sheet({
+        title: pid === myself() ? "Which one did you share?" : "Which one did " + personName(pid) + " share?",
+        text: "All " + qty(it.qty) + " have been claimed. Pick the one that was shared, and it's split with them.",
+        buttons: groups.map((g) => ({ label: label(g), value: g.c })).concat([{ label: "All " + everyone, value: POOL }, { label: "Cancel", value: null }]),
+      });
+      if (!c) return;
+      splitOpen.delete(id);
+      return write({ ...rev, [base + "units/" + pid]: { in: c } }, "Someone changed this at the same moment. Tap again");
+    }
     const left = Math.max(0, qty(it.qty) - claimedOf(it));
-    const next = left > 0 ? cur + 1 : 0;
-    if (!cur && !next) return toast(qty(it.qty) > 1 ? "All " + qty(it.qty) + " have been claimed" : "Someone has already claimed this");
-    const base = "items/" + id + "/", p = { [base + "rev"]: (it.rev || 0) + 1 };
-    if (next) p[base + "units/" + pid + "/n"] = next;
+    const next = single(it) ? (cur ? 0 : 1) : left > 0 ? cur + 1 : 0;
+    if (!cur && !next) return toast("Someone has already claimed this");
+    const p = { ...rev };
+    if (next) { p[base + "units/" + pid + "/n"] = next; if (u && u.in) p[base + "units/" + pid + "/in"] = null; }
     else { p[base + "units/" + pid] = null; splitOpen.delete(id); }
     write(p, "Someone claimed this at the same moment. Check what's left and tap again");
   }
@@ -804,6 +903,7 @@
     if (total > 0 && total < 1e9) p["meta/billTotal"] = cents(total);
     const venue = String(data.venue || "").replace(/\s+/g, " ").trim().slice(0, 60);
     if (!String(state.meta.name || "").trim() && venue) p["meta/name"] = venue;
+    if (!state.meta.mode) p["meta/mode"] = "scan";
     write(p);
 
     const r = compute(), discount = Math.round((Number(data.discount) || 0) * 100);
@@ -948,9 +1048,8 @@
   async function shareLink() {
     if (!window.FIREBASE_CONFIG) return info("Sharing isn't set up", "Add your Firebase settings to firebase-config.js (see README).");
     if (!billId) {
-      // Friends join a bill that's ready: everyone at the table confirmed, and Manual or Scan chosen.
+      // Friends join a bill that's ready: everyone at the table confirmed.
       if (!state.meta.peopleLocked) return info("Confirm the people first", "Add everyone at the table under People, then tap Confirm. After that you can share the bill.");
-      if (!modeChosen()) return info("Choose how to add the items first", "Under Food & drinks, choose Manual or Scan receipt. After that you can share the bill.");
       if (!String(state.meta.name || "").trim()) {
         const name = await sheet({
           title: "Name this bill", text: "It's how everyone finds it in their list of bills.",
@@ -1099,17 +1198,27 @@
       if (scan) {
         // Each claim is n units, split equally between the claimer and anyone they shared it with.
         const unit = price(it.price) * 100, name = String(it.name || "").trim() || "Item";
-        let claimed = 0;
-        Object.keys(it.units || {}).forEach((pid) => {
-          const u = it.units[pid];
-          if (!own(base, pid) || !(u.n > 0)) return;
-          claimed += u.n;
-          const who = [pid].concat(Object.keys(u.with || {}).filter((w) => w !== pid && own(base, w)));
-          const part = splitPennies(Math.round(unit * u.n), who, extra);
+        if (single(it)) {
+          const who = sharersOf(it).filter((id) => own(base, id));
+          if (!who.length) { unassigned += unit; unassignedWithService += unit * f; unclaimed.push(name); return; }
+          const part = splitPennies(Math.round(unit), who, extra);
           who.forEach((id) => {
             base[id] += part[id];
             raw[id] += part[id] * f;
-            lines[id].push({ name, amt: part[id], n: who.length, q: u.n, ns });
+            lines[id].push({ name, amt: part[id], n: who.length, q: 1, ns });
+          });
+          return;
+        }
+        let claimed = 0;
+        claimsOf(it).forEach((g) => {
+          if (!own(base, g.c)) return;
+          claimed += g.n;
+          const who = g.who.filter((w) => own(base, w));
+          const part = splitPennies(Math.round(unit * g.n), who, extra);
+          who.forEach((id) => {
+            base[id] += part[id];
+            raw[id] += part[id] * f;
+            lines[id].push({ name, amt: part[id], n: who.length, q: g.n, ns });
           });
         });
         if (claimed < qty(it.qty)) {
@@ -1276,7 +1385,10 @@
     $("#codePill").hidden = !isAdmin || !code;
     // Once you've confirmed who you are, you can add your own Monzo / Revolut username.
     const mine = meId(), apps = mine ? payApps(mine) : "";
-    $("#myMonzo").hidden = !mine;
+    const settled = !isAdmin && !!mine;
+    $("#myMonzo").hidden = !mine || settled;
+    $("#role").hidden = settled;
+    bar.querySelector(".me").hidden = settled;
     $("#myMonzo").classList.toggle("on", !!apps);
     setPayLabel($("#myMonzo"), mine);
     if (code) $("#codePill").textContent = formatCode(code);
@@ -1284,6 +1396,12 @@
 
   function render() {
     document.body.classList.toggle("home", home);
+    const tabs = tabbed(), on = tabNow();
+    document.body.classList.toggle("tabbed", tabs);
+    $("#tabs").hidden = !tabs;
+    const mine = tabsFor(), gt = guestTabs();
+    document.querySelectorAll("#tabs [data-tab]").forEach((b) => { b.hidden = !mine.includes(b.dataset.tab); b.classList.toggle("on", b.dataset.tab === on); });
+    document.querySelectorAll("main > [data-tab]").forEach((el) => el.classList.toggle("off-tab", tabs && ((gt && el.dataset.gtab) || el.dataset.tab) !== on));
     if (home) return renderHome();
     const people = sorted(state.people);
     const items = sorted(state.items);
@@ -1293,6 +1411,11 @@
     document.querySelectorAll('[data-sec="meta"] [data-f]').forEach((i) => { setVal(i, state.meta[i.dataset.f]); i.disabled = !admin; });
     document.querySelectorAll("[data-admin]").forEach((b) => { b.hidden = !admin; });
     const guest = !!billId && !isAdmin;
+    $("#helpBtn").hidden = !guest || !!state.meta.locked;
+    if (guest && tabs && on === "food" && (bills().find((b) => b.id === billId) || { tut: true }).tut !== true) {
+      upsertBill({ id: billId, tut: true });
+      setTimeout(() => { if (!closeSheet && billId && tabbed() && tabNow() === "food") howToClaim(); }, 450);
+    }
     document.body.classList.toggle("guest", guest);
     document.body.classList.toggle("unpicked", !picked());
     $("#billTitle").textContent = loaded ? billName(state.meta) : billName(bills().find((b) => b.id === billId));
@@ -1302,17 +1425,14 @@
     $("#whoami").textContent = (meNow ? personName(meNow) + " · " : "") + (billId && !isAdmin ? "Guest" : "Admin");
     const scan = scanMode();
     document.body.classList.toggle("scan", scan);
-    // Manual or Scan is chosen once, before any items; after that the choice is gone for good.
-    const chosen = modeChosen();
-    $("#modeSeg").hidden = !admin || chosen;
-    document.querySelectorAll("#modeSeg [data-mode]").forEach((b) => { b.disabled = !admin; });
-    $("#addItem").hidden = !picked() || (scan && !admin) || !chosen;
+    $("#addItem").hidden = !picked() || (scan && !admin);
     $("#scanBtn").hidden = !scan || !admin;
     // People are confirmed once by the admin; after that nobody can be added, removed or renamed,
     // and only then does Food & drinks appear for the admin.
     const peopleLocked = !!state.meta.peopleLocked;
     $("#peopleActions").hidden = !admin || peopleLocked;
     $("#itemsCard").hidden = isAdmin && !peopleLocked;
+    $("#foodWait").hidden = !(isAdmin && !peopleLocked);
     $("#peopleEmpty").hidden = people.length > 0;
     $("#peopleCount").textContent = people.length ? people.length + (people.length === 1 ? " person" : " people") + (peopleLocked ? " · confirmed" : "") : "";
     $("#paidAll").textContent = "Pay the rest";
@@ -1321,12 +1441,12 @@
     const shown = guest && !scan
       ? visible.filter((it) => (it.createdBy && it.createdBy === authUid) || (myPerson && (it.people || {})[myPerson]))
       : visible;
-    $("#itemsHead").textContent = "Food & drinks";
-    $("#previewReceipt").hidden = !guest || !meId() || !!state.meta.locked;
-    $("#previewReceipt").textContent = receiptPreview ? "Hide my receipt" : "See my receipt";
-    $("#itemsEmpty").textContent = !chosen ? (admin ? "Choose how to add the items: type them in, or scan the receipt." : "Nothing yet.")
-      : !scan ? "Nothing yet. Add what was ordered." : admin ? "Nothing yet. Scan the receipt to fill this in." : "Nothing yet. The receipt hasn't been scanned.";
-    $("#itemsCount").textContent = shown.length ? shown.length + (shown.length === 1 ? " item" : " items") : "";
+    $("#itemsEmpty").textContent = !scan ? "Nothing yet. Add what was ordered."
+      : admin ? "Nothing yet. Scan the receipt, then add anything it missed." : "Nothing yet. The receipt hasn't been scanned.";
+    const counted = shown.filter((it) => !it.draft);
+    if (!(guest && tabs)) $("#itemsCount").textContent = !shown.length ? "" : scan && counted.length
+      ? counted.filter((it) => (single(it) ? sharersOf(it).length > 0 : claimedOf(it) >= qty(it.qty))).length + " of " + counted.length + " claimed"
+      : shown.length + (shown.length === 1 ? " item" : " items");
     renderBar();
 
     syncList($("#people"), people,
@@ -1380,7 +1500,7 @@
         '<label class="money"><span class="cur"></span><input data-f="price" placeholder="0.00" inputmode="decimal" aria-label="Price each" maxlength="12"></label>' +
         '<button class="icon-btn" data-act="delItem" aria-label="Remove">' + ICON.x + '</button>' +
         '<button class="icon-btn" data-act="editItem" aria-label="Edit">' + ICON.edit + "</button></div>" +
-        '<div class="item-foot"><button class="btn split" data-act="split"></button><div class="chips"></div><span class="units-left"></span>' +
+        '<div class="item-foot"><button class="btn split" data-act="split"></button><button class="btn split" data-act="everyone">Everyone</button><div class="chips"></div><span class="units-left"></span>' +
         '<button class="btn nosvc" data-act="noService">No service</button>' +
         '<button class="btn confirm" data-act="confirmItem">Confirm</button></div></div>'),
       (row, it) => {
@@ -1430,6 +1550,7 @@
         const simple = open;
         const splitBtn = row.querySelector('[data-act="split"]');
         splitBtn.hidden = !simple;
+        row.querySelector('[data-act="everyone"]').hidden = true;   // bills from before Everyone: as they were
         splitBtn.textContent = myRow
           ? (splitting ? "Just me" : "Split with others")
           : (splitting ? "Done" : assigned.length ? "Who had it: " + assigned.map(personName).join(", ") : "Who had it?");
@@ -1458,46 +1579,45 @@
 
     // Scan mode: the box claims units of the item; the foot shows who has claimed what and what's left.
     function updateScanItem(row, it, open) {
-      const me = myself(), units = it.units || {}, q = qty(it.qty), claimed = claimedOf(it), left = q - claimed;
+      const me = myself(), units = it.units || {}, q = qty(it.qty), one = q === 1;
+      const claimed = one ? Math.min(1, claimedOf(it)) : claimedOf(it), left = q - claimed;
       const mineN = me && units[me] && units[me].n > 0 ? units[me].n : 0;
       const box = row.querySelector('[data-act="claim"]');
-      box.textContent = mineN ? String(mineN) : "";
-      box.classList.toggle("on", mineN > 0);
-      box.disabled = !canClaim() || (!mineN && left <= 0);
-      box.setAttribute("aria-label", mineN ? "You had " + mineN + ", tap to change" : "Tap if you had this");
+      const part = me ? portionOf(it, me) : [0, 1], partText = portionText(part);
+      box.textContent = partText;
+      box.classList.toggle("on", part[0] > 0);
+      box.classList.toggle("frac", partText.length > 2);
+      box.disabled = !canClaim();
+      box.setAttribute("aria-label", part[0] ? "Your share: " + partText + ", tap to change" : one && claimed ? "Tap if you shared this" : "Tap if you had this");
       row.classList.toggle("ok", !open && price(it.price) > 0 && q > 0 && claimed === q);
       row.classList.toggle("unassigned", claimed > q);
+      row.classList.toggle("missing", !open && claimed < q);   // still to be claimed: outlined
       const leftText = claimed > q ? claimed - q + " too many" : q > 1 && left > 0 ? left + " left" : "";
       row.querySelector(".units-left").textContent = open ? leftText : "";
       // everyone who has a share: the claimers and whoever they're splitting with
-      const sharing = [];
-      Object.keys(units).filter((pid) => state.people[pid] && units[pid].n > 0).forEach((pid) => {
-        [pid].concat(Object.keys(units[pid].with || {})).forEach((x) => { if (state.people[x] && !sharing.includes(x)) sharing.push(x); });
-      });
+      const sharing = sharersOf(it);
       setWho(row.querySelector(".who"), sharing);
       setNameText(row, it, leftText);
-      const sharedWith = mineN ? Object.keys(units[me].with || {}).filter((p) => state.people[p] && p !== me) : [];
-      const splitting = !open && mineN > 0 && (sharedWith.length > 0 || splitOpen.has(it.id));
-      const splitBtn = row.querySelector('[data-act="split"]');
-      splitBtn.hidden = open || !mineN || !canClaim();
-      splitBtn.textContent = splitting ? "Just me" : "Split with others";
+      // Sharing for others is in the admin's edit view (the pencil): a name gives that person one (a single item with
+      // several names is shared between them), and Everyone shares it with the whole table. A row is one line.
+      row.querySelector('[data-act="split"]').hidden = true;
+      const allBtn = row.querySelector('[data-act="everyone"]');
+      allBtn.hidden = !open || !canAdmin() || people.length < 2;
+      allBtn.classList.toggle("on", people.length > 0 && people.every((p) => sharing.includes(p.id)) && claimedOf(it) >= q);
       row.classList.toggle("solo", false);
-      row.classList.toggle("splitting", splitting);
+      row.classList.toggle("splitting", false);
       const chips = row.querySelector(".chips");
-      chips.classList.toggle("pick", splitting);
+      chips.classList.remove("pick");
       let kids = [];
       if (open) {          // the admin, editing: tap a name to give them one more (cycles back to none)
         kids = people.map((p) => {
           const n = units[p.id] && units[p.id].n > 0 ? units[p.id].n : 0;
-          return chipNode(p.id, "unit", personName(p.id) + (n && q > 1 ? " ×" + n : ""), n > 0);
+          return chipNode(p.id, "unit", personName(p.id) + (n && q > 1 ? " ×" + n : ""), n > 0 || sharing.includes(p.id));
         });
-      } else if (splitting) {   // who you're sharing your claim with
-        kids = people.filter((p) => p.id !== me).map((p) => chipNode(p.id, "with", personName(p.id), sharedWith.includes(p.id)));
       }                    // otherwise: who has claimed it is in the row itself
       chips.replaceChildren(...kids);
       chips.dataset.key = "";   // manual-mode buttons get rebuilt if this box is reused
-      // A second line only for editing, or for splitting what you claimed.
-      row.querySelector(".item-foot").hidden = !open && splitBtn.hidden && !splitting;
+      row.querySelector(".item-foot").hidden = !open;
     }
 
     const opts = personOptions(people);
@@ -1528,6 +1648,7 @@
 
     renderResults();
     renderChecks();
+    renderCounts();
     renderDisplay();
     renderReceipt();
   }
@@ -1554,7 +1675,6 @@
 
   // Once the admin locks the bill, everyone sees their own receipt instead of the editor.
   let receiptWho = null;   // whose receipt the admin is looking at (defaults to their own)
-  let receiptPreview = false;   // a guest looking at their receipt before the bill is locked
   function receiptPerson() {
     if (!canAdmin()) return meId();
     if (receiptWho && state.people[receiptWho]) return receiptWho;
@@ -1565,7 +1685,8 @@
   function renderReceipt() {
     const box = $("#receipt");
     const locked = loaded && !!state.meta.locked;
-    const preview = loaded && !locked && receiptPreview && !canAdmin() && !!meId();
+    // a guest's Receipt tab: theirs so far, before the bill is locked
+    const preview = loaded && !locked && guestTabs() && tabbed() && tabNow() === "receipt";
     document.body.classList.toggle("is-locked", locked);
     box.hidden = !locked && !preview;
     if (preview) { if (box.previousElementSibling !== $("#itemsCard")) $("#itemsCard").after(box); }
@@ -1619,7 +1740,8 @@
       });
       h += '<span class="sep"></span><span class="big">' + (net > 0 ? "To pay" : net < 0 ? "To receive" : "Balance") +
         '</span><span class="big">' + money(Math.abs(net)) + "</span></div>";
-      h += '<div class="actions"><button class="btn dark" data-act="shareReceipt">' + ICON.share + "Share receipt</button></div>";
+      h += '<div class="actions"><button class="btn dark" data-act="shareReceipt">' + ICON.share + "Share receipt</button>" +
+        (you && billId && !isAdmin ? '<button class="btn dark" data-act="addMyMonzo">' + (payApps(who) ? '<span class="tk"></span>' : "") + "Pay links</button>" : "") + "</div>";
     }
     if (canAdmin()) {
       h += '<div class="actions"><button class="btn dark" data-act="unlock">' + ICON.unlock + "Unlock</button>" +
@@ -1695,7 +1817,7 @@
   }
   function renderChecks() {
     const box = $("#checks");
-    box.hidden = !loaded || !!state.meta.locked;
+    box.hidden = !loaded || !!state.meta.locked || (!!billId && !isAdmin);
     if (box.hidden) return;
     const list = checks(last), toFix = list.filter((c) => c.ok === false).length;
     setHTML(box, '<div class="card-head"><h2>Checklist</h2><span class="count">' + (toFix ? toFix + " to fix" : "All good") + "</span></div>" + list.map((c) =>
@@ -1703,7 +1825,34 @@
       '<span class="cl">' + esc(c.label) + "</span>" +
       '<span class="cv">' + esc(c.value) + (c.note ? "<small>" + esc(c.note) + "</small>" : "") + "</span>" +
       (c.action ? '<span class="cact"><button class="btn small dark" data-act="' + c.action.act + '">' + esc(c.action.label) + "</button></span>" : "") +
-      "</div>").join(""));
+      "</div>").join("") + idleNote());
+  }
+
+  // Who to chase before locking: the people with nothing claimed yet.
+  function idleNote() {
+    if (!scanMode() || !Object.values(state.items).some((it) => !it.draft)) return "";
+    const idle = last.people.filter((p) => !last.lines[p.id].length).map((p) => personName(p.id));
+    if (!idle.length) return "";
+    const names = idle.length === last.people.length ? "Nobody has" : (idle.length > 1 ? idle.slice(0, -1).join(", ") + " and " + idle[idle.length - 1] + " haven't" : idle[0] + " hasn't");
+    return '<p class="check-note">' + esc(names) + " claimed anything yet.</p>";
+  }
+
+  // The admin's tab bar counts what's left: items still to claim, and things to fix before locking. A guest's Items
+  // header says their share so far, where the admin's says how many are claimed.
+  function renderCounts() {
+    const tabs = tabbed() && !!last, gt = guestTabs(), me = meId();
+    if (!tabs) {   // nothing to count yet (still loading), or no tabs
+      document.querySelectorAll("#tabs .tab-badge").forEach((b) => { b.hidden = true; });
+      return;
+    }
+    const badge = (t, n) => { const b = $('#tabs [data-tab="' + t + '"] .tab-badge'); b.hidden = !tabs || gt || !n; b.textContent = n || ""; };
+    badge("food", scanMode() ? last.unclaimed.length : 0);
+    badge("split", checks(last).filter((c) => c.ok === false).length);
+    if (gt && me) {
+      const count = $("#itemsCount"), text = "Your share so far " + money(last.share[me] || 0);
+      if (count.textContent.startsWith("Your share") && count.textContent !== text) VV.pulse(count);
+      count.textContent = text;
+    }
   }
 
   let last = null;
@@ -1820,7 +1969,10 @@
           const it = state.items[iid], u = it.units || {};
           if ((it.people || {})[id]) paths["items/" + iid + "/people/" + id] = null;
           if (u[id]) paths["items/" + iid + "/units/" + id] = null;
-          Object.keys(u).forEach((o) => { if (o !== id && (u[o].with || {})[id]) paths["items/" + iid + "/units/" + o + "/with/" + id] = null; });
+          Object.keys(u).forEach((o) => {
+            if (o !== id && (u[o].with || {})[id]) paths["items/" + iid + "/units/" + o + "/with/" + id] = null;
+            if (o !== id && u[o].in === id) paths["items/" + iid + "/units/" + o] = null;
+          });
         });
         Object.keys(state.payments).forEach((pid) => { if (state.payments[pid].personId === id) paths["payments/" + pid] = null; });
         return write(paths);
@@ -1832,22 +1984,7 @@
         return write({ ["claims/" + id]: null, ["devices/" + claimedBy(id)]: null });
       case "claim": return claimUnit(id, null);
       case "unit": return claimUnit(id, b.dataset.p);
-      case "with": {
-        const me = myself(), it = state.items[id], pid = b.dataset.p;
-        if (!me || !it) return;
-        const on = (((it.units || {})[me] || {}).with || {})[pid];
-        return write({ ["items/" + id + "/units/" + me + "/with/" + pid]: on ? null : true, ["items/" + id + "/rev"]: (it.rev || 0) + 1 });
-      }
-      case "split": if (scanMode()) {
-        const me = myself(), it = state.items[id], w = ((it.units || {})[me] || {}).with || {};
-        if (Object.keys(w).length || splitOpen.has(id)) {
-          splitOpen.delete(id);
-          if (Object.keys(w).length) return write({ ["items/" + id + "/units/" + me + "/with"]: null, ["items/" + id + "/rev"]: (it.rev || 0) + 1 });
-          return render();
-        }
-        splitOpen.add(id);
-        return render();
-      }
+      case "split": if (scanMode()) return;   // bills from before: Split with others (below)
       // falls through: manual mode
       case "msplit": {
         const me = myself(), others = Object.keys(state.items[id].people || {}).filter((p) => p !== me);
@@ -1861,6 +1998,21 @@
         }
         splitOpen.add(id);
         return render();
+      }
+      // The admin, editing an item: the whole table shares it. A single item is everyone's own claim (so anyone can
+      // still take themselves off); a bigger one is held by one person and pooled, everyone sharing the lot equally.
+      // Pressed again, it's nobody's.
+      case "everyone": {
+        const it = state.items[id];
+        if (!it || !canAdmin()) return;
+        const ids = sorted(state.people).map((p) => p.id), on = sharersOf(it);
+        const all = ids.length > 0 && ids.every((x) => on.includes(x)) && claimedOf(it) >= qty(it.qty);
+        const units = {};
+        if (!all) {
+          const holder = ids.includes(myself()) ? myself() : ids[0];
+          ids.forEach((x) => { units[x] = single(it) ? { n: 1 } : x === holder ? { n: qty(it.qty) } : { in: POOL }; });
+        }
+        return write({ ["items/" + id + "/units"]: all ? null : units, ["items/" + id + "/rev"]: (it.rev || 0) + 1 });
       }
       case "noService": {
         const on = !!(state.items[id] || {}).noService;
@@ -1970,6 +2122,7 @@
         const bad = checks(r).filter((c) => c.ok === false);
         // A missing bill total on its own gets the "Set bill = total" popup below; anything else, see the checklist.
         if (bad.length && !(bad.length === 1 && bad[0].key === "bill")) {
+          goTab("split");
           const box = $("#checks");
           box.scrollIntoView({ behavior: "smooth", block: "center" });
           box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
@@ -2042,6 +2195,7 @@
   });
   // Scroll to an item you're still editing and make it flash.
   function showDraft(id, msg) {
+    goTab("food");
     const row = $('#items [data-id="' + id + '"]');
     if (row) {
       row.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2066,8 +2220,9 @@
     if (scanMode()) { /* claimed by tapping, not ticked */ }
     else if (me) item.people = { [me]: true };
     else if (prevWho.length === 1) item.people = { [prevWho[0]]: true };
-    const newId = uid();
-    write({ ["items/" + newId]: item });
+    const newId = uid(), add = { ["items/" + newId]: item };
+    if (scanMode() && !state.meta.mode) add["meta/mode"] = "scan";   // a bill from before the mode was set when its people were confirmed
+    write(add);
     focusLast($("#items"), ".name");
   });
   // Confirm who's at the table, once: after this nobody can be added, removed or renamed.
@@ -2081,6 +2236,7 @@
     const list = names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0];
     if (!(await ask("Confirm " + names.length + " people?", list + ".\n\nThis can't be changed later: nobody can be added, removed or renamed.", "Confirm"))) return;
     const p = { "meta/peopleLocked": true };
+    if (!state.meta.mode) p["meta/mode"] = "scan";
     // A bill on this phone also needs to know which person you are, so items start as yours.
     // (On a shared bill you've already picked your name at the top.)
     if (!billId && !myself()) {
@@ -2091,6 +2247,7 @@
       if (!me) return;
       p["meta/me"] = me;
     }
+    tab = null;   // on to Items
     write(p);
   });
   // The admin paid: one payment for whatever hasn't been paid yet.
@@ -2112,17 +2269,59 @@
     if (!row || e.target.closest("[data-act]")) return;
     const go = row.dataset.go;
     if (go === "bill") {
+      goTab("setup");
       const input = $('[data-f="billTotal"]');
       if (!$("#billCard").hidden && canAdmin()) { input.scrollIntoView({ behavior: "smooth", block: "center" }); input.focus({ preventScroll: true }); }
       return;
     }
+    goTab(go === "paid" ? "payments" : "food");
     const target = go === "paid" ? $("#paymentsCard") : $("#itemsCard");
     if (!target.hidden && getComputedStyle(target).display !== "none") target.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  $("#previewReceipt").addEventListener("click", () => {
-    receiptPreview = !receiptPreview;
-    render();
-    if (receiptPreview) $("#receipt").scrollIntoView({ behavior: "smooth", block: "start" });
+  // The Tutorial, for a guest: three steps, each with a little looping picture of an item's row being tapped (drawn
+  // here, in the page: no image files), under it what the tap does. Next walks through them; the dots jump. It opens
+  // by itself the first time a guest sees a bill's items (once they've said who they are), and from the ? after that.
+  function howToClaim() {
+    const me = meId(), other = sorted(state.people).map((p) => p.id).find((id) => id !== me);
+    const av = (pid, cls) => '<span class="av sm ' + (cls || "") + '" style="--c:' + (pid ? colorOf(pid) : "#999") + '">' + esc(pid ? (personName(pid)[0] || "?").toUpperCase() : "?") + "</span>";
+    // a row: the box (what it says before and after the tap), the item, who has it, its price, and the finger
+    const demo = (kind, before, after) => '<div class="how-demo how-' + kind + '"><div class="how-row">' +
+      '<span class="claim"><b class="how-a">' + before + '</b><b class="how-b">' + after + "</b></span>" +
+      '<span class="how-name">Burrata</span><span class="who"><span class="stack">' + (kind === "claim" ? "" : av(other)) + av(me, "how-me") + "</span></span>" +
+      '<span class="how-price">' + esc(state.meta.currency) + ' 9.50</span></div><i class="how-tap"></i></div>';
+    const steps = [
+      [demo("claim", "", "1"), "Tap the box next to an item to claim it."],
+      [demo("share", "", "1/2"), "If someone already claimed it, tapping the box means you shared it, and you can claim your portion."],
+      [demo("leave", "1/2", ""), "Tap the box again to remove yourself from that item."],
+    ];
+    let step = 0;
+    const show = () => {
+      const box = $("#mBody .how");
+      if (!box) return;
+      box.querySelectorAll(".how-step").forEach((el, i) => { el.hidden = i !== step; });
+      box.querySelectorAll(".how-dots button").forEach((el, i) => el.classList.toggle("on", i === step));
+      const next = $("#mActions .btn");
+      if (next) next.textContent = step < steps.length - 1 ? "Next" : "Got it";
+    };
+    sheet({
+      title: "Tutorial",
+      body: '<div class="how">' + steps.map(([d, t]) => '<div class="how-step">' + d + "<p>" + esc(t) + "</p></div>").join("") +
+        '<div class="how-dots">' + steps.map((_, i) => '<button aria-label="Step ' + (i + 1) + '"></button>').join("") + "</div></div>",
+      buttons: [{ label: "Next", kind: "primary", stay: true, run: () => { if (step < steps.length - 1) { step++; show(); } else if (closeSheet) closeSheet(true); } }],
+    });
+    $("#mBody .how-dots").addEventListener("click", (e) => {
+      const i = [...e.currentTarget.children].indexOf(e.target.closest("button"));
+      if (i >= 0) { step = i; show(); }
+    });
+    show();
+  }
+  $("#helpBtn").addEventListener("click", howToClaim);
+  $("#tabs").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-tab]");
+    if (!b || b.dataset.tab === tabNow()) return;
+    tab = b.dataset.tab;
+    VV.swap(render);
+    window.scrollTo(0, 0);
   });
   $("#addPayment").addEventListener("click", () => {
     const open = payDraftOpen();
@@ -2134,6 +2333,7 @@
   });
   // Point at the payment waiting for its Confirm.
   function showPayDraft(id, msg) {
+    goTab("payments");
     const row = $("#payments").querySelector('[data-id="' + id + '"]');
     if (row) {
       row.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2151,16 +2351,6 @@
   $("#joinBill").addEventListener("click", joinBill);
   $("#scanBtn").addEventListener("click", () => $("#scanFile").click());
   $("#scanFile").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; scanReceipt(f); });
-  // Manual: everyone adds what they had. Scan: the admin scans the receipt and everyone claims items from it.
-  $("#modeSeg").addEventListener("click", async (e) => {
-    const b = e.target.closest("[data-mode]");
-    if (!b || !canAdmin() || modeChosen()) return;
-    const scan = b.dataset.mode === "scan";
-    if (!(await ask(scan ? "Scan the receipt?" : "Type the items in?",
-      scan ? "You scan the receipt and everyone ticks off what they had. You can't switch to typing items in later."
-           : "Everyone adds what they had. You can't switch to scanning the receipt later.", scan ? "Scan receipt" : "Manual"))) return;
-    write({ "meta/mode": scan ? "scan" : "manual" });
-  });
   $("#myMonzo").addEventListener("click", () => editPayLinks(meId()));
 
   // Light/dark: follows the phone until you pick one here.
