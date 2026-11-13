@@ -338,10 +338,11 @@
 
   // ---------- in-app dialogs (native alert/confirm/prompt are blocked in some browsers and installed apps) ----------
   let closeSheet = null;
-  function sheet({ title, text = "", input = null, link = null, body = null, buttons }) {
+  function sheet({ title, text = "", input = null, link = null, body = null, buttons, stay = false }) {
     if (closeSheet) closeSheet(null);
     return new Promise((resolve) => {
       const modal = $("#modal"), inp = $("#mInput"), acts = $("#mActions");
+      $("#modal .sheet").toggleAttribute("data-no-swipe", stay);   // doesn't swipe down to close (the suite's swipe)
       $("#mTitle").textContent = title;
       $("#mText").textContent = text; $("#mText").hidden = !text;
       inp.hidden = !input;
@@ -2293,8 +2294,10 @@
     if (!target.hidden && getComputedStyle(target).display !== "none") target.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   // The Tutorial, for a guest: three steps, each with a little looping picture of an item's row being tapped (drawn
-  // here, in the page: no image files), under it what the tap does. Next walks through them; the dots jump. It opens
-  // by itself the first time a guest sees a bill's items (once they've said who they are), and from the ? after that.
+  // here, in the page: no image files), under it what the tap does. Next walks through them, and so does a swipe to
+  // the left (to the right goes back); the dots jump. It doesn't swipe down to close, so a sideways swipe that drifts
+  // down can't lose it: Got it, or a tap outside, closes it. It opens by itself the first time a guest sees a bill's
+  // items (once they've said who they are), and from the ? after that.
   function howToClaim() {
     const me = meId(), other = sorted(state.people).map((p) => p.id).find((id) => id !== me);
     const av = (pid, cls) => '<span class="av sm ' + (cls || "") + '" style="--c:' + (pid ? colorOf(pid) : "#999") + '">' + esc(pid ? (personName(pid)[0] || "?").toUpperCase() : "?") + "</span>";
@@ -2309,10 +2312,14 @@
       [demo("leave", "1/2", ""), "Tap the box again to remove yourself from that item."],
     ];
     let step = 0;
-    const show = () => {
+    const show = (from = 0) => {   // from: -1 or 1, the side the step comes in from
       const box = $("#mBody .how");
       if (!box) return;
-      box.querySelectorAll(".how-step").forEach((el, i) => { el.hidden = i !== step; });
+      box.querySelectorAll(".how-step").forEach((el, i) => {
+        el.hidden = i !== step;
+        if (i === step && from && !matchMedia("(prefers-reduced-motion: reduce)").matches)
+          el.animate([{ transform: "translateX(" + from * 36 + "px)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 220, easing: "cubic-bezier(.2, .8, .2, 1)" });
+      });
       box.querySelectorAll(".how-dots button").forEach((el, i) => el.classList.toggle("on", i === step));
       const next = $("#mActions .btn");
       if (next) next.textContent = step < steps.length - 1 ? "Next" : "Got it";
@@ -2321,12 +2328,26 @@
       title: "Tutorial",
       body: '<div class="how">' + steps.map(([d, t]) => '<div class="how-step">' + d + "<p>" + esc(t) + "</p></div>").join("") +
         '<div class="how-dots">' + steps.map((_, i) => '<button aria-label="Step ' + (i + 1) + '"></button>').join("") + "</div></div>",
-      buttons: [{ label: "Next", kind: "primary", stay: true, run: () => { if (step < steps.length - 1) { step++; show(); } else if (closeSheet) closeSheet(true); } }],
+      buttons: [{ label: "Next", kind: "primary", stay: true, run: () => { if (step < steps.length - 1) { step++; show(1); } else if (closeSheet) closeSheet(true); } }],
+      stay: true,
     });
     $("#mBody .how-dots").addEventListener("click", (e) => {
       const i = [...e.currentTarget.children].indexOf(e.target.closest("button"));
-      if (i >= 0) { step = i; show(); }
+      if (i >= 0 && i !== step) { const from = i > step ? 1 : -1; step = i; show(from); }
     });
+    // a swipe: mostly sideways and far enough, left for the next step, right for the one before
+    const how = $("#mBody .how");
+    let x0 = null, y0 = 0;
+    how.addEventListener("pointerdown", (e) => { if (e.isPrimary) { x0 = e.clientX; y0 = e.clientY; } });
+    how.addEventListener("pointerup", (e) => {
+      if (x0 === null) return;
+      const dx = e.clientX - x0, dy = e.clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      const to = Math.max(0, Math.min(steps.length - 1, step + (dx < 0 ? 1 : -1)));
+      if (to !== step) { const from = to > step ? 1 : -1; step = to; show(from); }
+    });
+    how.addEventListener("pointercancel", () => { x0 = null; });
     show();
   }
   $("#helpBtn").addEventListener("click", howToClaim);

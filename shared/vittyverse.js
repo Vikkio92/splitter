@@ -209,7 +209,8 @@
   // Any bottom sheet (.sheet) closes with a swipe down from the top of its content, as on any phone: a flick or a long
   // drag closes it, a short drag springs back. It closes the way a tap outside does (a click on its backdrop, the .scrim
   // around it or beside it), so each app's own closing runs. A long sheet still scrolls: the swipe only starts when it's
-  // scrolled to the top, and never from a field being typed in.
+  // scrolled to the top, and never from a field being typed in. A sheet marked data-no-swipe stays put (one that's
+  // swiped sideways itself, like Splitter's Tutorial, where a sideways swipe drifting down shouldn't close it).
   (function swipeSheets() {
     const backdrop = (sheet) => {
       const host = sheet.parentElement;
@@ -220,7 +221,7 @@
     document.addEventListener("touchstart", (e) => {
       el = null;
       const sheet = e.target.closest && e.target.closest(".sheet");
-      if (!sheet || e.touches.length > 1 || sheet.scrollTop > 0 || e.target.closest("input, select, textarea") || !backdrop(sheet)) return;
+      if (!sheet || sheet.hasAttribute("data-no-swipe") || e.touches.length > 1 || sheet.scrollTop > 0 || e.target.closest("input, select, textarea") || !backdrop(sheet)) return;
       el = sheet; y0 = e.touches[0].clientY; dy = 0; t0 = e.timeStamp;
     }, { passive: true });
     document.addEventListener("touchmove", (e) => {

@@ -688,6 +688,7 @@ html:where([data-app="splitter"]) { -webkit-text-size-adjust: 100%; }
 :where([data-app="splitter"]) body.guest #joinBill, :where([data-app="splitter"]) body.guest #newBill { display: none; }   /* mid-bill a guest needs neither: they're on the Bills page */
 :where([data-app="splitter"]) .check-note { margin: 12px 4px 0; font-size: 13px; font-weight: 600; color: var(--warn); }
 /* How to claim: an item's row, tapped, on a loop. The finger comes in, presses the box, and the row changes; then back. */
+:where([data-app="splitter"]) .how { touch-action: pan-y; user-select: none; -webkit-user-select: none; }   /* sideways swipes are the Tutorial's */
 :where([data-app="splitter"]) .how-demo { position: relative; margin: 6px 0 14px; }
 :where([data-app="splitter"]) .how-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--fill); outline: 1.5px dashed transparent; outline-offset: -1.5px; }
 :where([data-app="splitter"]) .how-row .claim { position: relative; animation: how-box 4s infinite; }
