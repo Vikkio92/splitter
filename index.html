@@ -1878,7 +1878,7 @@
     const open = new Set(Array.from(box.querySelectorAll("details[open]"), (d) => d.dataset.p));
     let h = '<div class="card-head"><h2>' + (state.meta.locked ? "Everyone" : "Split") + "</h2></div>";
 
-    if (!r.balanced && r.totalC > 0 && !state.meta.locked) h += '<p class="split-note">Who owes whom shows once the checklist is all green.</p>';
+    if (!r.balanced && r.totalC > 0 && !state.meta.locked) h += '<p class="split-note">Who owes whom shows once the checklist has nothing left to fix.</p>';
     r.people.forEach((p) => {
       const id = p.id, net = r.net[id];
       const status = !r.balanced ? '<span class="settled">' + (r.paid[id] ? "paid " + money(r.paid[id]) : "nothing paid yet") + "</span>"
