@@ -279,6 +279,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
    the whole screen, so a tap anywhere outside the sheet closes it. */
 .scrim { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: linear-gradient(to bottom, transparent env(safe-area-inset-top, 0px), rgba(0, 0, 0, 0.45) env(safe-area-inset-top, 0px)); animation: fade .18s ease; }
 .sheet::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 99px; background: var(--line); margin: 0 auto 16px; }
+/* a sheet that doesn't swipe down (data-no-swipe) has no handle to suggest it does: the same 20px of room on top as on
+   the sides instead */
+.sheet[data-no-swipe] { padding-top: 20px; }
+.sheet[data-no-swipe]::before { display: none; }
 .sheet h2 { font: 700 22px/1.2 var(--display-font); letter-spacing: -0.01em; margin: 0 0 6px; padding: 0; }
 .sheet .sub { color: var(--muted); margin: 0 0 16px; }
 @media (min-width: 640px) {
