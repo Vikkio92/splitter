@@ -1110,7 +1110,7 @@
     const code = state.meta.code, url = shareUrl(false);
     const body = code ? '<p class="code-label">Join code</p><div class="code-big">' + formatCode(code) + "</div>" : null;
     const text = "Join my bill on Splitter.ino" + (code ? " with code " + formatCode(code) + "," : "") + " or open:";
-    const buttons = [{ label: "Copy link", value: true, run: () => copy(url), stay: true }];
+    const buttons = [{ label: "Copy link", value: true, run: () => copyLink(url), stay: true }];
     if (navigator.share) buttons.push({ label: "Share…", value: true, kind: "primary", icon: ICON.share, run: () => navigator.share({ title: "Splitter.ino", text, url }).catch(() => {}) });
     else buttons.push({ label: "Done", value: true, kind: "primary" });
     return sheet({ title: "Invite friends", text: "Send the link, or have them tap Join bill and enter the code.", body, link: url, buttons });
@@ -1137,14 +1137,19 @@
 
   // Share/copy happen straight from a tap inside the sheet, which phones require.
   function linkSheet(title, text, url) {
-    const buttons = [{ label: "Copy link", value: true, run: () => copy(url), stay: true }];
+    const buttons = [{ label: "Copy link", value: true, run: () => copyLink(url), stay: true }];
     if (navigator.share) buttons.push({ label: "Share…", value: true, kind: "primary", icon: ICON.share, run: () => navigator.share({ title: "Splitter.ino", text: "Add what you had to the bill:", url }).catch(() => {}) });
     else buttons.push({ label: "Done", value: true, kind: "primary" });
     return sheet({ title, text, link: url, buttons });
   }
-  function copy(text) {
-    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Copied"), () => toast("Press and hold the link to copy it"));
+  function copy(text, then) {
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => { toast("Copied"); if (then) then(); }, () => toast("Press and hold the link to copy it"));
     else toast("Press and hold the link to copy it");
+  }
+  // Copy link in a sheet: once it's copied the sheet closes, so "Link copied" is what you see. If it can't be copied,
+  // the sheet stays, with the link there to press and hold.
+  function copyLink(url) {
+    copy(url, () => { if (closeSheet) closeSheet(true); toast("Link copied"); });
   }
 
   // ---------- maths ----------
